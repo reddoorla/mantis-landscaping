@@ -53,6 +53,24 @@
             },
             "cta_banner": {
               "type": "SharedSlice"
+            },
+            "split_hero": {
+              "type": "SharedSlice"
+            },
+            "feature_trio": {
+              "type": "SharedSlice"
+            },
+            "service_cards": {
+              "type": "SharedSlice"
+            },
+            "steps": {
+              "type": "SharedSlice"
+            },
+            "text_block": {
+              "type": "SharedSlice"
+            },
+            "project_list": {
+              "type": "SharedSlice"
             }
           }
         }

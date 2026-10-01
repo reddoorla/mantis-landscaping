@@ -5,4 +5,4 @@
   let { data } = $props();
 </script>
 
-<SliceZone slices={data.page.data.slices} {components} />
+<SliceZone slices={data.page.data.slices} {components} context={data.context} />

@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from "vitest";
 // asked for documents the response would not list.
 const prismic = vi.hoisted(() => ({
   isPlaceholderRepo: true,
-  getAllByType: vi.fn(async () => [] as unknown[]),
+  getAllByType: vi.fn(async (_type?: string) => [] as unknown[]),
 }));
 vi.mock("$lib/prismicio", () => ({
   get isPlaceholderRepo() {
@@ -54,10 +54,14 @@ describe("GET /sitemap.xml on a netlify.app host", () => {
   const wired = () => {
     prismic.isPlaceholderRepo = false;
     prismic.getAllByType.mockClear();
-    prismic.getAllByType.mockResolvedValue([
-      { uid: "home", last_publication_date: "2026-09-01T00:00:00Z" },
-      { uid: "about", last_publication_date: "2026-09-01T00:00:00Z" },
-    ]);
+    prismic.getAllByType.mockImplementation(async (type?: string) =>
+      type === "project"
+        ? [{ uid: "edible-gardens", last_publication_date: "2026-09-01T00:00:00Z" }]
+        : [
+            { uid: "home", last_publication_date: "2026-09-01T00:00:00Z" },
+            { uid: "about", last_publication_date: "2026-09-01T00:00:00Z" },
+          ],
+    );
   };
 
   it("is rendered per request, not baked at build time", () => {
@@ -89,6 +93,7 @@ describe("GET /sitemap.xml on a netlify.app host", () => {
     expect(locs(await body("https://www.example.com"))).toEqual([
       "https://www.example.com/",
       "https://www.example.com/about",
+      "https://www.example.com/projects/edible-gardens",
       "https://www.example.com/contact",
     ]);
   });

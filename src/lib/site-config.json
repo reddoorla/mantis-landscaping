@@ -1,4 +1,31 @@
 {
-  "nav": { "items": [] },
-  "footer": { "socials": [] }
+  "nav": {
+    "logo": { "url": "/logo.png", "maxWidth": "15rem" },
+    "items": [
+      { "label": "Projects", "href": "/projects" },
+      { "label": "Contact Us", "href": "/contact-us" }
+    ]
+  },
+  "footer": {
+    "owner": "Mantis Landscaping",
+    "socials": [
+      { "network": "instagram", "href": "https://www.instagram.com/mantis_landscaping/" }
+    ],
+    "columns": [
+      {
+        "items": [
+          {
+            "image": { "url": "/logo.png", "maxWidth": "15rem", "alt": "Mantis Landscaping" },
+            "href": "/"
+          }
+        ]
+      },
+      {
+        "items": [
+          { "text": "Contact Us", "href": "/contact-us" },
+          { "text": "424-264-8944", "href": "tel:+14242648944" }
+        ]
+      }
+    ]
+  }
 }

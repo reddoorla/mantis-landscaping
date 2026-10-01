@@ -1,0 +1,88 @@
+{
+  "id": "text_block",
+  "type": "SharedSlice",
+  "name": "TextBlock",
+  "description": "An eyebrow or display heading, copy, and buttons, on a colour or a photo",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "An eyebrow or display heading, copy, and buttons, on a colour or a photo",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "heading",
+            "single": "heading1,heading2,heading3"
+          }
+        },
+        "heading_style": {
+          "type": "Select",
+          "config": {
+            "label": "heading_style",
+            "options": ["eyebrow", "display"],
+            "default_value": "eyebrow"
+          }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "label": "body",
+            "multi": "paragraph,strong,em,hyperlink"
+          }
+        },
+        "size": {
+          "type": "Select",
+          "config": {
+            "label": "size",
+            "options": ["body", "statement"],
+            "default_value": "body"
+          }
+        },
+        "align": {
+          "type": "Select",
+          "config": {
+            "label": "align",
+            "options": ["left", "center"],
+            "default_value": "left"
+          }
+        },
+        "background": {
+          "type": "Select",
+          "config": {
+            "label": "background",
+            "options": ["dark", "light", "white", "gold", "image"],
+            "default_value": "dark"
+          }
+        },
+        "background_image": {
+          "type": "Image",
+          "config": {
+            "label": "background_image",
+            "constraint": {},
+            "thumbnails": []
+          }
+        }
+      },
+      "items": {
+        "button_label": {
+          "type": "Text",
+          "config": {
+            "label": "button_label",
+            "placeholder": ""
+          }
+        },
+        "button_link": {
+          "type": "Link",
+          "config": {
+            "label": "button_link",
+            "allowTargetBlank": true
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "id": "steps",
+  "type": "SharedSlice",
+  "name": "Steps",
+  "description": "Numbered steps with an optional photo or icon each, and one call to action",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Numbered steps with an optional photo or icon each, and one call to action",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "heading",
+            "single": "heading2"
+          }
+        },
+        "background": {
+          "type": "Select",
+          "config": {
+            "label": "background",
+            "options": ["gold", "light"],
+            "default_value": "gold"
+          }
+        },
+        "cta_label": {
+          "type": "Text",
+          "config": {
+            "label": "cta_label",
+            "placeholder": ""
+          }
+        },
+        "cta_link": {
+          "type": "Link",
+          "config": {
+            "label": "cta_link",
+            "allowTargetBlank": true
+          }
+        }
+      },
+      "items": {
+        "image": {
+          "type": "Image",
+          "config": {
+            "label": "image",
+            "constraint": {},
+            "thumbnails": []
+          }
+        },
+        "icon": {
+          "type": "Select",
+          "config": {
+            "label": "icon",
+            "options": [
+              "design",
+              "water",
+              "edible",
+              "native",
+              "installation",
+              "maintenance",
+              "visit",
+              "plan",
+              "plant",
+              "sun",
+              "community",
+              "pest",
+              "consulting"
+            ],
+            "default_value": "design"
+          }
+        },
+        "title": {
+          "type": "Text",
+          "config": {
+            "label": "title",
+            "placeholder": ""
+          }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "label": "body",
+            "multi": "paragraph,strong,em,hyperlink"
+          }
+        }
+      }
+    }
+  ]
+}

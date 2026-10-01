@@ -1,0 +1,196 @@
+{
+  "id": "project",
+  "label": "Project",
+  "format": "page",
+  "repeatable": true,
+  "status": true,
+  "json": {
+    "Main": {
+      "uid": {
+        "type": "UID",
+        "config": {
+          "label": "UID",
+          "placeholder": ""
+        }
+      },
+      "title": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Title",
+          "placeholder": "",
+          "single": "heading1"
+        }
+      },
+      "kicker": {
+        "type": "Text",
+        "config": {
+          "label": "Kicker",
+          "placeholder": "design + installation + maintenance"
+        }
+      },
+      "intro": {
+        "type": "StructuredText",
+        "config": {
+          "label": "Intro",
+          "placeholder": "",
+          "multi": "paragraph,strong,em,hyperlink"
+        }
+      },
+      "hero_image": {
+        "type": "Image",
+        "config": {
+          "label": "Hero image",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "card_image": {
+        "type": "Image",
+        "config": {
+          "label": "Card image (project list)",
+          "constraint": {},
+          "thumbnails": []
+        }
+      },
+      "services_heading": {
+        "type": "Text",
+        "config": {
+          "label": "Services heading",
+          "placeholder": "Services provided"
+        }
+      },
+      "services": {
+        "type": "Group",
+        "config": {
+          "label": "Services",
+          "repeat": true,
+          "fields": {
+            "icon": {
+              "type": "Select",
+              "config": {
+                "label": "Icon",
+                "options": [
+                  "design",
+                  "water",
+                  "edible",
+                  "native",
+                  "installation",
+                  "maintenance",
+                  "visit",
+                  "plan",
+                  "plant",
+                  "sun",
+                  "community",
+                  "pest",
+                  "consulting"
+                ]
+              }
+            },
+            "label": {
+              "type": "Text",
+              "config": {
+                "label": "Label",
+                "placeholder": "Native Gardens"
+              }
+            }
+          }
+        }
+      },
+      "case_studies": {
+        "type": "Group",
+        "config": {
+          "label": "Case studies",
+          "repeat": true,
+          "fields": {
+            "label": {
+              "type": "Text",
+              "config": {
+                "label": "Label",
+                "placeholder": "Residential"
+              }
+            },
+            "title": {
+              "type": "Text",
+              "config": {
+                "label": "Title",
+                "placeholder": "Roof Top Oasis"
+              }
+            },
+            "body": {
+              "type": "StructuredText",
+              "config": {
+                "label": "Body",
+                "placeholder": "",
+                "multi": "paragraph,strong,em,hyperlink"
+              }
+            },
+            "photos": {
+              "type": "Group",
+              "config": {
+                "label": "Photos",
+                "repeat": true,
+                "fields": {
+                  "photo": {
+                    "type": "Image",
+                    "config": {
+                      "label": "Photo",
+                      "constraint": {},
+                      "thumbnails": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "slices": {
+        "type": "Slices",
+        "fieldset": "Slice Zone",
+        "config": {
+          "choices": {
+            "steps": {
+              "type": "SharedSlice"
+            },
+            "case_studies": {
+              "type": "SharedSlice"
+            },
+            "text_block": {
+              "type": "SharedSlice"
+            },
+            "feature_trio": {
+              "type": "SharedSlice"
+            }
+          }
+        }
+      }
+    },
+    "SEO & Metadata": {
+      "meta_title": {
+        "type": "Text",
+        "config": {
+          "label": "Meta Title",
+          "placeholder": "A title of the page used for social media and search engines"
+        }
+      },
+      "meta_description": {
+        "type": "Text",
+        "config": {
+          "label": "Meta Description",
+          "placeholder": "A brief summary of the page"
+        }
+      },
+      "meta_image": {
+        "type": "Image",
+        "config": {
+          "label": "Meta Image",
+          "constraint": {
+            "width": 2400,
+            "height": 1260
+          },
+          "thumbnails": []
+        }
+      }
+    }
+  }
+}
