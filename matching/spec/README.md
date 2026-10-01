@@ -47,7 +47,13 @@ images the live pages use, even with `--probe`. The images come from
 
 - `pages/`: the 6 pages as served, byte for byte.
 - `sitemap.xml`.
-- `files/`: every asset fetched except the photo originals.
+- `files/`: every asset fetched except the photo originals and Blux's
+  `__analytics.js`. That script was removed after Netlify's secret scan
+  failed the first production build on the Google API key (`AIza…`) at its
+  line 41. The key is Blux's own browser key, served publicly by the live
+  site. The matching gate does not need an analytics script, and a third
+  party's key does not belong in this public repo. The file's sha256 is
+  still in `manifest.json`.
 
 `manifest.json` lists every page and file with its URL, bytes and sha256,
 **including the 89 original uploads** (242.3 MB, under

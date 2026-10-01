@@ -572,3 +572,11 @@ This repo was generated from reddoor-starter for mantislandscaping.com, which wa
 - Its axe step wrote no results. The same step on an untouched checkout of `main` failed identically, so the cause is the cloud container, not this PR; CI's runner is the authority there.
 - Unit tests found one real failure, from this PR: the harness adds `src/lib/site-pages.js`, so `docs/COMPONENTS.md` was stale. It was regenerated, and 503/503 now pass.
 - The smoke suite was not run here: its script runs `playwright install`, which this container must not. CI runs it.
+
+## 2026-10-01 — The first Netlify build failed on a third party's API key in `matching/spec/` (this PR)
+
+The Netlify site `mantis-landscaping` was created at 18:33Z (`f0ce133b`), linked to this repo's `main`, and its first production build of `69b7975` failed: "Build script returned non-zero exit code: 2". The REST API had no build log for it. The Netlify connector's deploy record named the cause in `deploy_validations_report`: an enhanced secret-scan match for `AIza` at line 41 of `matching/spec/capture/files/mantislandscaping.com/__analytics.js`.
+
+That is Blux's own analytics script. P0 vendored it with the rest of the live capture, and the key in it is Blux's browser key, which the live site serves to every visitor. P0's CI was green because CI does not run Netlify's scan, so nothing before the first production build could have caught it.
+
+The file is removed rather than exempting `matching/spec/` from the scan. The matching gate compares rendering and never needs an analytics script, and an exemption would also hide a real secret committed there later. The manifest keeps the file's sha256. The key remains in P0's commit, because rewriting published history is not done here.
