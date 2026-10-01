@@ -33,3 +33,28 @@ dist/
 .tsbuildinfo
 
 .worktrees/
+
+# reddoor-maint match-harness: scripts + records tracked, workspace ignored
+scratch-diff*/
+matching/*
+!matching/*.sh
+!matching/*.mjs
+!matching/*.md
+# The pause switch. Extensionless on purpose (it is a sentinel, not a doc), so
+# the whitelist above misses it — and an ignored switch is not a switch: it
+# would work on one machine and be absent from every fresh clone, CI run and
+# agent that most needs to see it.
+!matching/PAUSED
+!matching/spec-sections/
+!matching/states/
+matching/states/*
+!matching/states/*.mjs
+# derived artefacts, even where the extensions above would catch them
+matching/*.log
+matching/*.json
+# ...except the page table itself, which is the harness's configuration and the
+# one thing a fresh clone cannot reconstruct.
+!matching/harness.json
+matching/*.png
+
+# end reddoor-maint match-harness

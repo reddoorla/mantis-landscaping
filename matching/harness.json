@@ -1,0 +1,25 @@
+{
+  "ref": "https://mantislandscaping.com",
+  "cand": "http://localhost:5173",
+  "matrix": [
+    1440,
+    834,
+    390
+  ],
+  "threshold": 0.1,
+  "maxHeightDelta": 0.05,
+  "refMark": "",
+  "candMark": "_app/immutable",
+  "selfHosts": [],
+  "pages": {
+    "home": {
+      "uid": "home",
+      "ref": "/",
+      "cand": "/dev/match/home",
+      "published": "/",
+      "anchors": [],
+      "spec": "home",
+      "group": "nav"
+    }
+  }
+}
