@@ -11,15 +11,23 @@
   --color-current: currentColor;
   --color-black: black;
   --color-white: white;
-  --color-background: white;
 
-  /* Neutral placeholder palette — replace per project (docs/STARTER.md). Every
-     value is distinct on purpose so a forgotten token is visible, not silent. */
-  --color-light: #e5e7eb;
-  --color-primary: #111827;
-  --color-dark: #1f2937;
-  --color-secondary: #6b7280;
-  --color-accent: #2563eb;
+  /* Mantis Landscaping, from the Blux site's stylesheet (matching/spec/export
+     site.json `styles`): text #2e1e15, band #232d1b, icons #f58736, gold
+     #dfb726. The gold is split by job (OD 62a): `gold` is the brand fill and
+     is text-safe only on the dark bands (7.48:1 on `dark`); `gold-deep`
+     #836a10 is the darkened gold that white text sits on (5.21:1) and that
+     gold text uses on a light ground (4.77:1 on `light`). White on the old
+     #dfb726 measured 1.91:1. */
+  --color-background: white;
+  --color-light: #f5f5f5;
+  --color-primary: #2e1e15;
+  --color-dark: #232d1b;
+  --color-moss: #2f3a26;
+  --color-secondary: #5c5048;
+  --color-accent: #f58736;
+  --color-gold: #dfb726;
+  --color-gold-deep: #836a10;
 
   /* Tailwind 4.3 writes 13 of its palette entries with a `none` hue — every
      neutral, zinc-50 and mauve-50, e.g. neutral-900 is `oklch(20.5% 0 none)`.
@@ -47,8 +55,8 @@
      static/fonts (preload the body face in app.html) or load a kit, then
      point these at the loaded family names. Until then the system stack
      applies. `font-heading` / `font-body` utilities come from these tokens. */
-  --font-heading: ui-sans-serif, system-ui, sans-serif;
-  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
 
   --transition-in-expo: cubic-bezier(0.95, 0.05, 0.795, 0.035);
   --transition-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
@@ -261,6 +269,19 @@ main > section.hero-band:first-child {
   h5,
   h6 {
     font-family: var(--font-heading);
+    font-weight: 300;
+    line-height: 1.25;
+  }
+
+  body {
+    color: var(--color-primary);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  strong,
+  b {
+    font-weight: 700;
   }
 
   /* The scroll reveal's hidden state, in CSS, so it exists at FIRST PAINT.
@@ -356,4 +377,21 @@ main > section.hero-band:first-child {
     will-change: transform;
     filter: blur(0.5px);
   }
+}
+
+/* The Blux site's label type: small, bold, uppercase, tracked. Used by
+   eyebrows, card titles and the "Contact Us +" links. */
+@utility eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* Statement copy ("With a background in urban farming…"). */
+@utility statement {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.5rem);
+  font-weight: 300;
+  line-height: 1.35;
 }

@@ -1,0 +1,64 @@
+{
+  "id": "feature_trio",
+  "type": "SharedSlice",
+  "name": "FeatureTrio",
+  "description": "A row of short labels, each with an optional icon",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "A row of short labels, each with an optional icon",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "heading",
+            "single": "heading2,heading3"
+          }
+        },
+        "background": {
+          "type": "Select",
+          "config": {
+            "label": "background",
+            "options": ["gold", "dark", "moss"],
+            "default_value": "gold"
+          }
+        }
+      },
+      "items": {
+        "icon": {
+          "type": "Select",
+          "config": {
+            "label": "icon",
+            "options": [
+              "design",
+              "water",
+              "edible",
+              "native",
+              "installation",
+              "maintenance",
+              "visit",
+              "plan",
+              "plant",
+              "sun",
+              "community",
+              "pest",
+              "consulting"
+            ],
+            "default_value": "design"
+          }
+        },
+        "label": {
+          "type": "Text",
+          "config": {
+            "label": "label",
+            "placeholder": ""
+          }
+        }
+      }
+    }
+  ]
+}

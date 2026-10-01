@@ -1,0 +1,26 @@
+{
+  "id": "case_studies",
+  "type": "SharedSlice",
+  "name": "CaseStudies",
+  "description": "The project's case studies (edited on the project's Main tab), each a photo gallery and its story",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "The project's case studies (edited on the project's Main tab), each a photo gallery and its story",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "heading",
+            "single": "heading2"
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}

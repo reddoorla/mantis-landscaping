@@ -29,13 +29,19 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
   // One entry per page document ("home" renders at "/"). Empty on an
   // unconfigured starter so the route works before Prismic is wired.
   type Entry = { path: string; lastmod?: string };
-  const pageEntries: Entry[] =
-    mirror || isPlaceholderRepo
-      ? []
-      : (await createClient({ fetch }).getAllByType("page")).map((page) => ({
+  const client = mirror || isPlaceholderRepo ? null : createClient({ fetch });
+  const pageEntries: Entry[] = client
+    ? [
+        ...(await client.getAllByType("page")).map((page) => ({
           path: page.uid === "home" ? "/" : `/${page.uid}`,
           lastmod: new Date(page.last_publication_date ?? Date.now()).toISOString(),
-        }));
+        })),
+        ...(await client.getAllByType("project")).map((project) => ({
+          path: `/projects/${project.uid}`,
+          lastmod: new Date(project.last_publication_date ?? Date.now()).toISOString(),
+        })),
+      ]
+    : [];
 
   // A static route carries no <lastmod>. While this was prerendered, build time
   // stood in for it; rendered per request, "now" would claim the page changed on

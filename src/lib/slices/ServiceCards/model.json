@@ -1,0 +1,63 @@
+{
+  "id": "service_cards",
+  "type": "SharedSlice",
+  "name": "ServiceCards",
+  "description": "Linked cards, each an icon and a title",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "Linked cards, each an icon and a title",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "heading",
+            "single": "heading2,heading3"
+          }
+        }
+      },
+      "items": {
+        "icon": {
+          "type": "Select",
+          "config": {
+            "label": "icon",
+            "options": [
+              "design",
+              "water",
+              "edible",
+              "native",
+              "installation",
+              "maintenance",
+              "visit",
+              "plan",
+              "plant",
+              "sun",
+              "community",
+              "pest",
+              "consulting"
+            ],
+            "default_value": "design"
+          }
+        },
+        "title": {
+          "type": "Text",
+          "config": {
+            "label": "title",
+            "placeholder": ""
+          }
+        },
+        "link": {
+          "type": "Link",
+          "config": {
+            "label": "link",
+            "allowTargetBlank": true
+          }
+        }
+      }
+    }
+  ]
+}

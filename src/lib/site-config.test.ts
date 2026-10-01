@@ -31,6 +31,11 @@ describe("footerColumns", () => {
   });
 
   it("returns undefined when neither supplies columns (fresh site → Footer placeholder)", () => {
-    expect(footerColumns(undefined, loadSiteConfig())).toBeUndefined();
+    const bare = { ...loadSiteConfig(), footer: { socials: [] } };
+    expect(footerColumns(undefined, bare)).toBeUndefined();
+  });
+
+  it("gives this site's footer its two columns from site-config", () => {
+    expect(footerColumns(undefined, loadSiteConfig())).toHaveLength(2);
   });
 });
