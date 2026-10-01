@@ -50,3 +50,6 @@ src/routes/dev/match/\[uid\]/+page.svelte
 src/lib/site-pages.test.ts
 
 # end reddoor-maint match-harness
+
+# The Blux reference, kept as served (matching/spec/README.md).
+matching/spec/

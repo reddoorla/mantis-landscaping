@@ -8,9 +8,11 @@
   ],
   "threshold": 0.1,
   "maxHeightDelta": 0.05,
-  "refMark": "",
+  "refMark": "6e0b52ee-9bb9-4c5a-b1ee-653009e3b572",
   "candMark": "_app/immutable",
-  "selfHosts": [],
+  "selfHosts": [
+    "mantis-landscaping.netlify.app"
+  ],
   "pages": {
     "home": {
       "uid": "home",

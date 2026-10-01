@@ -538,3 +538,32 @@ It still refuses a `none` hue. With the fix, the same probe passes both
 steps (15 tests), and the probe was removed. This is the first part of #152.
 Field's `red-600` failing AA off white, the issue's second part, is not
 touched here.
+
+## 2026-10-01 — Mantis Landscaping P0: identity, the matching harness, and the Blux reference (this PR)
+
+This repo was generated from reddoor-starter for mantislandscaping.com, which was served by Blux. The plan and the operator's answers are in reddoorla/reddoor-maintenance: `docs/mantis-landscaping-plan-2026-10.md`, #1107, and BACKLOG Operator decisions 59–62. This PR is P0 of that plan. Everything above this entry is the starter's own history.
+
+**Identity.**
+- `package.json#name`, the CI `netlify-site` and `SITE_NAME` are now `mantis-landscaping` / Mantis Landscaping.
+- The Netlify name is assumed from the fleet convention (name = slug) and is not yet confirmed.
+- `slicemachine.config.json` still carries `your-prismic-repo-name`. The Prismic repository `mantis-landscaping` exists (its `/api/v2` answers 200; a made-up name answers 404) but has no content. Naming it now would re-arm loud-fail prerendering and turn the build red. The rename rides with P2's seed.
+
+**The matching harness** was installed by `reddoor-maint match-harness --ref https://mantislandscaping.com`, which committed to a branch of its own; that commit is folded in here.
+- `refMark` is the Blux site id. `--check-ref` passed against the live site (200, no redirect, mark present).
+- A deliberately wrong `refMark` was refused with "served 200 but WITHOUT refMark". So the check can say no, and it is not just printing OK.
+
+**The reference, in `matching/spec/`** (2.7 MB, README there):
+- **The Blux dashboard export** (the operator downloaded it). `site.json` is **redacted**: this repo is public, and the export carried 6 email addresses plus owner and collaborator records. The original's sha256 is in the README. Re-applying the same redaction to the parsed original gives byte-identical JSON. The 370 KB → 170 KB drop is only the export's pretty-printing.
+- **The live-site capture** taken in the planning session. Its manifest still lists the 89 photo originals (242.3 MB); those bytes are not committed and stay on Blux's CDN until the seed.
+
+**`blux convert` on the export: what it does and does not do.**
+- Every page came back "FAITHFUL" (3 pages, 17 bands, 5 low-confidence blocks).
+- It ignores the `projects` collection (water-wise and the three disabled drafts).
+- It resolves only 2 of the 89 used images, even with `--probe`.
+- So the seed will be built from the export's text plus the capture's images, not from `blux migrate`. The planning session had already chosen that, because `migrate` writes Blux-track types.
+
+**Verification.**
+- `pnpm verify` ran clean through prettier, eslint, svelte-check and the build.
+- Its axe step wrote no results. The same step on an untouched checkout of `main` failed identically, so the cause is the cloud container, not this PR; CI's runner is the authority there.
+- Unit tests found one real failure, from this PR: the harness adds `src/lib/site-pages.js`, so `docs/COMPONENTS.md` was stale. It was regenerated, and 503/503 now pass.
+- The smoke suite was not run here: its script runs `playwright install`, which this container must not. CI runs it.

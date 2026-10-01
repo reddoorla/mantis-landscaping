@@ -8,9 +8,12 @@ Read this **before writing interactive behaviour into a slice** — a carousel, 
 dialog, a disclosure, a focus trap, a reduced-motion check. Not as a rule, as a
 list: the failure it exists to stop is never disagreement, it is not knowing.
 
-Reuse is not always the answer — a component whose markup fights the design is
-a reason to lift its LOGIC, not to reach for it whole. But that is a decision to
-make after reading the module, not instead of reading it.
+Reuse is not always possible here: this site has a matching harness, and its
+geometry gate diffs slice DOM against transcribed reference markup — a component
+that owns its own markup often cannot be dropped in. That is an argument against
+reusing the **component** and never against reading it: the logic is usually
+liftable when the markup is not. Declining one gets a line in
+`matching/LEDGER.md` naming the module and why.
 
 The **surface** column is the module's real prop/export names, extracted from the
 source. It is the fastest way to recognise what a thing does.
@@ -56,6 +59,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`seo.ts`](../src/lib/seo.ts) | `SITE_NAME`, `SITE_LOCALE`, `DEFAULT_DESCRIPTION`, `DEFAULT_OG_IMAGE`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`, `NOINDEX_PREFIXES`, `isNoindexPath`, `NOINDEX_ENFORCED`, `composeTitle`, `jsonLdScript`, `canonicalUrl`, `resolveOgImage`, `organizationJsonLd` | 24 | Site-wide SEO configuration + helpers |
 | [`reply-copy.ts`](../src/lib/server/reply-copy.ts) | `replyCopyFor` | — |  |
 | [`site-config.ts`](../src/lib/site-config.ts) | `loadSiteConfig`, `footerColumns` | 4 | Site chrome (navigation + footer) from a checked-in JSON stub |
+| [`site-pages.js`](../src/lib/site-pages.js) | `lang`, `documents` | 3 | The page assemblies for this site — the SINGLE source of truth for both consumers: a Prismic Migration API script, which publishes them (start from the starter's scripts/import/migrate.example.ts — no `reddoor-maint` command does this; the seed is per-site work), and src/routes/dev/match/[uid], the local matching surface |
 | [`viewport.svelte.ts`](../src/lib/stores/viewport.svelte.ts) | `viewport` | — |  |
 | [`transitions.ts`](../src/lib/transitions.ts) | `prefersReducedMotion`, `reducedMotion`, `fade`, `fly`, `slide` | 10 |  |
 | [`turnstile.ts`](../src/lib/turnstile.ts) | `loadTurnstile` | — | Cloudflare Turnstile explicit-render helper |
@@ -67,4 +71,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-49 modules, 345 tests behind them.
+50 modules, 348 tests behind them.

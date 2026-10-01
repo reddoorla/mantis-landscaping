@@ -58,3 +58,7 @@ matching/*.json
 matching/*.png
 
 # end reddoor-maint match-harness
+
+# The Blux reference (export + live capture), kept as served. Outside the
+# recipe-owned block above on purpose.
+!matching/spec/
