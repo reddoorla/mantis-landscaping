@@ -64,4 +64,28 @@ export const smokeRoutes: SmokeRoute[] = [
         expectStatus: 404,
       }
     : { path: "/", name: "home", hydrationMarker: "footer" },
+  ...(isPlaceholderRepo
+    ? []
+    : [
+        { path: "/projects", name: "projects", hydrationMarker: "footer" },
+        { path: "/contact-us", name: "contact us", hydrationMarker: "footer" },
+        {
+          path: "/projects/water-wise-gardens",
+          name: "water wise gardens",
+          hydrationMarker: "footer",
+        },
+        { path: "/projects/edible-gardens", name: "edible gardens", hydrationMarker: "footer" },
+        {
+          path: "/no-such-page",
+          name: "an unknown slug, expecting 404",
+          hydrationMarker: "footer",
+          expectStatus: 404,
+        },
+        {
+          path: "/projects/no-such-project",
+          name: "an unknown project, expecting 404",
+          hydrationMarker: "footer",
+          expectStatus: 404,
+        },
+      ]),
 ];

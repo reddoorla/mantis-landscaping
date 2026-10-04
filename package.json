@@ -20,7 +20,13 @@
     "slicemachine": "start-slicemachine"
   },
   "reddoor": {
-    "a11yRoutes": []
+    "a11yRoutes": [
+      "/",
+      "/projects",
+      "/contact-us",
+      "/projects/water-wise-gardens",
+      "/projects/edible-gardens"
+    ]
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
