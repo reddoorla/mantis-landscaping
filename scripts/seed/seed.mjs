@@ -102,3 +102,7 @@ await client.migrate(migration, {
   reporter: (event) => console.log(event.type, event.data?.current ?? "", event.data?.total ?? ""),
 });
 console.log("seed: done. Review the migration release in Prismic, then run again with --publish.");
+console.log(
+  "seed: if migrate() failed after creating documents, delete the release's documents in Prismic " +
+    "before running again: a second create for the same uid fails. Assets are reused either way.",
+);

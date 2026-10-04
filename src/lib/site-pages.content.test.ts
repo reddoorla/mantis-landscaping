@@ -222,3 +222,27 @@ describe("the value check itself", () => {
     expect(bad[0].startsWith(expected)).toBe(true);
   });
 });
+
+describe("the value check's own edges", () => {
+  it("reports a field type it does not know how to check, instead of passing it", () => {
+    expect(valueViolations("probe", { swatch: "#fff" }, { swatch: { type: "Color" } })).toEqual([
+      "probe.swatch: unchecked field type Color",
+    ]);
+  });
+});
+
+describe("the documents' links", () => {
+  it("point only at documents the seed creates", () => {
+    const targets: string[] = [];
+    const built = documents(
+      () => ({}),
+      (target: string) => {
+        targets.push(target);
+        return { link_type: "Any" };
+      },
+    ) as Doc[];
+    const created = new Set(built.map((doc) => `${doc.type}:${doc.uid}`));
+    expect(targets.length).toBeGreaterThan(0);
+    expect(targets.filter((target) => !created.has(target))).toEqual([]);
+  });
+});
