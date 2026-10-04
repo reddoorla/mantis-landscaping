@@ -5,10 +5,13 @@ import sharp from "sharp";
 import { documents, lang } from "../../src/lib/site-pages.js";
 import {
   REPOSITORY,
-  assetConflicts,
+  listAssets,
   makeLink,
+  missingModels,
+  modelsUsed,
   planAssets,
   resolveToken,
+  splitReused,
   uploadable,
   verifySha,
 } from "./lib.mjs";
@@ -16,7 +19,6 @@ import {
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const publish = args.has("--publish");
-const allowExisting = args.has("--allow-existing-assets");
 
 const manifest = JSON.parse(readFileSync("matching/spec/capture/manifest.json", "utf8"));
 
@@ -35,6 +37,12 @@ console.log(
 if (dryRun) process.exit(0);
 
 const writeToken = resolveToken(process.env);
+const headers = { repository: REPOSITORY, authorization: `Bearer ${writeToken}` };
+const getJson = async (url) => {
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error(`seed: ${url} answered ${response.status}`);
+  return response.json();
+};
 const client = prismic.createWriteClient(REPOSITORY, { writeToken });
 
 if (publish) {
@@ -43,41 +51,42 @@ if (publish) {
   process.exit(0);
 }
 
-const listed = await fetch("https://asset-api.prismic.io/assets?limit=1000", {
-  headers: { repository: REPOSITORY, authorization: `Bearer ${writeToken}` },
+const missing = missingModels(modelsUsed(plan), {
+  types: await getJson("https://customtypes.prismic.io/customtypes"),
+  slices: await getJson("https://customtypes.prismic.io/slices"),
 });
-if (!listed.ok) throw new Error(`seed: the asset list answered ${listed.status}`);
-const existing = ((await listed.json()).items ?? []).map((item) => item.filename);
+if (missing.length) {
+  console.error(`seed: Prismic does not have ${missing.join(", ")}. Push the models first.`);
+  process.exit(1);
+}
 
-const files = new Map();
-for (const asset of assets) {
+const { reuse, fetch: toFetch } = splitReused(assets, await listAssets(getJson));
+const files = new Map([...reuse].map(([file, id]) => [file, { id }]));
+for (const asset of toFetch) {
   const response = await fetch(asset.url);
   if (!response.ok) throw new Error(`seed: ${asset.url} answered ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
   verifySha(bytes, asset.sha256, asset.file);
   files.set(asset.file, await uploadable(asset.file, bytes, sharp));
 }
-console.log(`seed: ${files.size} originals fetched, every sha256 matches the manifest`);
-
-const conflicts = assetConflicts(
-  [...files.values()].map((f) => f.name),
-  existing,
+console.log(
+  `seed: ${toFetch.length} originals fetched, every sha256 matches the manifest; ` +
+    `${reuse.size} already in the media library are reused`,
 );
-if (conflicts.length && !allowExisting) {
-  console.error(
-    `seed: the media library already holds ${conflicts.length} of these files ` +
-      `(${conflicts.slice(0, 3).join(", ")}…). migrate() does not dedupe, so a re-run would ` +
-      "upload every photo again. Refusing; pass --allow-existing-assets to override.",
-  );
-  process.exit(1);
-}
 
 const migration = prismic.createMigration();
 const migrated = new Map();
 const img = (file, alt) => {
   if (!migrated.has(file)) {
-    const { name, bytes } = files.get(file);
-    migrated.set(file, migration.createAsset(new File([bytes], name), name, { alt: alt ?? "" }));
+    const entry = files.get(file);
+    migrated.set(
+      file,
+      entry.id
+        ? { id: entry.id, alt: alt ?? null }
+        : migration.createAsset(new File([entry.bytes], entry.name), entry.name, {
+            alt: alt ?? "",
+          }),
+    );
   }
   return migrated.get(file);
 };

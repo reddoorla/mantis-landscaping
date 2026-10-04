@@ -57,3 +57,47 @@ describe("PageTitle slice", () => {
       expect(variation.primary.heading.config.single).toBe("heading1");
   });
 });
+
+describe("PageTitle contrast", () => {
+  const css = readFileSync(resolve(process.cwd(), "src/app.css"), "utf8");
+  const tokens = Object.fromEntries(
+    [...css.matchAll(/--color-([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]),
+  );
+  const rgb = (token: string) => {
+    const named: Record<string, string> = { white: "#ffffff", black: "#000000" };
+    const value = named[tokens[token]] ?? tokens[token];
+    if (!/^#[0-9a-f]{6}$/i.test(value ?? "")) throw new Error(`unparsed --color-${token}`);
+    return [1, 3, 5].map((i) => parseInt(value.slice(i, i + 2), 16));
+  };
+  const luminance = (token: string) => {
+    const [r, g, b] = rgb(token).map((c) => {
+      const v = c / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const last = (el: Element | null | undefined, prefix: string) =>
+    [...(el?.classList ?? [])]
+      .filter((c) => c.startsWith(prefix))
+      .map((c) => c.slice(prefix.length))
+      .filter((name) => name in tokens)
+      .pop();
+
+  it.each(
+    ["white", "light", "gold-deep", "dark"].flatMap((background) =>
+      ["eyebrow", "display"].map((style) => [background, style]),
+    ),
+  )("the heading meets 4.5:1 on a %s ground as %s", (background, style) => {
+    const { container } = render(PageTitle, {
+      props: { slice: slice({ background, heading_style: style }) },
+    });
+    const section = container.querySelector("section");
+    const wrapper = container.querySelector("h1")?.parentElement;
+    const ground = last(section, "bg-");
+    const text = last(wrapper, "text-") ?? last(section, "text-");
+    expect(ground, "no bg-* token on the section").toBeTruthy();
+    expect(text, "no text-* colour token on the heading").toBeTruthy();
+    const [hi, lo] = [luminance(ground!), luminance(text!)].sort((a, b) => b - a);
+    expect((hi + 0.05) / (lo + 0.05)).toBeGreaterThanOrEqual(4.5);
+  });
+});
