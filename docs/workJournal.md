@@ -584,6 +584,7 @@ The file is removed rather than exempting `matching/spec/` from the scan. The ma
 ## 2026-10-04 — P2a built, two dirty review rounds, stopped (#3; reddoor-maintenance Operator decisions 64)
 
 #3 adds the native content model:
+
 - a `project` type, with a nested `case_studies.photos` group and an `order` field;
 - seven slices: SplitHero, FeatureTrio, ServiceCards, Steps, TextBlock, CaseStudies and ProjectList;
 - `/projects/[uid]`;
@@ -594,6 +595,7 @@ It is not merged. Its second adversarial review round found a real defect: a sin
 **Gold, by job.** White on the Blux gold `#dfb726` measured 1.91:1. White on `gold-deep` `#836a10` measures 5.21:1, and `gold-deep` on `#f5f5f5` measures 4.77:1. The bright gold stays as text on the dark band (7.48:1), and as the ground under dark type on the project "How it Works" band, which already passed (8.33:1).
 
 **Defects round 1 named, worth keeping.**
+
 - `PrismicImage` drops `alt` entirely when the field's alt is blank and no `fallbackAlt` is given.
 - SvelteKit throws on `url.search` during prerender. adapter-netlify writes a crawled redirect as a meta-refresh file, not a 301, hence `force = true`.
 - The routes-free client makes every Document link `href=""`, hence `SiteLink`.
@@ -604,6 +606,7 @@ It is not merged. Its second adversarial review round found a real defect: a sin
 **Types without Slice Machine.** `scripts/generate-prismic-types.mjs` runs `prismic-ts-codegen`. On main's untouched models, `slices/index.js` came out byte-identical, and the types differed only by the `form_replies` type the committed file lacked.
 
 **Waiting:**
+
 - the seed content, all five documents with alt text on 74 photos, on `claude/p2b-seed-draft`;
 - the seed script; the Migration API does not dedupe existing assets, so a re-run must look up its own uploads;
 - the model push, with `PRISMIC_TOKEN_MANTIS_LANDSCAPING` set explicitly, because a generic token for another repository sits in the cloud environment;
