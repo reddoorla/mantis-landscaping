@@ -28,6 +28,9 @@ export const linkResolver: prismic.LinkResolverFunction = (doc) => {
   if (doc.type === "page" && doc.uid) {
     return doc.uid === "home" ? "/" : `/${doc.uid}`;
   }
+  if (doc.type === "project" && doc.uid) {
+    return `/projects/${doc.uid}`;
+  }
   return null;
 };
 

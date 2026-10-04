@@ -1,14 +1,32 @@
 import { error } from "@sveltejs/kit";
 import { NotFoundError, RepositoryNotFoundError } from "@prismicio/client";
 
-import type { PageDocument } from "../prismicio-types";
-import { pageMeta } from "$lib/page-meta";
+import type { PageDocument, ProjectDocument } from "../prismicio-types";
+import { pageMeta, projectMeta } from "$lib/page-meta";
+import type { SliceContext } from "$lib/slice-context";
 
 /** The minimal client surface the loader needs — method syntax keeps the real
  *  `createClient()` return type assignable, and lets tests pass a stub. */
 export type PageClient = {
   getByUID(type: "page", uid: string): Promise<PageDocument>;
+  getAllByType(
+    type: "project",
+    params?: { orderings?: { field: string; direction?: "asc" | "desc" }[] },
+  ): Promise<ProjectDocument[]>;
 };
+
+export type ProjectClient = {
+  getByUID(type: "project", uid: string): Promise<ProjectDocument>;
+};
+
+export const PROJECT_ORDER = [
+  { field: "my.project.order", direction: "asc" as const },
+  { field: "document.first_publication_date", direction: "asc" as const },
+];
+
+function isMiss(err: unknown) {
+  return err instanceof NotFoundError && !(err instanceof RepositoryNotFoundError);
+}
 
 /** Load one `page` document and the layout's head payload for it.
  *
@@ -21,15 +39,28 @@ export type PageClient = {
  *  (The route loaders answer 404 themselves on the placeholder repo before
  *  calling this, so an unconfigured clone still builds.) */
 export async function loadPage(client: PageClient, uid: string) {
+  let page: PageDocument;
   try {
-    const page = await client.getByUID("page", uid);
-    return { page, ...pageMeta(page) };
+    page = await client.getByUID("page", uid);
   } catch (err) {
-    // RepositoryNotFoundError extends NotFoundError but means "wrong repository
-    // name", not "no such page" — that must stay loud.
-    if (err instanceof NotFoundError && !(err instanceof RepositoryNotFoundError)) {
-      error(404, { message: "Page not found" });
-    }
+    if (isMiss(err)) error(404, { message: "Page not found" });
     throw err;
   }
+  const listsProjects = page.data.slices.some((slice) => slice.slice_type === "project_list");
+  const context: SliceContext = listsProjects
+    ? { projects: await client.getAllByType("project", { orderings: PROJECT_ORDER }) }
+    : {};
+  return { page, context, ...pageMeta(page) };
+}
+
+export async function loadProject(client: ProjectClient, uid: string) {
+  let project: ProjectDocument;
+  try {
+    project = await client.getByUID("project", uid);
+  } catch (err) {
+    if (isMiss(err)) error(404, { message: "Page not found" });
+    throw err;
+  }
+  const context: SliceContext = { project };
+  return { project, context, ...projectMeta(project) };
 }

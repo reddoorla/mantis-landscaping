@@ -1,7 +1,8 @@
 <script lang="ts">
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import ContentBand from "$lib/components/ContentBand.svelte";
-  import { PrismicImage, PrismicLink, PrismicRichText } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
+  import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
   import { cappedWidths } from "@reddoorla/maintenance/images";
 
@@ -51,7 +52,11 @@
   {#if mode === "tiles"}
     <div class="grid grid-cols-2 gap-6 md:grid-cols-3">
       {#each items as item (item)}
-        <PrismicLink field={item.item_link} class="flex items-center justify-center bg-surface p-8">
+        <SiteLink
+          field={item.item_link}
+          as="div"
+          class="flex items-center justify-center bg-surface p-8"
+        >
           <!-- Logo tile: capped at 4rem tall, so it never needs a wide candidate. -->
           <PrismicImage
             field={item.item_media}
@@ -61,7 +66,7 @@
             loading="lazy"
             class="max-h-16 w-auto object-contain"
           />
-        </PrismicLink>
+        </SiteLink>
       {/each}
     </div>
   {:else if mode === "cards"}
@@ -70,7 +75,7 @@
       class="grid grid-cols-1 gap-10 {colClass[columns] ?? 'md:grid-cols-3'}"
     >
       {#each items as item (item)}
-        <PrismicLink field={item.item_link} class="block">
+        <SiteLink field={item.item_link} as="div" class="block">
           <!-- Card thumb: 3 columns of the 80rem band, so ~384px at md and up. -->
           <PrismicImage
             field={item.item_media}
@@ -82,7 +87,7 @@
           />
           <PrismicRichText field={item.item_heading} />
           <RichTextBody field={item.item_body} />
-        </PrismicLink>
+        </SiteLink>
       {/each}
     </div>
   {:else if mode === "copy"}

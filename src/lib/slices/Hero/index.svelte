@@ -2,7 +2,9 @@
   import HeroBackgroundImage from "$lib/components/HeroBackgroundImage.svelte";
   import RichTextBody from "$lib/components/RichTextBody.svelte";
   import ContentBand from "$lib/components/ContentBand.svelte";
-  import { PrismicLink, PrismicRichText } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
+  import { PrismicRichText } from "@prismicio/svelte";
+  import { siteHref } from "$lib/site-link";
   import type { Content } from "@prismicio/client";
 
   let { slice }: { slice: Content.HeroSlice } = $props();
@@ -27,12 +29,12 @@
   {/snippet}
   <PrismicRichText field={slice.primary.heading} />
   <RichTextBody field={slice.primary.body} />
-  {#if slice.primary.cta_label && slice.primary.cta_link}
-    <PrismicLink
+  {#if slice.primary.cta_label && siteHref(slice.primary.cta_link)}
+    <SiteLink
       field={slice.primary.cta_link}
       class="mt-6 inline-block bg-white px-6 py-3 font-medium text-black"
     >
       {slice.primary.cta_label}
-    </PrismicLink>
+    </SiteLink>
   {/if}
 </ContentBand>

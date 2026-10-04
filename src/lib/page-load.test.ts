@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NotFoundError, RepositoryNotFoundError } from "@prismicio/client";
 
-import { loadPage, type PageClient } from "./page-load";
+import { loadPage, loadProject, type PageClient, type ProjectClient } from "./page-load";
 
 const doc = {
   uid: "about",
@@ -10,7 +10,7 @@ const doc = {
 } as never;
 
 const clientThat = (behaviour: () => Promise<never> | Promise<typeof doc>) =>
-  ({ getByUID: behaviour }) as unknown as PageClient;
+  ({ getByUID: behaviour, getAllByType: async () => [] }) as unknown as PageClient;
 
 describe("loadPage", () => {
   it("returns the document plus its head payload", async () => {
@@ -44,5 +44,71 @@ describe("loadPage", () => {
       throw wrongRepo;
     });
     await expect(loadPage(client, "about")).rejects.toBe(wrongRepo);
+  });
+
+  it("loads the projects only for a page that lists them", async () => {
+    const projects = [{ uid: "edible-gardens" }];
+    const calls: string[] = [];
+    const client = {
+      getByUID: async () => ({
+        uid: "projects",
+        type: "page",
+        data: { title: [], slices: [{ slice_type: "project_list" }] },
+      }),
+      getAllByType: async (type: string) => {
+        calls.push(type);
+        return projects;
+      },
+    } as unknown as PageClient;
+    const data = await loadPage(client, "projects");
+    expect(calls).toEqual(["project"]);
+    expect(data.context.projects).toBe(projects);
+
+    calls.length = 0;
+    const plain = await loadPage(
+      clientThat(async () => doc),
+      "about",
+    );
+    expect(plain.context).toEqual({});
+  });
+});
+
+describe("loadProject", () => {
+  it("asks for a project, and turns a miss into a 404", async () => {
+    const asked: string[] = [];
+    const client = {
+      getByUID: async (type: string) => {
+        asked.push(type);
+        throw new NotFoundError("No documents were returned", "https://x", undefined);
+      },
+    } as unknown as ProjectClient;
+    await expect(loadProject(client, "nope")).rejects.toMatchObject({ status: 404 });
+    expect(asked).toEqual(["project"]);
+  });
+});
+
+describe("the project ordering", () => {
+  it("asks Prismic for projects in order, then by first publication", async () => {
+    const asked: unknown[] = [];
+    const client = {
+      getByUID: async () => ({
+        uid: "projects",
+        type: "page",
+        data: { title: [], slices: [{ slice_type: "project_list" }] },
+      }),
+      getAllByType: async (_type: string, params: unknown) => {
+        asked.push(params);
+        return [];
+      },
+    } as unknown as PageClient;
+    await loadPage(client, "projects");
+    expect(asked).toEqual([
+      {
+        orderings: [
+          { field: "my.project.order", direction: "asc" },
+          { field: "document.first_publication_date", direction: "asc" },
+        ],
+      },
+    ]);
   });
 });

@@ -36,6 +36,8 @@ source. It is the fastest way to recognise what a thing does.
 | [`Footer.svelte`](../src/lib/components/Footer.svelte) | `columns`, `socials`, `text`, `owner` | 14 | Optional per-route override of the `$lib/site-config.json` footer (no route in the bare template supplies this) |
 | [`Form.svelte`](../src/lib/components/Form.svelte) | `errors`, `errorSummaryTitle`, `children` | 3 |  |
 | [`HeroBackgroundImage.svelte`](../src/lib/components/HeroBackgroundImage.svelte) | `image`, `altFallback`, `preload` | 8 | LCP-optimized hero image |
+| [`Icon.svelte`](../src/lib/components/Icon.svelte) | `name` | — |  |
+| [`IconRow.svelte`](../src/lib/components/IconRow.svelte) | `heading`, `items`, `background`, `sliceType`, `variation` | — |  |
 | [`Img.svelte`](../src/lib/components/Img.svelte) | `src` | 5 | Progressive-loading wrapper around @zerodevx/svelte-img: the image renders blurred (`.progressive-img` in app.css) and sharpens once the underlying <img> finishes — or fails — loading |
 | [`LandscapeModal.svelte`](../src/lib/components/LandscapeModal.svelte) | — | 3 | Orientation lockout — a primitive the template deliberately does NOT mount (tests/smoke/landscape.spec.ts fails if it is re-mounted), because an undismissable landscape overlay fails WCAG 2.1 SC 1.3.4 (Orientation) |
 | [`Modal.svelte`](../src/lib/components/Modal.svelte) | `open`, `onclose`, `label`, `labelledby`, `children` | 16 | Accessible name for the dialog |
@@ -46,20 +48,26 @@ source. It is the fastest way to recognise what a thing does.
 | [`ScaleTextToContainer.svelte`](../src/lib/components/ScaleTextToContainer.svelte) | `children` | — |  |
 | [`ScreenWidthMedia.svelte`](../src/lib/components/ScreenWidthMedia.svelte) | `src`, `field`, `altText`, `vimeoId`, `darken`, `backdrop`, `percentHeight`, `children` | 11 |  |
 | [`Seo.svelte`](../src/lib/components/Seo.svelte) | `title`, `description`, `image`, `imageAlt`, `url`, `type`, `siteName`, `locale`, `noindex`, `jsonLd` | 14 | The page title — used verbatim for <title> and og/twitter:title |
+| [`SiteLink.svelte`](../src/lib/components/SiteLink.svelte) | `field`, `as`, `children` | 5 |  |
 | [`SkeletonLoader.svelte`](../src/lib/components/SkeletonLoader.svelte) | `lines`, `circle`, `height`, `width` | — |  |
 | [`Slider.svelte`](../src/lib/components/Slider.svelte) | `itemCount`, `label`, `children`, `cardsPerView`, `gap`, `mobileGap`, `mode`, `loop`, `autoplay`, `showDots`, `showArrows`, `transitionClass`, `navigationClass`, `arrowClass`, `pauseClass`, `dotClass`, `activeDotClass` | 23 | Accessible name for the carousel region — say what's inside ("Customer testimonials"), not "Slider" |
+| [`SplitHero.svelte`](../src/lib/components/SplitHero.svelte) | `image`, `kicker`, `heading`, `body`, `ctaLabel`, `ctaLink`, `tone`, `sliceType`, `variation` | — |  |
 | [`TransitionOverlay.svelte`](../src/lib/components/TransitionOverlay.svelte) | `visibleDuration`, `fadeInDuration`, `fadeOutDuration`, `so` | 9 | ms the cover holds once the incoming route has arrived |
 | [`TurnstileWidget.svelte`](../src/lib/components/TurnstileWidget.svelte) | — | 6 |  |
 | [`VimeoBanner.svelte`](../src/lib/components/VimeoBanner.svelte) | `vimeoId`, `poster`, `alt` | 7 | Full-bleed background-video banner |
+| [`icons.ts`](../src/lib/icons.ts) | `ICONS`, `ICON_KEYS`, `iconFor` | 2 |  |
 | [`index.ts`](../src/lib/index.ts) | — | — | place files you want to import through the `$lib` alias in this folder |
 | [`indexability.ts`](../src/lib/indexability.ts) | `MIRROR_ROBOTS_TAG`, `isNetlifyMirrorHost` | 6 | Which HOST a request arrived on decides whether it may be indexed (#140) |
-| [`page-load.ts`](../src/lib/page-load.ts) | `loadPage` | 4 |  |
-| [`page-meta.ts`](../src/lib/page-meta.ts) | `pageMeta` | 2 |  |
-| [`prismicio.ts`](../src/lib/prismicio.ts) | `repositoryName`, `isPlaceholderRepo`, `linkResolver`, `createClient` | 4 |  |
+| [`page-load.ts`](../src/lib/page-load.ts) | `PROJECT_ORDER`, `loadPage`, `loadProject` | 7 |  |
+| [`page-meta.ts`](../src/lib/page-meta.ts) | `pageMeta`, `projectMeta` | 7 |  |
+| [`prismicio.ts`](../src/lib/prismicio.ts) | `repositoryName`, `isPlaceholderRepo`, `linkResolver`, `createClient` | 5 |  |
+| [`redirects.ts`](../src/lib/redirects.ts) | `PERMANENT_REDIRECTS`, `redirectFor` | 3 |  |
 | [`seo.ts`](../src/lib/seo.ts) | `SITE_NAME`, `SITE_LOCALE`, `DEFAULT_DESCRIPTION`, `DEFAULT_OG_IMAGE`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`, `NOINDEX_PREFIXES`, `isNoindexPath`, `NOINDEX_ENFORCED`, `composeTitle`, `jsonLdScript`, `canonicalUrl`, `resolveOgImage`, `organizationJsonLd` | 24 | Site-wide SEO configuration + helpers |
 | [`reply-copy.ts`](../src/lib/server/reply-copy.ts) | `replyCopyFor` | — |  |
-| [`site-config.ts`](../src/lib/site-config.ts) | `loadSiteConfig`, `footerColumns` | 4 | Site chrome (navigation + footer) from a checked-in JSON stub |
-| [`site-pages.js`](../src/lib/site-pages.js) | `lang`, `documents` | 3 | The page assemblies for this site — the SINGLE source of truth for both consumers: a Prismic Migration API script, which publishes them (start from the starter's scripts/import/migrate.example.ts — no `reddoor-maint` command does this; the seed is per-site work), and src/routes/dev/match/[uid], the local matching surface |
+| [`site-config.ts`](../src/lib/site-config.ts) | `loadSiteConfig`, `footerColumns` | 5 | Site chrome (navigation + footer) from a checked-in JSON stub |
+| [`site-link.ts`](../src/lib/site-link.ts) | `siteHref` | — |  |
+| [`site-pages.js`](../src/lib/site-pages.js) | `lang`, `documents` | 6 | The page assemblies for this site — the SINGLE source of truth for both consumers: a Prismic Migration API script, which publishes them (start from the starter's scripts/import/migrate.example.ts — no `reddoor-maint` command does this; the seed is per-site work), and src/routes/dev/match/[uid], the local matching surface |
+| [`slice-context.ts`](../src/lib/slice-context.ts) | — | — |  |
 | [`viewport.svelte.ts`](../src/lib/stores/viewport.svelte.ts) | `viewport` | — |  |
 | [`transitions.ts`](../src/lib/transitions.ts) | `prefersReducedMotion`, `reducedMotion`, `fade`, `fly`, `slide` | 10 |  |
 | [`turnstile.ts`](../src/lib/turnstile.ts) | `loadTurnstile` | — | Cloudflare Turnstile explicit-render helper |
@@ -71,4 +79,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-50 modules, 348 tests behind them.
+58 modules, 371 tests behind them.

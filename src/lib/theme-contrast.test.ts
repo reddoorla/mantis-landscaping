@@ -28,28 +28,37 @@ import { describe, it, expect } from "vitest";
 const AA_NORMAL_TEXT = 4.5;
 
 /** Tokens the template renders as text on a LIGHT ground. */
-const LIGHT_GROUND_TEXT = ["secondary", "primary", "dark", "black"] as const;
+const LIGHT_GROUND_TEXT = ["secondary", "primary", "dark", "black", "gold-deep"] as const;
 /** The light grounds those land on. */
-const LIGHT_GROUNDS = ["background", "white"] as const;
+const LIGHT_GROUNDS = ["background", "white", "light"] as const;
 
 /** Tokens the template renders as text on a DARK ground. */
-const DARK_GROUND_TEXT = ["white"] as const;
+const DARK_GROUND_TEXT = ["white", "gold", "accent"] as const;
 /** The dark grounds those land on. */
-const DARK_GROUNDS = ["primary", "dark", "black"] as const;
+const DARK_GROUNDS = ["primary", "dark", "black", "moss"] as const;
 
 /**
- * `bg-light` is deliberately NOT in LIGHT_GROUNDS. It is a ground the template
- * uses (17 occurrences), but no component currently puts a `text-*` token
- * inside one — in the only file where both appear, `/dev/animate-in`, they are
- * siblings. Asserting the pair today would fail the template's own placeholder
- * palette, where `secondary` #6b7280 on `light` #e5e7eb measures 3.90:1.
- *
- * That measurement is the point of this comment rather than a reason to ignore
- * it: the pair is one nesting away from being real, and it is already below AA
- * in the shipped defaults. If you put secondary text on `bg-light`, add "light"
- * to LIGHT_GROUNDS and fix whichever value then fails.
+ * The starter kept `light` out of LIGHT_GROUNDS because no component put text
+ * on it. Mantis does (Steps, CaseStudies and the contact band sit on
+ * `bg-light`), so it is in the list above and this constant only records that
+ * the starter's caveat was resolved by adding it, not by ignoring it.
  */
 const KNOWN_UNCOMPOSED_GROUND = "light";
+
+/**
+ * Pairs this site composes that the token lists above cannot express: white
+ * type on the darkened gold fill (OD 62a), and the brand gold as text only on
+ * the dark bands. `#dfb726` under white text measured 1.91:1 on the Blux site.
+ */
+const COMPOSED_PAIRS = [
+  { text: "white", ground: "gold-deep" },
+  { text: "gold-deep", ground: "light" },
+  { text: "gold", ground: "dark" },
+  { text: "gold", ground: "moss" },
+  { text: "accent", ground: "dark" },
+  { text: "primary", ground: "gold" },
+  { text: "primary", ground: "light" },
+] as const;
 
 type Rgb = [number, number, number];
 
@@ -207,5 +216,59 @@ describe("theme contrast", () => {
     // Guard the guard: if this found nothing at all, the scan is broken.
     expect(found.size).toBeGreaterThan(0);
     expect(KNOWN_UNCOMPOSED_GROUND).toBe("light");
+  });
+
+  it.each(COMPOSED_PAIRS)("text-$text on bg-$ground meets AA", ({ text, ground }) => {
+    const ratio = contrast(resolveToken(text), resolveToken(ground));
+    expect(
+      ratio,
+      `--color-${text} on --color-${ground} is ${ratio.toFixed(2)}:1, below AA.`,
+    ).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  /**
+   * A class string that sets both a ground and a text colour is a pair the
+   * markup composes directly, whatever the lists above say. Hover and focus
+   * variants are skipped; they are states, not the resting pair. It only sees
+   * pairs written in ONE string: a ground on a parent and a colour on a child,
+   * or a class held in a variable, is invisible to it, which is what
+   * COMPOSED_PAIRS above is for.
+   */
+  it("every bg-<token> text-<token> pair written in one class string meets AA", () => {
+    const themeTokens = new Set(
+      Object.keys(colors).filter((t) => !["transparent", "current"].includes(t)),
+    );
+    const failures: string[] = [];
+    let measured = 0;
+    for (const file of svelteFiles(resolve(REPO_ROOT, "src"))) {
+      const src = readFileSync(file, "utf8");
+      const literals = [
+        ...[...src.matchAll(/"([^"]*)"/g)].map((m) => m[1].replace(/\{[^}]*\}/g, " ")),
+        ...[...src.matchAll(/'([^'\n]*)'/g)].map((m) => m[1]),
+        ...[...src.matchAll(/`([^`]*)`/g)].map((m) => m[1].replace(/\$\{[^}]*\}/g, " ")),
+      ];
+      for (const literal of literals) {
+        const classes = literal.split(/\s+/).filter((c) => c && !c.includes(":"));
+        const grounds = classes
+          .map((c) => /^bg-([a-z0-9-]+)$/.exec(c)?.[1])
+          .filter((t): t is string => !!t && themeTokens.has(t));
+        const texts = classes
+          .map((c) => /^text-([a-z0-9-]+)$/.exec(c)?.[1])
+          .filter((t): t is string => !!t && themeTokens.has(t));
+        for (const ground of grounds) {
+          for (const text of texts) {
+            measured++;
+            const ratio = contrast(resolveToken(text), resolveToken(ground));
+            if (ratio < AA_NORMAL_TEXT) {
+              failures.push(
+                `${file.replace(REPO_ROOT, "")}: text-${text} on bg-${ground} ${ratio.toFixed(2)}:1`,
+              );
+            }
+          }
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+    expect(measured).toBeGreaterThan(5);
   });
 });

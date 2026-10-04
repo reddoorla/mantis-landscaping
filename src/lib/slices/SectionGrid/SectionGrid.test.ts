@@ -49,3 +49,30 @@ describe("SectionGrid slice", () => {
     expect(grid).not.toBeNull();
   });
 });
+
+describe("SectionGrid links", () => {
+  it('renders cards with empty links as plain blocks, never href=""', () => {
+    const { container } = render(SectionGrid, { props: { slice } });
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector('[href=""]')).toBeNull();
+    expect(container.querySelectorAll("img")).toHaveLength(2);
+    expect(container.querySelector("span.block")).toBeNull();
+    expect(container.querySelectorAll("div.block")).toHaveLength(2);
+  });
+
+  it("links a card whose link resolves", () => {
+    const linked = {
+      ...slice,
+      items: [
+        {
+          ...slice.items[0],
+          item_link: { link_type: "Document", type: "page", uid: "pool", id: "p" },
+        },
+        slice.items[1],
+      ],
+    } as unknown as Content.SectionGridSlice;
+    const { container } = render(SectionGrid, { props: { slice: linked } });
+    const links = [...container.querySelectorAll("a")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/pool"]);
+  });
+});
