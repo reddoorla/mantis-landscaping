@@ -664,3 +664,21 @@ Two things the review found, filed rather than fixed:
 
 - **The Prismic-side publish webhook.** With every page prerendered, a publish reaches production only through the "Prismic publish" Netlify build hook, and the Prismic webhook that calls it is the operator's to add.
 - **The model-delivery workflow** (#13) waits on the `PRISMIC_WRITE_TOKEN` secret (reddoor-maintenance Operator decisions 69).
+
+## 2026-10-04 — The contact form moves to /contact-us, and survives a Prismic outage (#15)
+
+P4a, for reddoor-maintenance P1-30. The starter's `/contact` form route and the Prismic `contact-us` page (#11) are now one route. `/contact-us` renders the page's slices and then the form. `/contact` answers 301 there from both the hook and `netlify.toml`, with the query string kept, so form-e2e's `goto('/contact')` still finds the form. The generic `[uid]` route no longer prerenders `contact-us`, because a form action cannot live on a prerendered page.
+
+**A defect the review caught.** The first cut threw on any Prismic error other than a 404, which I chose on purpose so an outage would not hide behind the fallback. That was the wrong trade, for a reason I had not counted: every other page is prerendered, so `/contact-us` became the only page whose render depended on Prismic at request time. With Prismic unreachable, the reviewer saw `/` answer 200 and `/contact-us` answer 500. Worse, a no-JS POST reached ingest and then the post-action reload threw, so a visitor whose message had been received was shown an error page and would resubmit. That also broke a rule this repo already states in `reply-copy.ts`: an outage costs a tailored confirmation, never the submission. The load now serves the form on any error and `console.error`s anything that is not a 404. `/health` already reports Prismic outages, so nothing is hidden.
+
+**Tests that existed but proved nothing.** Three of the reviewer's mutations survived:
+
+- `_reply` taken from the visitor's own form field, which would make the autoresponder a phishing relay. This gap predates the PR.
+- `testMode` from `form.has`, so `testMode=false` would count as a test.
+- The 404 check loosened.
+
+Each now has a test, and each was mutated back and went red, along with the outage and logging tests and a new smoke check that `/contact` 301s with its query string.
+
+**Filed, not fixed:** #16. A Prismic preview of `contact-us` lands on the generic route and shows no form.
+
+**Next:** P4b, the newsletter signup, waits on the client's Mailchimp API key. The Turso row has neither the key nor the audience ID. When it lands, form-e2e fills the first `[name="email"]` on the page and marks the first `<form>`, so a newsletter form placed above the contact form would take the probe's submission.

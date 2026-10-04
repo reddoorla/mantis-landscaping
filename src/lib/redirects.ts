@@ -1,6 +1,7 @@
 export const PERMANENT_REDIRECTS: Readonly<Record<string, string>> = {
   "/ediblegardens": "/projects/edible-gardens",
   "/projects/ediblegardens": "/projects/edible-gardens",
+  "/contact": "/contact-us",
 };
 
 export function redirectFor(pathname: string): string | null {

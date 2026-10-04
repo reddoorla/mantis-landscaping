@@ -7,3 +7,9 @@ for (const path of ["/ediblegardens", "/projects/ediblegardens"]) {
     expect(response.headers()["location"]).toBe("/projects/edible-gardens");
   });
 }
+
+test("/contact answers 301 to /contact-us, keeping the query string", async ({ request }) => {
+  const response = await request.get("/contact?utm_source=x", { maxRedirects: 0 });
+  expect(response.status()).toBe(301);
+  expect(response.headers()["location"]).toBe("/contact-us?utm_source=x");
+});

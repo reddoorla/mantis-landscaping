@@ -10,15 +10,17 @@ export const prerender = false;
 /** Indexable routes that exist in the FILESYSTEM rather than in Prismic.
  *
  *  Everything below is discovered by querying the CMS, which structurally
- *  cannot see a hard-coded route — so /contact, linked from the template's own
- *  chrome and returning 200, was missing from the sitemap entirely. It is also
- *  `prerender = false` (a form action cannot live on a prerendered route), so
- *  no build-output census would have caught it either. Emitted even on an
+ *  cannot see a hard-coded route — so the starter's /contact form route, linked
+ *  from the template's own chrome and returning 200, was missing from the
+ *  sitemap entirely. Here the form lives at /contact-us, which is also a
+ *  Prismic page, so the list is de-duplicated against the CMS entries. The
+ *  route is also `prerender = false` (a form action cannot live on a
+ *  prerendered route), so no build-output census would have caught it either. Emitted even on an
  *  un-wired placeholder clone, because the route exists there too.
  *
  *  Only genuinely public, indexable routes belong here — never /dev/*, the
  *  slice simulator or /preview (see NOINDEX_PREFIXES in $lib/seo). */
-const STATIC_ROUTES = ["/contact"];
+const STATIC_ROUTES = ["/contact-us"];
 
 export const GET: RequestHandler = async ({ fetch, url }) => {
   const origin = url.origin;
@@ -47,9 +49,10 @@ export const GET: RequestHandler = async ({ fetch, url }) => {
   // stood in for it; rendered per request, "now" would claim the page changed on
   // every fetch, and a crawler that catches a lastmod lying stops trusting it
   // for the whole sitemap. The element is optional, so omitting it is honest.
+  const listed = new Set(pageEntries.map((entry) => entry.path));
   const entries: Entry[] = [
     ...pageEntries,
-    ...(mirror ? [] : STATIC_ROUTES).map((path) => ({ path })),
+    ...(mirror ? [] : STATIC_ROUTES).filter((path) => !listed.has(path)).map((path) => ({ path })),
   ];
 
   const urls = entries.map(

@@ -20,6 +20,12 @@
     status = 301
     force = true
 
+[[redirects]]
+    from = "/contact"
+    to = "/contact-us"
+    status = 301
+    force = true
+
 # Baseline security headers for all responses. CSP is emitted per-response by
 # SvelteKit (see `kit.csp` in svelte.config.js) so it is intentionally omitted
 # here to avoid conflicting duplicates.

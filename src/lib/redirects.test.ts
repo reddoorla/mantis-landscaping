@@ -47,6 +47,13 @@ describe("permanent redirects for the Blux paths folded into one page", () => {
     },
   );
 
+  it.each(["/contact", "/contact/"])("%s answers 301 to /contact-us", async (path) => {
+    const { response, resolved } = await run(path);
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("/contact-us");
+    expect(resolved).toBe(false);
+  });
+
   it("keeps the query string across the redirect", async () => {
     const { response } = await run("/ediblegardens?utm_source=instagram");
     expect(response.headers.get("location")).toBe("/projects/edible-gardens?utm_source=instagram");
