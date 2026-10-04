@@ -16,49 +16,57 @@
           "type": "StructuredText",
           "config": {
             "label": "heading",
-            "single": "heading2,heading3"
+            "single": "heading2"
           }
         },
         "background": {
           "type": "Select",
           "config": {
             "label": "background",
-            "options": ["gold", "dark", "moss"],
-            "default_value": "gold"
+            "options": ["gold-deep", "dark", "moss"],
+            "default_value": "gold-deep"
+          }
+        },
+        "features": {
+          "type": "Group",
+          "config": {
+            "label": "Features",
+            "repeat": true,
+            "fields": {
+              "icon": {
+                "type": "Select",
+                "config": {
+                  "label": "icon",
+                  "options": [
+                    "design",
+                    "water",
+                    "edible",
+                    "native",
+                    "installation",
+                    "maintenance",
+                    "visit",
+                    "plan",
+                    "plant",
+                    "sun",
+                    "community",
+                    "pest",
+                    "consulting"
+                  ],
+                  "default_value": "design"
+                }
+              },
+              "label": {
+                "type": "Text",
+                "config": {
+                  "label": "label",
+                  "placeholder": ""
+                }
+              }
+            }
           }
         }
       },
-      "items": {
-        "icon": {
-          "type": "Select",
-          "config": {
-            "label": "icon",
-            "options": [
-              "design",
-              "water",
-              "edible",
-              "native",
-              "installation",
-              "maintenance",
-              "visit",
-              "plan",
-              "plant",
-              "sun",
-              "community",
-              "pest",
-              "consulting"
-            ],
-            "default_value": "design"
-          }
-        },
-        "label": {
-          "type": "Text",
-          "config": {
-            "label": "label",
-            "placeholder": ""
-          }
-        }
-      }
+      "items": {}
     }
   ]
 }

@@ -37,16 +37,17 @@
         >
           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
-            class="flex snap-x snap-mandatory overflow-x-auto md:col-span-3"
+            class="scroll-strip flex snap-x snap-mandatory overflow-x-auto md:col-span-3"
             role="region"
             aria-label="{study.title} photos"
-            tabindex="0"
+            tabindex={study.photos.length > 1 ? 0 : undefined}
           >
             <ul class="flex">
               {#each study.photos as entry, p (p)}
                 <li class="w-[85vw] shrink-0 snap-start md:w-[36rem]">
                   <PrismicImage
                     field={entry.photo}
+                    fallbackAlt=""
                     widths={cappedWidths(entry.photo)}
                     sizes="(min-width: 768px) 576px, 85vw"
                     loading="lazy"

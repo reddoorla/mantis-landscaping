@@ -14,6 +14,6 @@
   sliceType={slice.slice_type}
   variation={slice.variation}
   heading={isFilled.richText(slice.primary.heading) ? heading : undefined}
-  items={slice.items}
+  items={slice.primary.features ?? []}
   background={slice.primary.background}
 />

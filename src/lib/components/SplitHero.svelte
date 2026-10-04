@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { PrismicImage, PrismicLink, PrismicRichText } from "@prismicio/svelte";
+  import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
   import { isFilled, type ImageField, type LinkField, type RichTextField } from "@prismicio/client";
   import { cappedWidths } from "@reddoorla/maintenance/images";
 
@@ -25,9 +26,9 @@
     variation?: string;
   } = $props();
 
-  const panel = $derived(tone === "gold" ? "bg-gold-deep" : "bg-dark");
-  const accent = $derived(tone === "gold" ? "text-white" : "text-gold");
-  const big = $derived(tone === "gold");
+  const onGold = $derived(tone === "gold-deep");
+  const panel = $derived(onGold ? "bg-gold-deep" : "bg-dark");
+  const accent = $derived(onGold ? "text-white" : "text-gold");
 </script>
 
 <section
@@ -39,6 +40,7 @@
     {#if isFilled.image(image)}
       <PrismicImage
         field={image}
+        fallbackAlt=""
         widths={cappedWidths(image)}
         sizes="(min-width: 768px) 50vw, 100vw"
         fetchpriority="high"
@@ -51,7 +53,7 @@
       <p class="eyebrow">{kicker}</p>
     {/if}
     <div
-      class="split-hero-heading font-light {big
+      class="split-hero-heading font-light {onGold
         ? 'text-5xl leading-tight lg:text-7xl'
         : 'text-3xl leading-snug lg:text-4xl'}"
     >
@@ -63,9 +65,9 @@
       </div>
     {/if}
     {#if ctaLabel && ctaLink && isFilled.link(ctaLink)}
-      <PrismicLink field={ctaLink} class="eyebrow inline-block py-2 {accent} hover:underline">
+      <SiteLink field={ctaLink} class="eyebrow inline-block py-2 {accent} hover:underline">
         {ctaLabel} +
-      </PrismicLink>
+      </SiteLink>
     {/if}
   </div>
 </section>

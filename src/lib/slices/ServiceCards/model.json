@@ -16,48 +16,56 @@
           "type": "StructuredText",
           "config": {
             "label": "heading",
-            "single": "heading2,heading3"
+            "single": "heading2"
+          }
+        },
+        "cards": {
+          "type": "Group",
+          "config": {
+            "label": "Cards",
+            "repeat": true,
+            "fields": {
+              "icon": {
+                "type": "Select",
+                "config": {
+                  "label": "icon",
+                  "options": [
+                    "design",
+                    "water",
+                    "edible",
+                    "native",
+                    "installation",
+                    "maintenance",
+                    "visit",
+                    "plan",
+                    "plant",
+                    "sun",
+                    "community",
+                    "pest",
+                    "consulting"
+                  ],
+                  "default_value": "design"
+                }
+              },
+              "title": {
+                "type": "Text",
+                "config": {
+                  "label": "title",
+                  "placeholder": ""
+                }
+              },
+              "link": {
+                "type": "Link",
+                "config": {
+                  "label": "link",
+                  "allowTargetBlank": true
+                }
+              }
+            }
           }
         }
       },
-      "items": {
-        "icon": {
-          "type": "Select",
-          "config": {
-            "label": "icon",
-            "options": [
-              "design",
-              "water",
-              "edible",
-              "native",
-              "installation",
-              "maintenance",
-              "visit",
-              "plan",
-              "plant",
-              "sun",
-              "community",
-              "pest",
-              "consulting"
-            ],
-            "default_value": "design"
-          }
-        },
-        "title": {
-          "type": "Text",
-          "config": {
-            "label": "title",
-            "placeholder": ""
-          }
-        },
-        "link": {
-          "type": "Link",
-          "config": {
-            "label": "link",
-            "allowTargetBlank": true
-          }
-        }
-      }
+      "items": {}
     }
   ]
 }

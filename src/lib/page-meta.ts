@@ -17,10 +17,20 @@ export function pageMeta(page: PageDocument | ProjectDocument) {
   };
 }
 
+const DESCRIPTION_LENGTH = 155;
+
+function summarise(text: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= DESCRIPTION_LENGTH) return clean;
+  const cut = clean.slice(0, DESCRIPTION_LENGTH - 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:.!?]$/, "")}…`;
+}
+
 export function projectMeta(project: ProjectDocument) {
   const meta = pageMeta(project);
   return {
     ...meta,
+    meta_description: meta.meta_description || summarise(asText(project.data.intro)) || null,
     meta_image: meta.meta_image ?? project.data.hero_image?.url ?? undefined,
     meta_image_alt: meta.meta_image
       ? meta.meta_image_alt

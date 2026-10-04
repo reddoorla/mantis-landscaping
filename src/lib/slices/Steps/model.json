@@ -23,8 +23,8 @@
           "type": "Select",
           "config": {
             "label": "background",
-            "options": ["gold", "light"],
-            "default_value": "gold"
+            "options": ["gold-deep", "gold", "light"],
+            "default_value": "gold-deep"
           }
         },
         "cta_label": {
@@ -40,54 +40,62 @@
             "label": "cta_link",
             "allowTargetBlank": true
           }
+        },
+        "steps": {
+          "type": "Group",
+          "config": {
+            "label": "Steps",
+            "repeat": true,
+            "fields": {
+              "image": {
+                "type": "Image",
+                "config": {
+                  "label": "image",
+                  "constraint": {},
+                  "thumbnails": []
+                }
+              },
+              "icon": {
+                "type": "Select",
+                "config": {
+                  "label": "icon",
+                  "options": [
+                    "design",
+                    "water",
+                    "edible",
+                    "native",
+                    "installation",
+                    "maintenance",
+                    "visit",
+                    "plan",
+                    "plant",
+                    "sun",
+                    "community",
+                    "pest",
+                    "consulting"
+                  ],
+                  "default_value": "design"
+                }
+              },
+              "title": {
+                "type": "Text",
+                "config": {
+                  "label": "title",
+                  "placeholder": ""
+                }
+              },
+              "body": {
+                "type": "StructuredText",
+                "config": {
+                  "label": "body",
+                  "multi": "paragraph,strong,em,hyperlink"
+                }
+              }
+            }
+          }
         }
       },
-      "items": {
-        "image": {
-          "type": "Image",
-          "config": {
-            "label": "image",
-            "constraint": {},
-            "thumbnails": []
-          }
-        },
-        "icon": {
-          "type": "Select",
-          "config": {
-            "label": "icon",
-            "options": [
-              "design",
-              "water",
-              "edible",
-              "native",
-              "installation",
-              "maintenance",
-              "visit",
-              "plan",
-              "plant",
-              "sun",
-              "community",
-              "pest",
-              "consulting"
-            ],
-            "default_value": "design"
-          }
-        },
-        "title": {
-          "type": "Text",
-          "config": {
-            "label": "title",
-            "placeholder": ""
-          }
-        },
-        "body": {
-          "type": "StructuredText",
-          "config": {
-            "label": "body",
-            "multi": "paragraph,strong,em,hyperlink"
-          }
-        }
-      }
+      "items": {}
     }
   ]
 }

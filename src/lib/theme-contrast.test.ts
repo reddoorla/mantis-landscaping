@@ -229,7 +229,10 @@ describe("theme contrast", () => {
   /**
    * A class string that sets both a ground and a text colour is a pair the
    * markup composes directly, whatever the lists above say. Hover and focus
-   * variants are skipped; they are states, not the resting pair.
+   * variants are skipped; they are states, not the resting pair. It only sees
+   * pairs written in ONE string: a ground on a parent and a colour on a child,
+   * or a class held in a variable, is invisible to it, which is what
+   * COMPOSED_PAIRS above is for.
    */
   it("every bg-<token> text-<token> pair written in one class string meets AA", () => {
     const themeTokens = new Set(
@@ -240,7 +243,7 @@ describe("theme contrast", () => {
     for (const file of svelteFiles(resolve(REPO_ROOT, "src"))) {
       const src = readFileSync(file, "utf8");
       const literals = [
-        ...[...src.matchAll(/"([^"\n]*)"/g)].map((m) => m[1].replace(/\{[^}]*\}/g, " ")),
+        ...[...src.matchAll(/"([^"]*)"/g)].map((m) => m[1].replace(/\{[^}]*\}/g, " ")),
         ...[...src.matchAll(/'([^'\n]*)'/g)].map((m) => m[1]),
         ...[...src.matchAll(/`([^`]*)`/g)].map((m) => m[1].replace(/\$\{[^}]*\}/g, " ")),
       ];

@@ -48,6 +48,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`ScaleTextToContainer.svelte`](../src/lib/components/ScaleTextToContainer.svelte) | `children` | — |  |
 | [`ScreenWidthMedia.svelte`](../src/lib/components/ScreenWidthMedia.svelte) | `src`, `field`, `altText`, `vimeoId`, `darken`, `backdrop`, `percentHeight`, `children` | 11 |  |
 | [`Seo.svelte`](../src/lib/components/Seo.svelte) | `title`, `description`, `image`, `imageAlt`, `url`, `type`, `siteName`, `locale`, `noindex`, `jsonLd` | 14 | The page title — used verbatim for <title> and og/twitter:title |
+| [`SiteLink.svelte`](../src/lib/components/SiteLink.svelte) | `field`, `children` | — |  |
 | [`SkeletonLoader.svelte`](../src/lib/components/SkeletonLoader.svelte) | `lines`, `circle`, `height`, `width` | — |  |
 | [`Slider.svelte`](../src/lib/components/Slider.svelte) | `itemCount`, `label`, `children`, `cardsPerView`, `gap`, `mobileGap`, `mode`, `loop`, `autoplay`, `showDots`, `showArrows`, `transitionClass`, `navigationClass`, `arrowClass`, `pauseClass`, `dotClass`, `activeDotClass` | 23 | Accessible name for the carousel region — say what's inside ("Customer testimonials"), not "Slider" |
 | [`SplitHero.svelte`](../src/lib/components/SplitHero.svelte) | `image`, `kicker`, `heading`, `body`, `ctaLabel`, `ctaLink`, `tone`, `sliceType`, `variation` | — |  |
@@ -57,10 +58,10 @@ source. It is the fastest way to recognise what a thing does.
 | [`icons.ts`](../src/lib/icons.ts) | `ICONS`, `ICON_KEYS`, `iconFor` | 2 |  |
 | [`index.ts`](../src/lib/index.ts) | — | — | place files you want to import through the `$lib` alias in this folder |
 | [`indexability.ts`](../src/lib/indexability.ts) | `MIRROR_ROBOTS_TAG`, `isNetlifyMirrorHost` | 6 | Which HOST a request arrived on decides whether it may be indexed (#140) |
-| [`page-load.ts`](../src/lib/page-load.ts) | `loadPage`, `loadProject` | 6 |  |
+| [`page-load.ts`](../src/lib/page-load.ts) | `PROJECT_ORDER`, `loadPage`, `loadProject` | 6 |  |
 | [`page-meta.ts`](../src/lib/page-meta.ts) | `pageMeta`, `projectMeta` | 2 |  |
-| [`prismicio.ts`](../src/lib/prismicio.ts) | `repositoryName`, `isPlaceholderRepo`, `linkResolver`, `createClient` | 4 |  |
-| [`redirects.ts`](../src/lib/redirects.ts) | `PERMANENT_REDIRECTS`, `redirectFor` | 2 |  |
+| [`prismicio.ts`](../src/lib/prismicio.ts) | `repositoryName`, `isPlaceholderRepo`, `linkResolver`, `createClient` | 5 |  |
+| [`redirects.ts`](../src/lib/redirects.ts) | `PERMANENT_REDIRECTS`, `redirectFor` | 3 |  |
 | [`seo.ts`](../src/lib/seo.ts) | `SITE_NAME`, `SITE_LOCALE`, `DEFAULT_DESCRIPTION`, `DEFAULT_OG_IMAGE`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`, `NOINDEX_PREFIXES`, `isNoindexPath`, `NOINDEX_ENFORCED`, `composeTitle`, `jsonLdScript`, `canonicalUrl`, `resolveOgImage`, `organizationJsonLd` | 24 | Site-wide SEO configuration + helpers |
 | [`reply-copy.ts`](../src/lib/server/reply-copy.ts) | `replyCopyFor` | — |  |
 | [`site-config.ts`](../src/lib/site-config.ts) | `loadSiteConfig`, `footerColumns` | 5 | Site chrome (navigation + footer) from a checked-in JSON stub |
@@ -77,4 +78,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-56 modules, 355 tests behind them.
+57 modules, 357 tests behind them.

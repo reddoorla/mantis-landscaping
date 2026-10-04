@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import TextBlock from "./index.svelte";
 
-const slice = (primary: Record<string, unknown>, items: unknown[] = []) =>
+const slice = (primary: Record<string, unknown>, buttons: unknown[] = []) =>
   ({
     slice_type: "text_block",
     variation: "default",
@@ -15,9 +15,10 @@ const slice = (primary: Record<string, unknown>, items: unknown[] = []) =>
       align: "center",
       background: "dark",
       background_image: {},
+      buttons,
       ...primary,
     },
-    items,
+    items: [],
   }) as unknown as Content.TextBlockSlice;
 
 describe("TextBlock slice", () => {
@@ -65,7 +66,7 @@ describe("TextBlock slice", () => {
           heading: [{ type: "heading1", text: "Contact Us", spans: [] }],
           heading_style: "display",
           body: [],
-          background: "gold",
+          background: "gold-deep",
         }),
       },
     });

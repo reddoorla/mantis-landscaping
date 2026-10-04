@@ -52,12 +52,30 @@ describe("CaseStudies slice", () => {
 
   it("titles each study and labels its photo strip for assistive tech", () => {
     const { container } = render(CaseStudies, {
-      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
+      props: {
+        slice,
+        context: { project: project([photo(1, "Roof garden"), photo(2, "Fireplace")]) },
+      },
     });
     const { getByRole } = within(container);
     expect(getByRole("heading", { level: 2, name: "Roof Top Oasis" })).toBeTruthy();
     const strip = getByRole("region", { name: "Roof Top Oasis photos" });
     expect(strip.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("keeps an alt attribute on a photo whose alt was left blank", () => {
+    const { container } = render(CaseStudies, {
+      props: { slice, context: { project: project([photo(1, null), photo(2, "A roof deck")]) } },
+    });
+    const imgs = [...container.querySelectorAll("img")];
+    expect(imgs.map((img) => img.getAttribute("alt"))).toEqual(["", "A roof deck"]);
+  });
+
+  it("makes the photo strip a tab stop only when it can scroll", () => {
+    const { container } = render(CaseStudies, {
+      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
+    });
+    expect(container.querySelector('[role="region"]')?.hasAttribute("tabindex")).toBe(false);
   });
 
   it("renders nothing outside a project", () => {

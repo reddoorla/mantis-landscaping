@@ -284,6 +284,17 @@ type ProjectDocumentDataSlicesSlice = StepsSlice | CaseStudiesSlice | TextBlockS
  */
 interface ProjectDocumentData {
 	/**
+	 * Order in project lists field in *Project*
+	 *
+	 * - **Field Type**: Number
+	 * - **Placeholder**: 1 comes first
+	 * - **API ID Path**: project.order
+	 * - **Tab**: Main
+	 * - **Documentation**: https://prismic.io/docs/fields/number
+	 */
+	order: prismic.NumberField;
+	
+	/**
 	 * Title field in *Project*
 	 *
 	 * - **Field Type**: Rich Text
@@ -609,6 +620,32 @@ type CtaBannerSliceVariation = CtaBannerSliceDefault
 export type CtaBannerSlice = prismic.SharedSlice<"cta_banner", CtaBannerSliceVariation>;
 
 /**
+ * Item in *FeatureTrio → Default → Primary → Features*
+ */
+export interface FeatureTrioSliceDefaultPrimaryFeaturesItem {
+	/**
+	 * icon field in *FeatureTrio → Default → Primary → Features*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: design
+	 * - **API ID Path**: feature_trio.default.primary.features[].icon
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
+	
+	/**
+	 * label field in *FeatureTrio → Default → Primary → Features*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: feature_trio.default.primary.features[].label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	label: prismic.KeyTextField;
+}
+
+/**
  * Primary content in *FeatureTrio → Default → Primary*
  */
 export interface FeatureTrioSliceDefaultPrimary {
@@ -627,37 +664,21 @@ export interface FeatureTrioSliceDefaultPrimary {
 	 *
 	 * - **Field Type**: Select
 	 * - **Placeholder**: *None*
-	 * - **Default Value**: gold
+	 * - **Default Value**: gold-deep
 	 * - **API ID Path**: feature_trio.default.primary.background
 	 * - **Documentation**: https://prismic.io/docs/fields/select
 	 */
-	background: prismic.SelectField<"gold" | "dark" | "moss", "filled">;
-}
-
-/**
- * Primary content in *FeatureTrio → Items*
- */
-export interface FeatureTrioSliceDefaultItem {
-	/**
-	 * icon field in *FeatureTrio → Items*
-	 *
-	 * - **Field Type**: Select
-	 * - **Placeholder**: *None*
-	 * - **Default Value**: design
-	 * - **API ID Path**: feature_trio.items[].icon
-	 * - **Documentation**: https://prismic.io/docs/fields/select
-	 */
-	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
+	background: prismic.SelectField<"gold-deep" | "dark" | "moss", "filled">;
 	
 	/**
-	 * label field in *FeatureTrio → Items*
+	 * Features field in *FeatureTrio → Default → Primary*
 	 *
-	 * - **Field Type**: Text
+	 * - **Field Type**: Group
 	 * - **Placeholder**: *None*
-	 * - **API ID Path**: feature_trio.items[].label
-	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 * - **API ID Path**: feature_trio.default.primary.features[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
 	 */
-	label: prismic.KeyTextField;
+	features: prismic.GroupField<Simplify<FeatureTrioSliceDefaultPrimaryFeaturesItem>>;
 }
 
 /**
@@ -667,7 +688,7 @@ export interface FeatureTrioSliceDefaultItem {
  * - **Description**: A row of short labels, each with an optional icon
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type FeatureTrioSliceDefault = prismic.SharedSliceVariation<"default", Simplify<FeatureTrioSliceDefaultPrimary>, Simplify<FeatureTrioSliceDefaultItem>>;
+export type FeatureTrioSliceDefault = prismic.SharedSliceVariation<"default", Simplify<FeatureTrioSliceDefaultPrimary>, never>;
 
 /**
  * Slice variation for *FeatureTrio*
@@ -1081,6 +1102,42 @@ type SectionGridSliceVariation = SectionGridSliceDefault
 export type SectionGridSlice = prismic.SharedSlice<"section_grid", SectionGridSliceVariation>;
 
 /**
+ * Item in *ServiceCards → Default → Primary → Cards*
+ */
+export interface ServiceCardsSliceDefaultPrimaryCardsItem {
+	/**
+	 * icon field in *ServiceCards → Default → Primary → Cards*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: design
+	 * - **API ID Path**: service_cards.default.primary.cards[].icon
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
+	
+	/**
+	 * title field in *ServiceCards → Default → Primary → Cards*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: service_cards.default.primary.cards[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * link field in *ServiceCards → Default → Primary → Cards*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: service_cards.default.primary.cards[].link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
  * Primary content in *ServiceCards → Default → Primary*
  */
 export interface ServiceCardsSliceDefaultPrimary {
@@ -1093,42 +1150,16 @@ export interface ServiceCardsSliceDefaultPrimary {
 	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
 	 */
 	heading: prismic.RichTextField;
-}
-
-/**
- * Primary content in *ServiceCards → Items*
- */
-export interface ServiceCardsSliceDefaultItem {
-	/**
-	 * icon field in *ServiceCards → Items*
-	 *
-	 * - **Field Type**: Select
-	 * - **Placeholder**: *None*
-	 * - **Default Value**: design
-	 * - **API ID Path**: service_cards.items[].icon
-	 * - **Documentation**: https://prismic.io/docs/fields/select
-	 */
-	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
 	
 	/**
-	 * title field in *ServiceCards → Items*
+	 * Cards field in *ServiceCards → Default → Primary*
 	 *
-	 * - **Field Type**: Text
+	 * - **Field Type**: Group
 	 * - **Placeholder**: *None*
-	 * - **API ID Path**: service_cards.items[].title
-	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 * - **API ID Path**: service_cards.default.primary.cards[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
 	 */
-	title: prismic.KeyTextField;
-	
-	/**
-	 * link field in *ServiceCards → Items*
-	 *
-	 * - **Field Type**: Link
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: service_cards.items[].link
-	 * - **Documentation**: https://prismic.io/docs/fields/link
-	 */
-	link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	cards: prismic.GroupField<Simplify<ServiceCardsSliceDefaultPrimaryCardsItem>>;
 }
 
 /**
@@ -1138,7 +1169,7 @@ export interface ServiceCardsSliceDefaultItem {
  * - **Description**: Linked cards, each an icon and a title
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type ServiceCardsSliceDefault = prismic.SharedSliceVariation<"default", Simplify<ServiceCardsSliceDefaultPrimary>, Simplify<ServiceCardsSliceDefaultItem>>;
+export type ServiceCardsSliceDefault = prismic.SharedSliceVariation<"default", Simplify<ServiceCardsSliceDefaultPrimary>, never>;
 
 /**
  * Slice variation for *ServiceCards*
@@ -1227,7 +1258,7 @@ export interface SplitHeroSliceDefaultPrimary {
 	 * - **API ID Path**: split_hero.default.primary.tone
 	 * - **Documentation**: https://prismic.io/docs/fields/select
 	 */
-	tone: prismic.SelectField<"dark" | "gold", "filled">;
+	tone: prismic.SelectField<"dark" | "gold-deep", "filled">;
 }
 
 /**
@@ -1254,6 +1285,52 @@ type SplitHeroSliceVariation = SplitHeroSliceDefault
 export type SplitHeroSlice = prismic.SharedSlice<"split_hero", SplitHeroSliceVariation>;
 
 /**
+ * Item in *Steps → Default → Primary → Steps*
+ */
+export interface StepsSliceDefaultPrimaryStepsItem {
+	/**
+	 * image field in *Steps → Default → Primary → Steps*
+	 *
+	 * - **Field Type**: Image
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: steps.default.primary.steps[].image
+	 * - **Documentation**: https://prismic.io/docs/fields/image
+	 */
+	image: prismic.ImageField<never>;
+	
+	/**
+	 * icon field in *Steps → Default → Primary → Steps*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: design
+	 * - **API ID Path**: steps.default.primary.steps[].icon
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
+	
+	/**
+	 * title field in *Steps → Default → Primary → Steps*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: steps.default.primary.steps[].title
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	title: prismic.KeyTextField;
+	
+	/**
+	 * body field in *Steps → Default → Primary → Steps*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: steps.default.primary.steps[].body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+}
+
+/**
  * Primary content in *Steps → Default → Primary*
  */
 export interface StepsSliceDefaultPrimary {
@@ -1272,11 +1349,11 @@ export interface StepsSliceDefaultPrimary {
 	 *
 	 * - **Field Type**: Select
 	 * - **Placeholder**: *None*
-	 * - **Default Value**: gold
+	 * - **Default Value**: gold-deep
 	 * - **API ID Path**: steps.default.primary.background
 	 * - **Documentation**: https://prismic.io/docs/fields/select
 	 */
-	background: prismic.SelectField<"gold" | "light", "filled">;
+	background: prismic.SelectField<"gold-deep" | "gold" | "light", "filled">;
 	
 	/**
 	 * cta_label field in *Steps → Default → Primary*
@@ -1297,52 +1374,16 @@ export interface StepsSliceDefaultPrimary {
 	 * - **Documentation**: https://prismic.io/docs/fields/link
 	 */
 	cta_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
-}
-
-/**
- * Primary content in *Steps → Items*
- */
-export interface StepsSliceDefaultItem {
-	/**
-	 * image field in *Steps → Items*
-	 *
-	 * - **Field Type**: Image
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: steps.items[].image
-	 * - **Documentation**: https://prismic.io/docs/fields/image
-	 */
-	image: prismic.ImageField<never>;
 	
 	/**
-	 * icon field in *Steps → Items*
+	 * Steps field in *Steps → Default → Primary*
 	 *
-	 * - **Field Type**: Select
+	 * - **Field Type**: Group
 	 * - **Placeholder**: *None*
-	 * - **Default Value**: design
-	 * - **API ID Path**: steps.items[].icon
-	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 * - **API ID Path**: steps.default.primary.steps[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
 	 */
-	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
-	
-	/**
-	 * title field in *Steps → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: steps.items[].title
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	title: prismic.KeyTextField;
-	
-	/**
-	 * body field in *Steps → Items*
-	 *
-	 * - **Field Type**: Rich Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: steps.items[].body
-	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
-	 */
-	body: prismic.RichTextField;
+	steps: prismic.GroupField<Simplify<StepsSliceDefaultPrimaryStepsItem>>;
 }
 
 /**
@@ -1352,7 +1393,7 @@ export interface StepsSliceDefaultItem {
  * - **Description**: Numbered steps with an optional photo or icon each, and one call to action
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type StepsSliceDefault = prismic.SharedSliceVariation<"default", Simplify<StepsSliceDefaultPrimary>, Simplify<StepsSliceDefaultItem>>;
+export type StepsSliceDefault = prismic.SharedSliceVariation<"default", Simplify<StepsSliceDefaultPrimary>, never>;
 
 /**
  * Slice variation for *Steps*
@@ -1447,6 +1488,31 @@ type TestimonialSliceVariation = TestimonialSliceDefault
 export type TestimonialSlice = prismic.SharedSlice<"testimonial", TestimonialSliceVariation>;
 
 /**
+ * Item in *TextBlock → Default → Primary → Buttons*
+ */
+export interface TextBlockSliceDefaultPrimaryButtonsItem {
+	/**
+	 * button_label field in *TextBlock → Default → Primary → Buttons*
+	 *
+	 * - **Field Type**: Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_block.default.primary.buttons[].button_label
+	 * - **Documentation**: https://prismic.io/docs/fields/text
+	 */
+	button_label: prismic.KeyTextField;
+	
+	/**
+	 * button_link field in *TextBlock → Default → Primary → Buttons*
+	 *
+	 * - **Field Type**: Link
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: text_block.default.primary.buttons[].button_link
+	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 */
+	button_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+}
+
+/**
  * Primary content in *TextBlock → Default → Primary*
  */
 export interface TextBlockSliceDefaultPrimary {
@@ -1512,7 +1578,7 @@ export interface TextBlockSliceDefaultPrimary {
 	 * - **API ID Path**: text_block.default.primary.background
 	 * - **Documentation**: https://prismic.io/docs/fields/select
 	 */
-	background: prismic.SelectField<"dark" | "light" | "white" | "gold" | "image", "filled">;
+	background: prismic.SelectField<"dark" | "light" | "white" | "gold-deep" | "image", "filled">;
 	
 	/**
 	 * background_image field in *TextBlock → Default → Primary*
@@ -1523,31 +1589,16 @@ export interface TextBlockSliceDefaultPrimary {
 	 * - **Documentation**: https://prismic.io/docs/fields/image
 	 */
 	background_image: prismic.ImageField<never>;
-}
-
-/**
- * Primary content in *TextBlock → Items*
- */
-export interface TextBlockSliceDefaultItem {
-	/**
-	 * button_label field in *TextBlock → Items*
-	 *
-	 * - **Field Type**: Text
-	 * - **Placeholder**: *None*
-	 * - **API ID Path**: text_block.items[].button_label
-	 * - **Documentation**: https://prismic.io/docs/fields/text
-	 */
-	button_label: prismic.KeyTextField;
 	
 	/**
-	 * button_link field in *TextBlock → Items*
+	 * Buttons field in *TextBlock → Default → Primary*
 	 *
-	 * - **Field Type**: Link
+	 * - **Field Type**: Group
 	 * - **Placeholder**: *None*
-	 * - **API ID Path**: text_block.items[].button_link
-	 * - **Documentation**: https://prismic.io/docs/fields/link
+	 * - **API ID Path**: text_block.default.primary.buttons[]
+	 * - **Documentation**: https://prismic.io/docs/fields/repeatable-group
 	 */
-	button_link: prismic.LinkField<string, string, unknown, prismic.FieldState, never>;
+	buttons: prismic.GroupField<Simplify<TextBlockSliceDefaultPrimaryButtonsItem>>;
 }
 
 /**
@@ -1557,7 +1608,7 @@ export interface TextBlockSliceDefaultItem {
  * - **Description**: An eyebrow or display heading, copy, and buttons, on a colour or a photo
  * - **Documentation**: https://prismic.io/docs/slices
  */
-export type TextBlockSliceDefault = prismic.SharedSliceVariation<"default", Simplify<TextBlockSliceDefaultPrimary>, Simplify<TextBlockSliceDefaultItem>>;
+export type TextBlockSliceDefault = prismic.SharedSliceVariation<"default", Simplify<TextBlockSliceDefaultPrimary>, never>;
 
 /**
  * Slice variation for *TextBlock*
@@ -1710,8 +1761,8 @@ declare module "@prismicio/client" {
 			CtaBannerSliceVariation,
 			CtaBannerSliceDefault,
 			FeatureTrioSlice,
+			FeatureTrioSliceDefaultPrimaryFeaturesItem,
 			FeatureTrioSliceDefaultPrimary,
-			FeatureTrioSliceDefaultItem,
 			FeatureTrioSliceVariation,
 			FeatureTrioSliceDefault,
 			HeroSlice,
@@ -1742,8 +1793,8 @@ declare module "@prismicio/client" {
 			SectionGridSliceVariation,
 			SectionGridSliceDefault,
 			ServiceCardsSlice,
+			ServiceCardsSliceDefaultPrimaryCardsItem,
 			ServiceCardsSliceDefaultPrimary,
-			ServiceCardsSliceDefaultItem,
 			ServiceCardsSliceVariation,
 			ServiceCardsSliceDefault,
 			SplitHeroSlice,
@@ -1751,8 +1802,8 @@ declare module "@prismicio/client" {
 			SplitHeroSliceVariation,
 			SplitHeroSliceDefault,
 			StepsSlice,
+			StepsSliceDefaultPrimaryStepsItem,
 			StepsSliceDefaultPrimary,
-			StepsSliceDefaultItem,
 			StepsSliceVariation,
 			StepsSliceDefault,
 			TestimonialSlice,
@@ -1760,8 +1811,8 @@ declare module "@prismicio/client" {
 			TestimonialSliceVariation,
 			TestimonialSliceDefault,
 			TextBlockSlice,
+			TextBlockSliceDefaultPrimaryButtonsItem,
 			TextBlockSliceDefaultPrimary,
-			TextBlockSliceDefaultItem,
 			TextBlockSliceVariation,
 			TextBlockSliceDefault,
 			TextColumnsSlice,

@@ -5,6 +5,21 @@
 [build.environment]
     NODE_VERSION = "24"
 
+# Keep in step with PERMANENT_REDIRECTS in src/lib/redirects.ts; the unit
+# test reads this file and fails if the two differ. `force` makes Netlify
+# redirect even if a prerendered file exists at the old path.
+[[redirects]]
+    from = "/ediblegardens"
+    to = "/projects/edible-gardens"
+    status = 301
+    force = true
+
+[[redirects]]
+    from = "/projects/ediblegardens"
+    to = "/projects/edible-gardens"
+    status = 301
+    force = true
+
 # Baseline security headers for all responses. CSP is emitted per-response by
 # SvelteKit (see `kit.csp` in svelte.config.js) so it is intentionally omitted
 # here to avoid conflicting duplicates.

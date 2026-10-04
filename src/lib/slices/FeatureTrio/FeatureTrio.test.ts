@@ -7,8 +7,8 @@ const slice = (items: { icon: string | null; label: string }[], heading: unknown
   ({
     slice_type: "feature_trio",
     variation: "default",
-    primary: { heading, background: "gold" },
-    items,
+    primary: { heading, background: "gold-deep", features: items },
+    items: [],
   }) as unknown as Content.FeatureTrioSlice;
 
 describe("FeatureTrio slice", () => {

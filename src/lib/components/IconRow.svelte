@@ -18,13 +18,14 @@
   const ground = $derived(
     (
       {
-        gold: "bg-gold-deep text-white",
+        "gold-deep": "bg-gold-deep text-white",
         dark: "bg-dark text-white",
         moss: "bg-moss text-white",
       } as Record<string, string>
-    )[background ?? "dark"] ?? "bg-dark text-white",
+    )[background ?? "gold-deep"] ?? "bg-gold-deep text-white",
   );
-  const headingTone = $derived(background === "gold" ? "text-white" : "text-gold");
+  const onGold = $derived(background === "gold-deep");
+  const headingTone = $derived(onGold ? "text-white" : "text-gold");
   const anyIcon = $derived(items.some((item) => !!item.icon));
 </script>
 
@@ -40,7 +41,7 @@
         {#if item.label}
           <li class="flex flex-col items-center gap-4">
             {#if item.icon}
-              <Icon name={item.icon} class="h-14 w-14 text-accent" />
+              <Icon name={item.icon} class="h-14 w-14 {onGold ? 'text-white' : 'text-accent'}" />
             {/if}
             <span class={anyIcon ? "eyebrow" : "text-xl md:text-2xl"}>{item.label}</span>
           </li>

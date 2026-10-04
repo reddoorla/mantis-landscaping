@@ -16,7 +16,7 @@
           "type": "StructuredText",
           "config": {
             "label": "heading",
-            "single": "heading1,heading2,heading3"
+            "single": "heading1,heading2"
           }
         },
         "heading_style": {
@@ -54,7 +54,7 @@
           "type": "Select",
           "config": {
             "label": "background",
-            "options": ["dark", "light", "white", "gold", "image"],
+            "options": ["dark", "light", "white", "gold-deep", "image"],
             "default_value": "dark"
           }
         },
@@ -65,24 +65,32 @@
             "constraint": {},
             "thumbnails": []
           }
+        },
+        "buttons": {
+          "type": "Group",
+          "config": {
+            "label": "Buttons",
+            "repeat": true,
+            "fields": {
+              "button_label": {
+                "type": "Text",
+                "config": {
+                  "label": "button_label",
+                  "placeholder": ""
+                }
+              },
+              "button_link": {
+                "type": "Link",
+                "config": {
+                  "label": "button_link",
+                  "allowTargetBlank": true
+                }
+              }
+            }
+          }
         }
       },
-      "items": {
-        "button_label": {
-          "type": "Text",
-          "config": {
-            "label": "button_label",
-            "placeholder": ""
-          }
-        },
-        "button_link": {
-          "type": "Link",
-          "config": {
-            "label": "button_link",
-            "allowTargetBlank": true
-          }
-        }
-      }
+      "items": {}
     }
   ]
 }

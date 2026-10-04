@@ -59,7 +59,7 @@
           "type": "Select",
           "config": {
             "label": "tone",
-            "options": ["dark", "gold"],
+            "options": ["dark", "gold-deep"],
             "default_value": "dark"
           }
         }

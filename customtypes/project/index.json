@@ -13,6 +13,13 @@
           "placeholder": ""
         }
       },
+      "order": {
+        "type": "Number",
+        "config": {
+          "label": "Order in project lists",
+          "placeholder": "1 comes first"
+        }
+      },
       "title": {
         "type": "StructuredText",
         "config": {

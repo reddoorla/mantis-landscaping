@@ -14,10 +14,10 @@
   kicker={project.data.kicker}
   heading={project.data.title}
   body={project.data.intro}
-  tone="gold"
+  tone="gold-deep"
 />
 
-{#if project.data.services.length > 0}
+{#if project.data.services.some((service) => !!service.label)}
   {#snippet servicesHeading()}
     <h2>{project.data.services_heading || "Services provided"}</h2>
   {/snippet}

@@ -43,7 +43,7 @@ describe("SplitHero slice", () => {
   });
 
   it("puts white type on the darkened gold, never the Blux gold", () => {
-    const { container } = render(SplitHero, { props: { slice: slice("gold") } });
+    const { container } = render(SplitHero, { props: { slice: slice("gold-deep") } });
     const panel = container.querySelector(".bg-gold-deep");
     expect(panel).not.toBeNull();
     expect(panel?.className).toContain("text-white");

@@ -1,6 +1,25 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { handle } from "../hooks.server";
-import { redirectFor } from "./redirects";
+import { PERMANENT_REDIRECTS, redirectFor } from "./redirects";
+
+function netlifyRedirects() {
+  const toml = readFileSync(resolve(process.cwd(), "netlify.toml"), "utf8");
+  return toml
+    .split("[[redirects]]")
+    .slice(1)
+    .map((block) => {
+      const field = (key: string) =>
+        new RegExp(`^\\s*${key}\\s*=\\s*"?([^"\\n]+?)"?\\s*$`, "m").exec(block)?.[1];
+      return {
+        from: field("from"),
+        to: field("to"),
+        status: field("status"),
+        force: field("force"),
+      };
+    });
+}
 
 const run = async (path: string) => {
   const url = new URL(`https://mantislandscaping.com${path}`);
@@ -41,6 +60,12 @@ describe("permanent redirects for the Blux paths folded into one page", () => {
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     },
   );
+
+  it("netlify.toml forces the same 301s, so a prerendered file cannot shadow one", () => {
+    const declared = netlifyRedirects();
+    expect(declared.every((r) => r.status === "301" && r.force === "true")).toBe(true);
+    expect(Object.fromEntries(declared.map((r) => [r.from, r.to]))).toEqual(PERMANENT_REDIRECTS);
+  });
 
   it("still sets the security headers on a redirect", async () => {
     const { response } = await run("/ediblegardens");

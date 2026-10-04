@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { PrismicImage, PrismicLink, PrismicRichText } from "@prismicio/svelte";
+  import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
   import { isFilled, type Content } from "@prismicio/client";
   import { cappedWidths } from "@reddoorla/maintenance/images";
 
@@ -16,13 +17,13 @@
         dark: "bg-dark text-white",
         light: "bg-light text-primary",
         white: "bg-white text-primary",
-        gold: "bg-gold-deep text-white",
+        "gold-deep": "bg-gold-deep text-white",
         image: "bg-dark text-white",
       } as Record<string, string>
     )[background] ?? "bg-dark text-white",
   );
   const eyebrowTone = $derived(
-    background === "gold" || background === "image"
+    background === "gold-deep" || background === "image"
       ? "text-white"
       : onDark
         ? "text-gold"
@@ -32,10 +33,12 @@
   const centered = $derived(slice.primary.align === "center");
   const statement = $derived(slice.primary.size === "statement");
   const buttons = $derived(
-    slice.items.filter((item) => !!item.button_label && isFilled.link(item.button_link)),
+    (slice.primary.buttons ?? []).filter(
+      (item) => !!item.button_label && isFilled.link(item.button_link),
+    ),
   );
   const buttonSkin = $derived(
-    background === "gold" || background === "image"
+    background === "gold-deep" || background === "image"
       ? "bg-white text-primary hover:bg-light"
       : onDark
         ? "bg-gold-deep text-white hover:bg-gold hover:text-primary"
@@ -57,7 +60,7 @@
       loading="lazy"
       class="absolute inset-0 -z-10 h-full w-full object-cover"
     />
-    <div class="absolute inset-0 -z-10 bg-dark/55" aria-hidden="true"></div>
+    <div class="absolute inset-0 -z-10 bg-dark/70" aria-hidden="true"></div>
   {/if}
   <div
     class="mx-auto flex max-w-5xl flex-col gap-6 px-6 {display
@@ -85,12 +88,12 @@
     {#if buttons.length > 0}
       <div class="flex flex-wrap gap-4 {centered ? 'justify-center' : ''}">
         {#each buttons as button, i (i)}
-          <PrismicLink
+          <SiteLink
             field={button.button_link}
             class="eyebrow inline-block rounded px-5 py-3 transition-colors {buttonSkin}"
           >
             {button.button_label} +
-          </PrismicLink>
+          </SiteLink>
         {/each}
       </div>
     {/if}

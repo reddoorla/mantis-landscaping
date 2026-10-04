@@ -9,12 +9,20 @@ import type { SliceContext } from "$lib/slice-context";
  *  `createClient()` return type assignable, and lets tests pass a stub. */
 export type PageClient = {
   getByUID(type: "page", uid: string): Promise<PageDocument>;
-  getAllByType(type: "project"): Promise<ProjectDocument[]>;
+  getAllByType(
+    type: "project",
+    params?: { orderings?: { field: string; direction?: "asc" | "desc" }[] },
+  ): Promise<ProjectDocument[]>;
 };
 
 export type ProjectClient = {
   getByUID(type: "project", uid: string): Promise<ProjectDocument>;
 };
+
+export const PROJECT_ORDER = [
+  { field: "my.project.order", direction: "asc" as const },
+  { field: "document.first_publication_date", direction: "asc" as const },
+];
 
 function isMiss(err: unknown) {
   return err instanceof NotFoundError && !(err instanceof RepositoryNotFoundError);
@@ -40,7 +48,7 @@ export async function loadPage(client: PageClient, uid: string) {
   }
   const listsProjects = page.data.slices.some((slice) => slice.slice_type === "project_list");
   const context: SliceContext = listsProjects
-    ? { projects: await client.getAllByType("project") }
+    ? { projects: await client.getAllByType("project", { orderings: PROJECT_ORDER }) }
     : {};
   return { page, context, ...pageMeta(page) };
 }

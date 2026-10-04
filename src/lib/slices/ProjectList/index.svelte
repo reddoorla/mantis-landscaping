@@ -8,6 +8,7 @@
     $props();
 
   const projects = $derived(context.projects ?? []);
+  const hasHeading = $derived(isFilled.richText(slice.primary.heading));
 </script>
 
 {#if projects.length > 0}
@@ -17,7 +18,7 @@
     class="w-full bg-white"
   >
     <div class="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-16">
-      {#if isFilled.richText(slice.primary.heading)}
+      {#if hasHeading}
         <div class="eyebrow">
           <PrismicRichText field={slice.primary.heading} />
         </div>
@@ -42,12 +43,20 @@
                   class="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               {/if}
-              <span class="absolute inset-0 -z-10 bg-black/30" aria-hidden="true"></span>
+              <span
+                class="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-black/50 to-black/20"
+                aria-hidden="true"
+              ></span>
               <span class="flex flex-col gap-2">
                 {#if project.data.kicker}
                   <span class="eyebrow">{project.data.kicker}</span>
                 {/if}
-                <span class="text-4xl font-light md:text-7xl">{asText(project.data.title)}</span>
+                <svelte:element
+                  this={hasHeading ? "h3" : "h2"}
+                  class="text-4xl font-light md:text-7xl"
+                >
+                  {asText(project.data.title)}
+                </svelte:element>
               </span>
             </a>
           </li>

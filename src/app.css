@@ -23,7 +23,7 @@
   --color-light: #f5f5f5;
   --color-primary: #2e1e15;
   --color-dark: #232d1b;
-  --color-moss: #2f3a26;
+  --color-moss: #323b21;
   --color-secondary: #5c5048;
   --color-accent: #f58736;
   --color-gold: #dfb726;
@@ -352,6 +352,15 @@ main > section.hero-band:first-child {
   :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+  }
+
+  :where(.bg-dark, .bg-moss, .bg-gold-deep)
+    :where(a, button, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline-color: var(--color-white);
+  }
+
+  :where(.scroll-strip):focus-visible {
+    outline-offset: -4px;
   }
 
   a,

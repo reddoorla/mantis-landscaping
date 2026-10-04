@@ -1,11 +1,12 @@
 <script lang="ts">
   import Icon from "$lib/components/Icon.svelte";
-  import { PrismicLink, PrismicRichText } from "@prismicio/svelte";
+  import { PrismicRichText } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
   import { isFilled, type Content } from "@prismicio/client";
 
   let { slice }: { slice: Content.ServiceCardsSlice } = $props();
 
-  const cards = $derived(slice.items.filter((item) => !!item.title));
+  const cards = $derived((slice.primary.cards ?? []).filter((item) => !!item.title));
 </script>
 
 <section
@@ -25,13 +26,16 @@
       {#each cards as card, i (i)}
         <li>
           {#if isFilled.link(card.link)}
-            <PrismicLink
+            <SiteLink
               field={card.link}
-              class="flex aspect-[4/5] max-h-72 w-full flex-col items-center justify-center gap-6 rounded-lg bg-moss p-6 transition-colors hover:bg-gold-deep focus-visible:bg-gold-deep"
+              class="group flex aspect-[4/5] max-h-72 w-full flex-col items-center justify-center gap-6 rounded-lg bg-moss p-6 transition-colors hover:bg-gold-deep focus-visible:bg-gold-deep"
             >
-              <Icon name={card.icon} class="h-16 w-16 text-accent" />
+              <Icon
+                name={card.icon}
+                class="h-16 w-16 text-accent group-hover:text-white group-focus-visible:text-white"
+              />
               <span class="eyebrow">{card.title}</span>
-            </PrismicLink>
+            </SiteLink>
           {:else}
             <div
               class="flex aspect-[4/5] max-h-72 w-full flex-col items-center justify-center gap-6 rounded-lg bg-moss p-6"
