@@ -145,6 +145,7 @@ function segments(bytes) {
     if (marker >= bytes.length) return null;
     const code = bytes[marker];
     if (code === 0xda) return { segments: out, sos: marker - 1 };
+    if (code === 0xd8 || code === 0xd9 || code === 0x00) return null;
     if (STANDALONE.has(code)) {
       out.push({ start: at, end: marker + 1, code });
       at = marker + 1;

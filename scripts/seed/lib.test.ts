@@ -333,6 +333,10 @@ describe("the seed's segment walk fails closed", () => {
     ["no start-of-scan", Buffer.concat([Buffer.from([0xff, 0xd8]), app(0xe0, 14)])],
     ["a stray byte between segments", Buffer.concat([Buffer.from([0xff, 0xd8, 0x00]), sosTail])],
     ["not a JPEG", Buffer.from("plain text")],
+    [
+      "an end-of-image before the start of scan",
+      Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xd9, 0x00, 0x04, 0x00, 0x00]), sosTail]),
+    ],
   ])("reports %s as unmeasurable, so the upload is refused", async (_, bytes) => {
     expect(metadataBytes(bytes)).toBe(Infinity);
     expect(stripXmp(bytes)).toBe(bytes);
@@ -457,5 +461,88 @@ describe("the seed's requests", () => {
       }),
     ).rejects.toThrow(/no dimensions for a\.jpg/);
     expect(urls).toEqual(["https://asset-api.prismic.io/assets"]);
+  });
+});
+
+describe("the seed's update, at its edges", () => {
+  const reply = (status: number, body: unknown = {}) =>
+    ({
+      status,
+      ok: status < 300,
+      headers: { get: () => null },
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    }) as unknown as Response;
+  const docs = (img: (f: string, a: string | null) => unknown) => [
+    {
+      type: "page",
+      uid: "home",
+      title: "Home",
+      data: { a: img("a.jpg", "Alt A"), b: img("b.jpg", null) },
+    },
+  ];
+  const run = (
+    fetchImpl: (url: string, init: RequestInit) => Promise<Response>,
+    ids = { "page:home": "D" },
+  ) =>
+    updateRelease({
+      docs,
+      files: new Map<string, { id?: string; name?: string; bytes?: Buffer }>([
+        ["a.jpg", { name: "a.jpg", bytes: Buffer.from("x") }],
+        ["b.jpg", { id: "KEPT" }],
+      ]),
+      alts: new Map([["a.jpg", "Alt A"]]),
+      ids,
+      headers: {},
+      fetch: fetchImpl,
+      sleep: async () => {},
+    });
+
+  it("uploads only the photo the library lacks, with its alt, and reuses the other", async () => {
+    const forms: FormData[] = [];
+    const puts: unknown[] = [];
+    await run(async (url, init) => {
+      if (url.endsWith("/assets")) {
+        forms.push(init.body as FormData);
+        return reply(200, { id: "NEW", width: 1, height: 1 });
+      }
+      puts.push(JSON.parse(init.body as string));
+      return reply(200);
+    });
+    expect(forms).toHaveLength(1);
+    expect(forms[0].get("alt")).toBe("Alt A");
+    expect(puts).toEqual([
+      {
+        uid: "home",
+        title: "Home",
+        data: { a: { id: "NEW", alt: "Alt A" }, b: { id: "KEPT", alt: null } },
+      },
+    ]);
+  });
+
+  it("stops on a failed upload, and on a failed update", async () => {
+    await expect(run(async () => reply(500))).rejects.toThrow(/upload a\.jpg answered 500/);
+    await expect(
+      run(async (url) =>
+        url.endsWith("/assets") ? reply(200, { id: "N", width: 1, height: 1 }) : reply(400),
+      ),
+    ).rejects.toThrow(/update home answered 400/);
+  });
+
+  it("refuses a document it has no id for, before any request for it", async () => {
+    const urls: string[] = [];
+    await expect(
+      run(async (url) => {
+        urls.push(url);
+        return reply(200, { id: "N", width: 1, height: 1 });
+      }, {}),
+    ).rejects.toThrow(/no document id for page:home/);
+    expect(urls.some((url) => url.includes("/documents/"))).toBe(false);
+  });
+
+  it("passes a non-429 error straight through without retrying", async () => {
+    let calls = 0;
+    const out = await send(async () => (++calls, reply(500)), "u", {}, { sleep: async () => {} });
+    expect([out.status, calls]).toEqual([500, 1]);
   });
 });
