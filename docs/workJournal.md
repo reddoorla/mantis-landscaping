@@ -611,3 +611,40 @@ It is not merged. Its second adversarial review round found a real defect: a sin
 - the seed script; the Migration API does not dedupe existing assets, so a re-run must look up its own uploads;
 - the model push, with `PRISMIC_TOKEN_MANTIS_LANDSCAPING` set explicitly, because a generic token for another repository sits in the cloud environment;
 - the placeholder swap, P4 and P5.
+
+## 2026-10-04 — P2a round 3 landed; P2b seeded, repaired, and waiting on the publish (#3 `e9d5f95`, #7 `2470e01`, #8 `95ddb1a`)
+
+**Round 3 of #3.** Operator decision 64 (a) limited this round to round 2's list.
+
+- Fixes:
+  - one case-study photo now fills its column instead of scrolling;
+  - `SiteLink` renders no anchor for a link that resolves to nothing;
+  - empty groups render no band;
+  - the ProjectList scrim's weakest point is 0.6 black, so white text on a pure-white photo is 5.74:1;
+  - the photo strip's focus ring is two-tone;
+  - TextBlock offers no h1.
+- Tests were added for the orderings, the meta fallbacks, `SiteLink`'s `target`/`rel`, the `building` guard, and fields inside primary groups.
+- The one review of those fixes found a real gap. The two-tone ring is a `box-shadow` on a frame, Windows High Contrast drops box-shadows, and `outline: none` had removed the fallback, so a focused strip showed nothing at all. The strip now keeps a transparent outline that forced colours repaint.
+
+**The seed (#7).** It fetches each original from the Blux CDN and checks its sha256 against the capture manifest. The bytes stay out of this repo.
+
+Round 1 of #7's review found that the manifest lists five photos twice: the original, and a 1000px copy under `/w:1000/` on a second CDN host. The planner kept whichever came last, so three heroes would have shipped as thumbnails, edible gardens' at 220 KB instead of 8.0 MB. The sha check could not catch it, because it compared against the thumbnail's own hash.
+
+`src/lib/site-pages.content.test.ts` holds every value the documents set to its model. The Migration API validates against the models and drops what does not fit, so this is the check that stands between a passing build and a page that publishes wrong.
+
+**What the first live run got wrong (#8).**
+
+- **Photos with no dimensions.** 18 of 74 uploads came back without width or height. Every one carried more than 64 KB of metadata before the image data, almost all of it a Pixel phone's portrait depth map stored as extended XMP. Prismic sized every photo with 57,187 bytes or less and none with 71,782 or more.
+  - Stripping XMP losslessly (same pixels; EXIF and ICC kept) leaves at most 58,268 bytes, and the two largest of those were probed and sized.
+  - So the seed strips XMP from every JPEG and refuses a header over 58,268 bytes. A file whose segment walk does not reach the image data is refused too.
+- **An icon default.** FeatureTrio's icon had a default, so the home pillars' empty icons became "design". The default is gone, and the content test reports any empty Select whose model has one.
+
+`seed.mjs --update <ids.json>` repaired the release in place: 18 stripped uploads, all sized, and five documents PUT by id. The 18 old assets were deleted once a query of every image path showed nothing used them.
+
+**State.**
+
+- Models are in Prismic.
+- The five documents are in migration release `asKQBhIAAC0ATypp`.
+- The library holds 74 photos, all sized.
+- Nothing is published; that is reddoor-maintenance Operator decisions 66.
+- The placeholder is still in `slicemachine.config.json`. Swapping it makes the build require a published `home`, so it waits on the publish.
