@@ -40,7 +40,7 @@ export const GET: RequestHandler = async ({ fetch }) => {
     // stray-whitespace value reports dark here too, not falsely present.
     turnstile: !!publicEnv.PUBLIC_TURNSTILE_SITE_KEY?.trim(),
     // Declares that this deploy's contact form forwards the `testMode` marker
-    // to central ingest (contact/+page.server.ts buildPayload) — unconditional
+    // to central ingest (contact-us/+page.server.ts buildPayload) — unconditional
     // because the forwarding ships in the same deploy as this flag. The fleet
     // form-e2e probe preflights /health and refuses to submit without this
     // declaration, so it must NEVER be copied to a site whose form does not

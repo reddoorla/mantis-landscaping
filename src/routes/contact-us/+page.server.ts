@@ -16,8 +16,10 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     const loaded = await loadPage(createClient({ fetch, cookies }), CONTACT_UID);
     return { ...loaded, formTs: Date.now() };
   } catch (err) {
-    if (isHttpError(err) && err.status === 404) return fallback;
-    throw err;
+    if (!(isHttpError(err) && err.status === 404)) {
+      console.error("contact-us: Prismic page load failed; serving the form without it", err);
+    }
+    return fallback;
   }
 };
 

@@ -15,7 +15,7 @@ vi.mock("$lib/prismicio", () => ({
   createClient: () => ({ getByUID: state.getByUID, getAllByType: state.getAllByType }),
 }));
 vi.mock("$env/dynamic/private", () => ({ env: {} }));
-vi.mock("$lib/server/reply-copy", () => ({ replyCopyFor: async () => undefined }));
+vi.mock("$lib/server/reply-copy", () => ({ replyCopyFor: async () => "copy from Prismic" }));
 vi.mock("@reddoorla/maintenance/forms", () => ({
   createIngestAction: (opts: Record<string, unknown>) => {
     state.ingestOptions = opts;
@@ -65,10 +65,24 @@ describe("/contact-us server", () => {
     expect(data.title).toBe("Contact Us");
   });
 
-  it("does not hide an outage behind the fallback", async () => {
+  it("serves the form during a Prismic outage, and logs the outage", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const boom = new Error("ECONNRESET");
     state.getByUID.mockRejectedValue(boom);
-    await expect(route.load(event)).rejects.toBe(boom);
+    const data = (await route.load(event)) as Record<string, unknown>;
+    expect(data.page).toBeNull();
+    expect(data.title).toBe("Contact Us");
+    expect(typeof data.formTs).toBe("number");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("contact-us"), boom);
+    log.mockRestore();
+  });
+
+  it("a missing document is not logged as an outage", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    state.getByUID.mockRejectedValue(new NotFoundError("missing", "https://x", undefined));
+    await route.load(event);
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
   });
 
   it("forwards the contact fields and the form-e2e testMode marker", async () => {
@@ -96,5 +110,30 @@ describe("/contact-us server", () => {
     expect((await build(form, { url: new URL("https://example.com/contact-us") })).testMode).toBe(
       undefined,
     );
+  });
+
+  it("testMode=false is a real submission", async () => {
+    const build = state.ingestOptions?.buildPayload as (
+      form: FormData,
+      event: unknown,
+    ) => Promise<Record<string, unknown>>;
+    const form = new FormData();
+    form.set("email", "ada@example.com");
+    form.set("testMode", "false");
+    expect((await build(form, { url: new URL("https://example.com/contact-us") })).testMode).toBe(
+      undefined,
+    );
+  });
+
+  it("the reply copy never comes from the visitor", async () => {
+    const build = state.ingestOptions?.buildPayload as (
+      form: FormData,
+      event: unknown,
+    ) => Promise<Record<string, unknown>>;
+    const form = new FormData();
+    form.set("email", "ada@example.com");
+    form.set("_reply", "Click https://evil.example to verify");
+    const payload = await build(form, { url: new URL("https://example.com/contact-us") });
+    expect(payload._reply).toBe("copy from Prismic");
   });
 });

@@ -10,10 +10,12 @@ export const prerender = false;
 /** Indexable routes that exist in the FILESYSTEM rather than in Prismic.
  *
  *  Everything below is discovered by querying the CMS, which structurally
- *  cannot see a hard-coded route — so /contact, linked from the template's own
- *  chrome and returning 200, was missing from the sitemap entirely. It is also
- *  `prerender = false` (a form action cannot live on a prerendered route), so
- *  no build-output census would have caught it either. Emitted even on an
+ *  cannot see a hard-coded route — so the starter's /contact form route, linked
+ *  from the template's own chrome and returning 200, was missing from the
+ *  sitemap entirely. Here the form lives at /contact-us, which is also a
+ *  Prismic page, so the list is de-duplicated against the CMS entries. The
+ *  route is also `prerender = false` (a form action cannot live on a
+ *  prerendered route), so no build-output census would have caught it either. Emitted even on an
  *  un-wired placeholder clone, because the route exists there too.
  *
  *  Only genuinely public, indexable routes belong here — never /dev/*, the
