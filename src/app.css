@@ -368,6 +368,7 @@ main > section.hero-band:first-child {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    border-radius: 0.5rem;
     box-shadow:
       inset 0 0 0 2px var(--color-white),
       inset 0 0 0 4px var(--color-dark);
@@ -375,7 +376,7 @@ main > section.hero-band:first-child {
 
   @supports selector(:has(*)) {
     :where(.scroll-strip-frame) > :where(.scroll-strip):focus-visible {
-      outline: none;
+      outline-color: transparent;
     }
   }
 

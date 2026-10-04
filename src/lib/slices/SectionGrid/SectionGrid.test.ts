@@ -56,6 +56,8 @@ describe("SectionGrid links", () => {
     expect(container.querySelector("a")).toBeNull();
     expect(container.querySelector('[href=""]')).toBeNull();
     expect(container.querySelectorAll("img")).toHaveLength(2);
+    expect(container.querySelector("span.block")).toBeNull();
+    expect(container.querySelectorAll("div.block")).toHaveLength(2);
   });
 
   it("links a card whose link resolves", () => {

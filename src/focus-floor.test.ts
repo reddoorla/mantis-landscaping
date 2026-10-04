@@ -74,3 +74,19 @@ describe("the photo-strip focus ring", () => {
     expect((a + 0.05) / (b + 0.05)).toBeGreaterThanOrEqual(7);
   });
 });
+
+describe("the photo-strip ring in forced colors", () => {
+  it("hides the strip's outline with a transparent colour, never outline: none", () => {
+    const at = css.indexOf(":where(.scroll-strip-frame) > :where(.scroll-strip):focus-visible");
+    expect(at, "no rule hiding the strip's own outline").toBeGreaterThan(-1);
+    const rule = css.slice(at, css.indexOf("}", at) + 1);
+    expect(rule).toMatch(/outline-color:\s*transparent/);
+    expect(rule).not.toMatch(/outline(-style)?:\s*none/);
+  });
+
+  it("rounds the ring to the card's corners so it is not clipped there", () => {
+    const at = css.indexOf(":where(.scroll-strip-frame):has(> .scroll-strip:focus-visible)::after");
+    const rule = css.slice(at, css.indexOf("}", at) + 1);
+    expect(rule).toMatch(/border-radius:\s*0\.5rem/);
+  });
+});
