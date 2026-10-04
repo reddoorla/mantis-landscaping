@@ -17,6 +17,8 @@ function netlifyRedirects() {
         to: field("to"),
         status: field("status"),
         force: field("force"),
+        rawStatus: new RegExp(`^\\s*status\\s*=\\s*(.+?)\\s*$`, "m").exec(block)?.[1],
+        rawForce: new RegExp(`^\\s*force\\s*=\\s*(.+?)\\s*$`, "m").exec(block)?.[1],
       };
     });
 }
@@ -64,6 +66,9 @@ describe("permanent redirects for the Blux paths folded into one page", () => {
   it("netlify.toml forces the same 301s, so a prerendered file cannot shadow one", () => {
     const declared = netlifyRedirects();
     expect(declared.every((r) => r.status === "301" && r.force === "true")).toBe(true);
+    expect(declared.map((r) => [r.rawStatus, r.rawForce])).toEqual(
+      declared.map(() => ["301", "true"]),
+    );
     expect(Object.fromEntries(declared.map((r) => [r.from, r.to]))).toEqual(PERMANENT_REDIRECTS);
   });
 

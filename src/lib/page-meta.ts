@@ -23,7 +23,8 @@ function summarise(text: string) {
   const clean = text.replace(/\s+/g, " ").trim();
   if (clean.length <= DESCRIPTION_LENGTH) return clean;
   const cut = clean.slice(0, DESCRIPTION_LENGTH - 1);
-  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:.!?]$/, "")}…`;
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[,;:.!?]$/, "")}…`;
 }
 
 export function projectMeta(project: ProjectDocument) {

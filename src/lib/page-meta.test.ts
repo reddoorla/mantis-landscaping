@@ -95,3 +95,13 @@ describe("projectMeta fallbacks", () => {
     expect(projectMeta(projectDoc({ intro: [] })).meta_description).toBeNull();
   });
 });
+
+describe("projectMeta on an intro with no spaces", () => {
+  it("cuts at the length limit instead of to a single character", () => {
+    const long = "x".repeat(400);
+    const description = projectMeta(
+      projectDoc({ intro: [{ type: "paragraph", text: long, spans: [] }] }),
+    ).meta_description as string;
+    expect(description).toBe(`${"x".repeat(154)}…`);
+  });
+});
