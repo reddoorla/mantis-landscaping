@@ -37,3 +37,40 @@ describe("the keyboard-focus floor", () => {
     );
   });
 });
+
+describe("the photo-strip focus ring", () => {
+  const FRAME = ":where(.scroll-strip-frame):has(> .scroll-strip:focus-visible)::after";
+
+  const tokens = Object.fromEntries(
+    [...css.matchAll(/--color-([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]),
+  );
+  const hex = (value: string) => {
+    const named: Record<string, string> = { white: "#ffffff", black: "#000000" };
+    const v = named[value] ?? value;
+    if (!/^#[0-9a-f]{6}$/i.test(v)) throw new Error(`unparsed colour ${value}`);
+    return [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16));
+  };
+  const lum = (rgb: number[]) => {
+    const [r, g, b] = rgb.map((c) => {
+      const v = c / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+
+  it("is two-tone, so one band always contrasts with the photo under it", () => {
+    const at = css.indexOf(FRAME);
+    expect(at, "no frame rule for the photo-strip ring in app.css").toBeGreaterThan(-1);
+    const rule = css.slice(at, css.indexOf("}", at) + 1);
+    expect(rule).toMatch(/position:\s*absolute/);
+    expect(rule).toMatch(/pointer-events:\s*none/);
+    const bands = [...rule.matchAll(/inset 0 0 0 (\d+)px var\(--color-([a-z-]+)\)/g)].map((m) => ({
+      width: Number(m[1]),
+      colour: hex(tokens[m[2]]),
+    }));
+    expect(bands).toHaveLength(2);
+    expect(bands[1].width - bands[0].width).toBeGreaterThanOrEqual(2);
+    const [a, b] = bands.map((band) => lum(band.colour)).sort((x, y) => y - x);
+    expect((a + 0.05) / (b + 0.05)).toBeGreaterThanOrEqual(7);
+  });
+});

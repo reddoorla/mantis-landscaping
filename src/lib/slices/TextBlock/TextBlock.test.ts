@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, within } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
@@ -59,18 +61,31 @@ describe("TextBlock slice", () => {
     expect(container.querySelector("img")?.getAttribute("alt")).toBe("");
   });
 
-  it("renders a display heading at h1 for a page title band", () => {
+  it("renders a display heading at h2 for a page title band", () => {
     const { container } = render(TextBlock, {
       props: {
         slice: slice({
-          heading: [{ type: "heading1", text: "Contact Us", spans: [] }],
+          heading: [{ type: "heading2", text: "Contact Us", spans: [] }],
           heading_style: "display",
           body: [],
           background: "gold-deep",
         }),
       },
     });
-    expect(within(container).getByRole("heading", { level: 1 }).textContent).toBe("Contact Us");
+    expect(within(container).getByRole("heading", { level: 2 }).textContent).toBe("Contact Us");
+    expect(container.querySelector("h1")).toBeNull();
     expect(container.querySelector("section")?.className).toContain("bg-gold-deep");
+  });
+
+  it("the heading offers no h1", () => {
+    const model = JSON.parse(
+      readFileSync(resolve(process.cwd(), "src/lib/slices/TextBlock/model.json"), "utf8"),
+    );
+    for (const variation of model.variations) {
+      const config = variation.primary.heading.config;
+      const offered = String(config.single ?? config.multi).split(",");
+      expect(offered).not.toContain("heading1");
+      expect(offered.length).toBeGreaterThan(0);
+    }
   });
 });

@@ -64,3 +64,18 @@ describe("Steps slice", () => {
     expect(section?.className).not.toContain("text-white");
   });
 });
+
+describe("Steps with nothing to show", () => {
+  it.each([
+    ["no steps", []],
+    ["only untitled steps", [{ image: {}, icon: "plan", title: null, body: [] }]],
+  ])("renders nothing for %s", (_, group) => {
+    const empty = slice([{ type: "heading2", text: "How it works", spans: [] }]) as unknown as {
+      primary: Record<string, unknown>;
+    };
+    const { container } = render(Steps, {
+      props: { slice: { ...empty, primary: { ...empty.primary, steps: group } } as never },
+    });
+    expect(container.querySelector("section")).toBeNull();
+  });
+});

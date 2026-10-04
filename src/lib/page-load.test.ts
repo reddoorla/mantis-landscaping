@@ -86,3 +86,29 @@ describe("loadProject", () => {
     expect(asked).toEqual(["project"]);
   });
 });
+
+describe("the project ordering", () => {
+  it("asks Prismic for projects in order, then by first publication", async () => {
+    const asked: unknown[] = [];
+    const client = {
+      getByUID: async () => ({
+        uid: "projects",
+        type: "page",
+        data: { title: [], slices: [{ slice_type: "project_list" }] },
+      }),
+      getAllByType: async (_type: string, params: unknown) => {
+        asked.push(params);
+        return [];
+      },
+    } as unknown as PageClient;
+    await loadPage(client, "projects");
+    expect(asked).toEqual([
+      {
+        orderings: [
+          { field: "my.project.order", direction: "asc" },
+          { field: "document.first_publication_date", direction: "asc" },
+        ],
+      },
+    ]);
+  });
+});

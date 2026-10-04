@@ -49,3 +49,15 @@ describe("FeatureTrio slice", () => {
     expect(within(container).getByRole("heading", { level: 2 }).textContent).toBe("Values");
   });
 });
+
+describe("FeatureTrio with nothing to show", () => {
+  it.each([
+    ["no features", []],
+    ["only unlabelled features", [{ icon: "water", label: "" }]],
+  ])("renders nothing for %s", (_, items) => {
+    const { container } = render(FeatureTrio, {
+      props: { slice: slice(items, [{ type: "heading2", text: "Our values", spans: [] }]) },
+    });
+    expect(container.querySelector("section")).toBeNull();
+  });
+});

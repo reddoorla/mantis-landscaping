@@ -22,7 +22,9 @@ import { documents } from "./site-pages.js";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SLICES = join(HERE, "slices");
 
-type Variation = { primary: string[]; items: string[] };
+type Field = { type?: string; config?: { fields?: Record<string, Field> } };
+type Fields = Record<string, Field>;
+type Variation = { primary: Fields; items: Fields };
 type Slice = {
   slice_type: string;
   variation: string;
@@ -41,14 +43,47 @@ function loadModels(): Record<string, Record<string, Variation>> {
     out[model.id] = Object.fromEntries(
       (model.variations ?? []).map((v: Record<string, unknown>) => [
         v.id,
-        {
-          primary: Object.keys((v.primary as object) ?? {}),
-          items: Object.keys((v.items as object) ?? {}),
-        },
+        { primary: (v.primary as Fields) ?? {}, items: (v.items as Fields) ?? {} },
       ]),
     );
   }
   return out;
+}
+
+/** Every key in `value` the model does not declare, descending into groups. */
+function undeclared(path: string, value: Record<string, unknown>, fields: Fields): string[] {
+  const out: string[] = [];
+  for (const [key, inner] of Object.entries(value)) {
+    const field = fields[key];
+    if (!field) {
+      out.push(`${path}.${key}`);
+      continue;
+    }
+    if (field.type === "Group" && Array.isArray(inner))
+      inner.forEach((entry, i) =>
+        out.push(...undeclared(`${path}.${key}[${i}]`, entry ?? {}, field.config?.fields ?? {})),
+      );
+  }
+  return out;
+}
+
+function strippedFields(
+  pages: Array<[string, Slice[]]>,
+  models: Record<string, Record<string, Variation>>,
+): string[] {
+  const stripped: string[] = [];
+  for (const [uid, slices] of pages)
+    for (const s of slices) {
+      const variation = models[s.slice_type]?.[s.variation];
+      if (!variation) continue;
+      const where = `${uid} ${s.slice_type}/${s.variation}`;
+      stripped.push(...undeclared(`${where} primary`, s.primary ?? {}, variation.primary));
+      const itemKeys = new Set<string>();
+      for (const item of s.items ?? [])
+        for (const miss of undeclared(`${where} items`, item, variation.items)) itemKeys.add(miss);
+      stripped.push(...itemKeys);
+    }
+  return stripped;
 }
 
 /** Image resolver stub — shape only; this test never reads image values. */
@@ -78,19 +113,39 @@ describe("site-pages documents vs slice models", () => {
 
   // The one that catches a silent Migration-API drop.
   it("declares every field the documents set, so Prismic strips nothing", () => {
-    const stripped: string[] = [];
-    for (const [uid, slices] of pages)
-      for (const s of slices) {
-        const variation = models[s.slice_type]?.[s.variation];
-        if (!variation) continue;
-        for (const key of Object.keys(s.primary ?? {}))
-          if (!variation.primary.includes(key))
-            stripped.push(`${uid} ${s.slice_type}/${s.variation} primary.${key}`);
-        const itemKeys = new Set((s.items ?? []).flatMap((i) => Object.keys(i)));
-        for (const key of itemKeys)
-          if (!variation.items.includes(key))
-            stripped.push(`${uid} ${s.slice_type}/${s.variation} items.${key}`);
-      }
-    expect(stripped).toEqual([]);
+    expect(strippedFields(pages, models)).toEqual([]);
+  });
+});
+
+describe("the strip check itself", () => {
+  const models = loadModels();
+  const cards = (card: Record<string, unknown>): Array<[string, Slice[]]> => [
+    [
+      "probe",
+      [
+        {
+          slice_type: "service_cards",
+          variation: "default",
+          primary: { heading: [], cards: [{ icon: "water", title: "Water", link: {}, ...card }] },
+        },
+      ],
+    ],
+  ];
+
+  it("passes a group entry whose every field is declared", () => {
+    expect(strippedFields(cards({}), models)).toEqual([]);
+  });
+
+  it("reports an undeclared field inside a primary group", () => {
+    expect(strippedFields(cards({ subtitle: "x" }), models)).toEqual([
+      "probe service_cards/default primary.cards[0].subtitle",
+    ]);
+  });
+
+  it("reports an undeclared top-level primary field", () => {
+    const pages: Array<[string, Slice[]]> = [
+      ["probe", [{ slice_type: "service_cards", variation: "default", primary: { kicker: "x" } }]],
+    ];
+    expect(strippedFields(pages, models)).toEqual(["probe service_cards/default primary.kicker"]);
   });
 });

@@ -64,3 +64,29 @@ describe("CtaBanner slice", () => {
     expect(noLink.querySelector("a")).toBeNull();
   });
 });
+
+describe("CtaBanner with a link that resolves to nothing", () => {
+  it.each([
+    ["an empty link", { link_type: "Any" }],
+    [
+      "a document of a type with no route",
+      { link_type: "Document", type: "form_replies", id: "f" },
+    ],
+  ])("renders no button for %s", (_, buttonLink) => {
+    const { container } = render(CtaBanner, { props: { slice: makeSlice({ buttonLink }) } });
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector('[href=""]')).toBeNull();
+    expect(container.textContent).not.toContain("Talk with us");
+  });
+
+  it("resolves a page link locally", () => {
+    const { getByRole } = render(CtaBanner, {
+      props: {
+        slice: makeSlice({
+          buttonLink: { link_type: "Document", type: "page", uid: "contact-us", id: "c" },
+        }),
+      },
+    });
+    expect(getByRole("link", { name: "Talk with us" }).getAttribute("href")).toBe("/contact-us");
+  });
+});

@@ -45,3 +45,20 @@ describe("Hero slice", () => {
     expect(section?.hasAttribute("style")).toBe(false);
   });
 });
+
+describe("Hero slice with a link that resolves to nothing", () => {
+  it.each([
+    ["an empty link", { link_type: "Any" }],
+    [
+      "a document of a type with no route",
+      { link_type: "Document", type: "form_replies", id: "f" },
+    ],
+  ])("renders no CTA for %s", (_, cta_link) => {
+    const { container } = render(Hero, {
+      props: { slice: { ...slice, primary: { ...slice.primary, cta_link } } as never },
+    });
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.querySelector('[href=""]')).toBeNull();
+    expect(container.textContent).not.toContain("Explore");
+  });
+});

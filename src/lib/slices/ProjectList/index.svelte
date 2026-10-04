@@ -44,7 +44,7 @@
                 />
               {/if}
               <span
-                class="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-black/50 to-black/20"
+                class="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 to-black/60"
                 aria-hidden="true"
               ></span>
               <span class="flex flex-col gap-2">

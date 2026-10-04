@@ -10,10 +10,10 @@
   const studies = $derived(
     (context.project?.data.case_studies ?? [])
       .filter((study) => !!study.title)
-      .map((study) => ({
-        ...study,
-        photos: (study.photos ?? []).filter((entry) => isFilled.image(entry.photo)),
-      })),
+      .map((study) => {
+        const photos = (study.photos ?? []).filter((entry) => isFilled.image(entry.photo));
+        return { ...study, photos, scrolls: photos.length > 1 };
+      }),
   );
   const hasHeading = $derived(isFilled.richText(slice.primary.heading));
 </script>
@@ -35,27 +35,33 @@
           class="grid grid-cols-1 overflow-hidden rounded-lg bg-moss text-white md:grid-cols-5"
           aria-labelledby="case-study-{i}"
         >
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="scroll-strip flex snap-x snap-mandatory overflow-x-auto md:col-span-3"
-            role="region"
-            aria-label="{study.title} photos"
-            tabindex={study.photos.length > 1 ? 0 : undefined}
-          >
-            <ul class="flex">
-              {#each study.photos as entry, p (p)}
-                <li class="w-[85vw] shrink-0 snap-start md:w-[36rem]">
-                  <PrismicImage
-                    field={entry.photo}
-                    fallbackAlt=""
-                    widths={cappedWidths(entry.photo)}
-                    sizes="(min-width: 768px) 576px, 85vw"
-                    loading="lazy"
-                    class="aspect-[4/3] h-full w-full object-cover"
-                  />
-                </li>
-              {/each}
-            </ul>
+          <div class="scroll-strip-frame relative min-w-0 md:col-span-3">
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+            <div
+              class="scroll-strip flex h-full {study.scrolls
+                ? 'snap-x snap-mandatory overflow-x-auto'
+                : ''}"
+              role="region"
+              aria-label="{study.title} photos"
+              tabindex={study.scrolls ? 0 : undefined}
+            >
+              <ul class="flex w-full">
+                {#each study.photos as entry, p (p)}
+                  <li
+                    class={study.scrolls ? "w-[85vw] shrink-0 snap-start md:w-[36rem]" : "w-full"}
+                  >
+                    <PrismicImage
+                      field={entry.photo}
+                      fallbackAlt=""
+                      widths={cappedWidths(entry.photo)}
+                      sizes="(min-width: 768px) 576px, 85vw"
+                      loading="lazy"
+                      class="aspect-[4/3] h-full w-full object-cover"
+                    />
+                  </li>
+                {/each}
+              </ul>
+            </div>
           </div>
           <div class="flex flex-col gap-4 p-8 md:col-span-2">
             {#if study.label}

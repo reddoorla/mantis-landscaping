@@ -83,3 +83,38 @@ describe("CaseStudies slice", () => {
     expect(container.querySelector("section")).toBeNull();
   });
 });
+
+describe("CaseStudies photo strip width", () => {
+  it("lets a single photo fill its column, so the strip cannot scroll", () => {
+    const { container } = render(CaseStudies, {
+      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
+    });
+    const strip = container.querySelector('[role="region"]') as HTMLElement;
+    expect(strip.className).not.toMatch(/overflow-x-(auto|scroll)/);
+    const item = strip.querySelector("li") as HTMLElement;
+    expect(item.className.split(/\s+/)).toContain("w-full");
+    expect(item.className).not.toMatch(/(^|\s)(md:)?w-\[/);
+    expect(item.className).not.toMatch(/(^|\s)shrink-0/);
+  });
+
+  it("makes a strip of several photos a named, focusable scroll region", () => {
+    const { container } = render(CaseStudies, {
+      props: {
+        slice,
+        context: { project: project([photo(1, "Roof garden"), photo(2, "Fireplace")]) },
+      },
+    });
+    const strip = within(container).getByRole("region", { name: "Roof Top Oasis photos" });
+    expect(strip.className).toMatch(/overflow-x-auto/);
+    expect(strip.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("frames the strip so its focus ring is drawn above the photos", () => {
+    const { container } = render(CaseStudies, {
+      props: { slice, context: { project: project([photo(1, "a"), photo(2, "b")]) } },
+    });
+    const strip = container.querySelector(".scroll-strip") as HTMLElement;
+    expect(strip.parentElement?.classList.contains("scroll-strip-frame")).toBe(true);
+    expect(strip.parentElement?.classList.contains("relative")).toBe(true);
+  });
+});

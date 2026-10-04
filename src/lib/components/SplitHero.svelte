@@ -1,6 +1,7 @@
 <script lang="ts">
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import SiteLink from "$lib/components/SiteLink.svelte";
+  import { siteHref } from "$lib/site-link";
   import { isFilled, type ImageField, type LinkField, type RichTextField } from "@prismicio/client";
   import { cappedWidths } from "@reddoorla/maintenance/images";
 
@@ -64,7 +65,7 @@
         <PrismicRichText field={body} />
       </div>
     {/if}
-    {#if ctaLabel && ctaLink && isFilled.link(ctaLink)}
+    {#if ctaLabel && siteHref(ctaLink)}
       <SiteLink field={ctaLink} class="eyebrow inline-block py-2 {accent} hover:underline">
         {ctaLabel} +
       </SiteLink>

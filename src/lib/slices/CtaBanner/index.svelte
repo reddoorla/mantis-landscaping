@@ -6,7 +6,8 @@
     buttonSkinClasses,
     buttonSkinInverseClasses,
   } from "$lib/components/DefaultButton.svelte";
-  import { PrismicLink } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
+  import { siteHref } from "$lib/site-link";
   import { isFilled, type Content } from "@prismicio/client";
 
   type Props = { slice: Content.CtaBannerSlice };
@@ -28,10 +29,8 @@
     )[background] ?? "bg-light text-primary",
   );
 
-  const hasButton = $derived(
-    isFilled.link(slice.primary.buttonLink) && !!slice.primary.buttonLabel,
-  );
-  // PrismicLink emits a plain <a> (with target/rel when the field asks for
+  const hasButton = $derived(!!siteHref(slice.primary.buttonLink) && !!slice.primary.buttonLabel);
+  // SiteLink emits a plain <a> (with target/rel when the field asks for
   // them) wearing the shared button skin. Never a <button> inside a link —
   // that is axe's `nested-interactive` violation.
   const buttonClass = $derived(
@@ -57,8 +56,8 @@
   {/if}
 
   {#if hasButton}
-    <PrismicLink field={slice.primary.buttonLink} class={buttonClass}>
+    <SiteLink field={slice.primary.buttonLink} class={buttonClass}>
       {slice.primary.buttonLabel}
-    </PrismicLink>
+    </SiteLink>
   {/if}
 </ContentBand>

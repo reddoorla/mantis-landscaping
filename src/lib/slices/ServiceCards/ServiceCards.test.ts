@@ -39,3 +39,24 @@ describe("ServiceCards slice", () => {
     );
   });
 });
+
+describe("ServiceCards with nothing to show", () => {
+  it.each([
+    ["no cards", []],
+    ["only untitled cards", [{ icon: "water", title: null, link: { link_type: "Any" } }]],
+  ])("renders nothing for %s", (_, cards) => {
+    const { container } = render(ServiceCards, {
+      props: { slice: { ...slice, primary: { ...slice.primary, cards } } as never },
+    });
+    expect(container.querySelector("section")).toBeNull();
+  });
+
+  it("renders a card whose link resolves to nothing as a plain card", () => {
+    const cards = [{ icon: "water", title: "Water Wise Gardens", link: { link_type: "Any" } }];
+    const { container } = render(ServiceCards, {
+      props: { slice: { ...slice, primary: { ...slice.primary, cards } } as never },
+    });
+    expect(container.querySelector("a")).toBeNull();
+    expect(container.textContent).toContain("Water Wise Gardens");
+  });
+});
