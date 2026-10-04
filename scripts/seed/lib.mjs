@@ -45,7 +45,7 @@ export function uploadName(file) {
   return file.replace(/\.gif$/i, ".jpg");
 }
 
-export const HEADER_LIMIT = 60000;
+export const HEADER_LIMIT = 58268;
 
 export async function uploadable(file, bytes, sharp) {
   if (/\.gif$/i.test(file)) {
@@ -55,12 +55,13 @@ export async function uploadable(file, bytes, sharp) {
       .toBuffer();
     return { name: uploadName(file), bytes: jpeg };
   }
+  if (!/\.jpe?g$/i.test(file)) throw new Error(`seed: ${file} is neither a JPEG nor a GIF`);
   const stripped = stripXmp(bytes);
   const header = metadataBytes(stripped);
   if (header > HEADER_LIMIT)
     throw new Error(
-      `seed: ${file} still carries ${header} bytes of metadata before its image data; ` +
-        `Prismic reads no dimensions past about 64 KB`,
+      `seed: ${file} carries ${header} bytes before its image data; ` +
+        `the largest Prismic has been seen to size is ${HEADER_LIMIT}`,
     );
   return { name: file, bytes: stripped };
 }
@@ -72,8 +73,13 @@ export async function listAssets(getJson) {
     const page = await getJson(`https://asset-api.prismic.io/assets?limit=500${cursor}`);
     for (const item of page.items ?? []) {
       const sized = Boolean(item.width && item.height);
-      if (!byName.has(item.filename) || (sized && !byName.get(item.filename).sized))
-        byName.set(item.filename, { id: item.id, sized });
+      const entry = { id: item.id, sized };
+      const known = byName.get(item.filename);
+      if (!known) byName.set(item.filename, { ...entry, all: [entry] });
+      else {
+        known.all.push(entry);
+        if (sized && !known.sized) Object.assign(known, entry);
+      }
     }
     if (!page.cursor || !page.items?.length) return byName;
     cursor = `&cursor=${encodeURIComponent(page.cursor)}`;
@@ -92,9 +98,9 @@ export function splitReused(assets, existing) {
 }
 
 export function unsized(existing) {
-  return [...existing]
-    .filter(([, asset]) => !asset.sized)
-    .map(([name, asset]) => ({ name, id: asset.id }));
+  return [...existing].flatMap(([name, asset]) =>
+    (asset.all ?? [asset]).filter((copy) => !copy.sized).map((copy) => ({ name, id: copy.id })),
+  );
 }
 
 export function modelsUsed(docs) {
@@ -126,30 +132,126 @@ export function makeLink(created) {
 
 const XMP = "http://ns.adobe.com/xap/1.0/\0";
 const EXTENDED_XMP = "http://ns.adobe.com/xmp/extension/\0";
+const STANDALONE = new Set([0x01, 0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7]);
+
+function segments(bytes) {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  const out = [];
+  let at = 2;
+  for (;;) {
+    if (at >= bytes.length || bytes[at] !== 0xff) return null;
+    let marker = at + 1;
+    while (marker < bytes.length && bytes[marker] === 0xff) marker++;
+    if (marker >= bytes.length) return null;
+    const code = bytes[marker];
+    if (code === 0xda) return { segments: out, sos: marker - 1 };
+    if (STANDALONE.has(code)) {
+      out.push({ start: at, end: marker + 1, code });
+      at = marker + 1;
+      continue;
+    }
+    if (marker + 2 >= bytes.length) return null;
+    const length = (bytes[marker + 1] << 8) | bytes[marker + 2];
+    const end = marker + 1 + length;
+    if (length < 2 || end > bytes.length) return null;
+    out.push({ start: at, end, code, payload: marker + 3 });
+    at = end;
+  }
+}
 
 export function metadataBytes(bytes) {
-  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return 0;
-  let at = 2;
-  while (at + 4 <= bytes.length && bytes[at] === 0xff && bytes[at + 1] !== 0xda)
-    at += 2 + ((bytes[at + 2] << 8) | bytes[at + 3]);
-  return at;
+  const walk = segments(bytes);
+  return walk ? walk.sos : Infinity;
 }
 
 export function stripXmp(bytes) {
-  if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return bytes;
+  const walk = segments(bytes);
+  if (!walk) return bytes;
   const kept = [bytes.subarray(0, 2)];
-  let at = 2;
-  while (at + 4 <= bytes.length && bytes[at] === 0xff && bytes[at + 1] !== 0xda) {
-    const end = at + 2 + ((bytes[at + 2] << 8) | bytes[at + 3]);
-    const head = Buffer.from(bytes.subarray(at + 4, at + 4 + EXTENDED_XMP.length)).toString(
-      "latin1",
-    );
-    const xmp = bytes[at + 1] === 0xe1 && (head.startsWith(XMP) || head.startsWith(EXTENDED_XMP));
-    if (!xmp) kept.push(bytes.subarray(at, end));
-    at = end;
+  for (const segment of walk.segments) {
+    const head =
+      segment.code === 0xe1
+        ? Buffer.from(
+            bytes.subarray(segment.payload, segment.payload + EXTENDED_XMP.length),
+          ).toString("latin1")
+        : "";
+    if (!head.startsWith(XMP) && !head.startsWith(EXTENDED_XMP))
+      kept.push(bytes.subarray(segment.start, segment.end));
   }
-  kept.push(bytes.subarray(at));
+  kept.push(bytes.subarray(walk.sos));
   return Buffer.concat(kept);
+}
+
+export function readIds(argv) {
+  const at = argv.indexOf("--update");
+  if (at < 0) return null;
+  const file = argv[at + 1];
+  if (!file || file.startsWith("--"))
+    throw new Error('seed: --update needs a JSON file mapping "type:uid" to document ids');
+  return file;
+}
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function send(fetchImpl, url, init, { tries = 4, wait = 1200, sleep = pause } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetchImpl(url, init);
+    if (response.status !== 429 || attempt >= tries) return response;
+    const after = Number(response.headers?.get?.("retry-after"));
+    await sleep(Number.isFinite(after) && after > 0 ? after * 1000 : wait * attempt);
+  }
+}
+
+export async function updateRelease({
+  docs,
+  files,
+  alts,
+  ids,
+  headers,
+  fetch: fetchImpl,
+  sleep = pause,
+  log = () => {},
+}) {
+  for (const [file, entry] of files) {
+    if (entry.id) continue;
+    const form = new FormData();
+    form.append("file", new Blob([entry.bytes]), entry.name);
+    if (alts.get(file)) form.append("alt", alts.get(file));
+    const response = await send(
+      fetchImpl,
+      "https://asset-api.prismic.io/assets",
+      { method: "POST", headers, body: form },
+      { sleep },
+    );
+    if (!response.ok) throw new Error(`seed: upload ${entry.name} answered ${response.status}`);
+    const created = await response.json();
+    if (!created.width || !created.height)
+      throw new Error(`seed: Prismic read no dimensions for ${entry.name} (${created.id})`);
+    files.set(file, { id: created.id });
+    log(`seed: uploaded ${entry.name} ${created.width}x${created.height}`);
+    await sleep(1200);
+  }
+  const img = (file, alt) => ({ id: files.get(file).id, alt: alt ?? null });
+  for (const doc of docs(img, makeIdLink(ids))) {
+    const id = ids[`${doc.type}:${doc.uid}`];
+    if (!id) throw new Error(`seed: no document id for ${doc.type}:${doc.uid}`);
+    const response = await send(
+      fetchImpl,
+      `https://migration.prismic.io/documents/${id}`,
+      {
+        method: "PUT",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify({ uid: doc.uid, title: doc.title, data: doc.data }),
+      },
+      { sleep },
+    );
+    if (!response.ok)
+      throw new Error(
+        `seed: update ${doc.uid} answered ${response.status} ${await response.text()}`,
+      );
+    log(`seed: updated ${doc.type}:${doc.uid}`);
+    await sleep(1200);
+  }
 }
 
 export function makeIdLink(ids) {

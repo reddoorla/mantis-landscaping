@@ -10,10 +10,11 @@ import {
   missingModels,
   modelsUsed,
   planAssets,
-  makeIdLink,
+  readIds,
   resolveToken,
   splitReused,
   unsized,
+  updateRelease,
   uploadable,
   verifySha,
 } from "./lib.mjs";
@@ -21,9 +22,8 @@ import {
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const publish = args.has("--publish");
-const updateAt = process.argv.indexOf("--update");
-const updateIds =
-  updateAt > 0 ? JSON.parse(readFileSync(process.argv[updateAt + 1], "utf8")) : null;
+const idsFile = readIds(process.argv);
+const updateIds = idsFile ? JSON.parse(readFileSync(idsFile, "utf8")) : null;
 
 const manifest = JSON.parse(readFileSync("matching/spec/capture/manifest.json", "utf8"));
 
@@ -81,41 +81,19 @@ console.log(
 );
 
 if (updateIds) {
-  for (const [file, entry] of files) {
-    if (entry.id) continue;
-    const form = new FormData();
-    form.append("file", new Blob([entry.bytes]), entry.name);
-    if (used.get(file)) form.append("alt", used.get(file));
-    const response = await fetch("https://asset-api.prismic.io/assets", {
-      method: "POST",
-      headers,
-      body: form,
-    });
-    if (!response.ok) throw new Error(`seed: upload ${entry.name} answered ${response.status}`);
-    const created = await response.json();
-    if (!created.width || !created.height)
-      throw new Error(`seed: Prismic read no dimensions for ${entry.name} (${created.id})`);
-    files.set(file, { id: created.id });
-    console.log(`seed: uploaded ${entry.name} ${created.width}x${created.height}`);
-  }
-  const img = (file, alt) => ({ id: files.get(file).id, alt: alt ?? null });
-  for (const doc of documents(img, makeIdLink(updateIds))) {
-    const id = updateIds[`${doc.type}:${doc.uid}`];
-    if (!id) throw new Error(`seed: no document id for ${doc.type}:${doc.uid}`);
-    const response = await fetch(`https://migration.prismic.io/documents/${id}`, {
-      method: "PUT",
-      headers: { ...headers, "content-type": "application/json" },
-      body: JSON.stringify({ uid: doc.uid, title: doc.title, data: doc.data }),
-    });
-    if (!response.ok)
-      throw new Error(
-        `seed: update ${doc.uid} answered ${response.status} ${await response.text()}`,
-      );
-    console.log(`seed: updated ${doc.type}:${doc.uid}`);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-  }
+  await updateRelease({
+    docs: documents,
+    files,
+    alts: used,
+    ids: updateIds,
+    headers,
+    fetch,
+    log: console.log,
+  });
   for (const stale of unsized(existing))
-    console.log(`seed: unsized asset no document uses any more: ${stale.name} ${stale.id}`);
+    console.log(
+      `seed: unsized asset (check nothing uses it before deleting): ${stale.name} ${stale.id}`,
+    );
   process.exit(0);
 }
 

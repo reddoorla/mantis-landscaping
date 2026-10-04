@@ -4,6 +4,9 @@ import sharp from "sharp";
 
 import {
   HEADER_LIMIT,
+  readIds,
+  send,
+  updateRelease,
   REPOSITORY,
   listAssets,
   makeIdLink,
@@ -73,7 +76,9 @@ describe("the seed's assets", () => {
     expect(out.name).toBe("x.jpg");
     expect((await sharp(out.bytes).metadata()).format).toBe("jpeg");
 
-    const jpg = Buffer.from("jpeg bytes");
+    const jpg = await sharp({ create: { width: 2, height: 2, channels: 3, background: "#fff" } })
+      .jpeg()
+      .toBuffer();
     expect(await uploadable("y.jpg", jpg, sharp)).toEqual({ name: "y.jpg", bytes: jpg });
   });
 });
@@ -158,13 +163,23 @@ describe("the seed's media-library read", () => {
       asked.push(url);
       return pages[url];
     });
-    expect([...byName]).toEqual([
-      ["a.jpg", { id: "1", sized: true }],
-      ["b.jpg", { id: "2", sized: true }],
-      ["c.jpg", { id: "3u", sized: false }],
+    expect([...byName].map(([name, { id, sized }]) => [name, id, sized])).toEqual([
+      ["a.jpg", "1", true],
+      ["b.jpg", "2", true],
+      ["c.jpg", "3u", false],
     ]);
     expect(asked).toHaveLength(2);
-    expect(unsized(byName)).toEqual([{ name: "c.jpg", id: "3u" }]);
+    expect(unsized(byName)).toEqual([
+      { name: "b.jpg", id: "2u" },
+      { name: "c.jpg", id: "3u" },
+    ]);
+  });
+
+  it("counts an asset with only one dimension as unsized", async () => {
+    const byName = await listAssets(async () => ({
+      items: [{ id: "w", filename: "w.jpg", width: 10, height: null }],
+    }));
+    expect(byName.get("w.jpg")?.sized).toBe(false);
   });
 });
 
@@ -284,5 +299,163 @@ describe("the seed's metadata strip", () => {
     const icc = Array.from({ length: 2 }, () => segment(0xe2, Buffer.alloc(60000)));
     const heavy = Buffer.concat([plain.subarray(0, 2), ...icc, plain.subarray(2)]);
     await expect(uploadable("q.jpg", heavy, sharp)).rejects.toThrow(/q\.jpg/);
+  });
+});
+
+describe("the seed's segment walk fails closed", () => {
+  const sosTail = Buffer.from([0xff, 0xda, 0x00, 0x02, 0x00, 0xff, 0xd9]);
+  const app = (marker: number, size: number) => segment(marker, Buffer.alloc(size));
+  const xmp = segment(
+    0xe1,
+    Buffer.concat([
+      Buffer.from("http://ns.adobe.com/xmp/extension/\0", "latin1"),
+      Buffer.alloc(65000),
+    ]),
+  );
+
+  it("skips fill bytes and standalone markers, and still strips the XMP behind them", () => {
+    const file = Buffer.concat([
+      Buffer.from([0xff, 0xd8]),
+      Buffer.from([0xff]),
+      xmp,
+      Buffer.from([0xff, 0x01]),
+      app(0xe0, 14),
+      sosTail,
+    ]);
+    const stripped = stripXmp(file);
+    expect(stripped.includes(Buffer.from("http://ns.adobe.com/", "latin1"))).toBe(false);
+    expect(metadataBytes(stripped)).toBeLessThan(40);
+  });
+
+  it.each([
+    ["a zero-length segment", Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x00, ...sosTail])],
+    ["a segment running past the end", Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0x7f, 0xff, 0x00])],
+    ["no start-of-scan", Buffer.concat([Buffer.from([0xff, 0xd8]), app(0xe0, 14)])],
+    ["a stray byte between segments", Buffer.concat([Buffer.from([0xff, 0xd8, 0x00]), sosTail])],
+    ["not a JPEG", Buffer.from("plain text")],
+  ])("reports %s as unmeasurable, so the upload is refused", async (_, bytes) => {
+    expect(metadataBytes(bytes)).toBe(Infinity);
+    expect(stripXmp(bytes)).toBe(bytes);
+    await expect(uploadable("z.jpg", bytes, sharp)).rejects.toThrow(/z\.jpg/);
+  });
+
+  it("refuses one byte over the largest header Prismic has sized, and takes exactly that size", async () => {
+    const at = (size: number) => {
+      const pad = size - 2 - 4;
+      return Buffer.concat([Buffer.from([0xff, 0xd8]), segment(0xe0, Buffer.alloc(pad)), sosTail]);
+    };
+    expect(metadataBytes(at(HEADER_LIMIT))).toBe(HEADER_LIMIT);
+    await expect(uploadable("ok.jpg", at(HEADER_LIMIT), sharp)).resolves.toMatchObject({
+      name: "ok.jpg",
+    });
+    await expect(uploadable("big.jpg", at(HEADER_LIMIT + 1), sharp)).rejects.toThrow(/big\.jpg/);
+  });
+
+  it("refuses a format it does not handle", async () => {
+    const png = await sharp({ create: { width: 2, height: 2, channels: 3, background: "#fff" } })
+      .png()
+      .toBuffer();
+    await expect(uploadable("x.png", png, sharp)).rejects.toThrow(
+      /x\.png is neither a JPEG nor a GIF/,
+    );
+  });
+});
+
+describe("the seed's --update argument", () => {
+  it("reads the ids file, and refuses a missing one", () => {
+    expect(readIds(["node", "seed.mjs"])).toBeNull();
+    expect(readIds(["node", "seed.mjs", "--update", "ids.json"])).toBe("ids.json");
+    expect(() => readIds(["node", "seed.mjs", "--update"])).toThrow(/--update needs/);
+    expect(() => readIds(["node", "seed.mjs", "--update", "--publish"])).toThrow(/--update needs/);
+  });
+});
+
+describe("the seed's requests", () => {
+  const reply = (status: number, body: unknown = {}, headers: Record<string, string> = {}) =>
+    ({
+      status,
+      ok: status < 300,
+      headers: { get: (k: string) => headers[k] ?? null },
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    }) as unknown as Response;
+
+  it("retries a 429, honouring retry-after, then gives up after the last try", async () => {
+    const waits: number[] = [];
+    let calls = 0;
+    const ok = await send(
+      async () => (++calls < 3 ? reply(429, {}, { "retry-after": "2" }) : reply(200)),
+      "u",
+      {},
+      { sleep: async (ms: number) => void waits.push(ms) },
+    );
+    expect(ok.status).toBe(200);
+    expect(waits).toEqual([2000, 2000]);
+    calls = 0;
+    const last = await send(
+      async () => (++calls, reply(429)),
+      "u",
+      {},
+      { tries: 2, sleep: async () => {} },
+    );
+    expect([last.status, calls]).toEqual([429, 2]);
+  });
+
+  const docs = (img: (f: string, a: string | null) => unknown, link: (t: string) => unknown) => [
+    {
+      type: "page",
+      uid: "home",
+      title: "Home",
+      data: { image: img("a.jpg", "Alt A"), cta: link("page:home") },
+    },
+  ];
+
+  it("uploads only what is missing, then PUTs each document by id with assets and links resolved", async () => {
+    const calls: Array<{ url: string; method?: string; body?: unknown }> = [];
+    const fetchImpl = async (url: string, init: RequestInit) => {
+      calls.push({ url, method: init.method, body: init.body });
+      if (url.endsWith("/assets")) return reply(200, { id: "NEW", width: 4, height: 3 });
+      return reply(200);
+    };
+    const files = new Map<string, { id?: string; name?: string; bytes?: Buffer }>([
+      ["a.jpg", { name: "a.jpg", bytes: Buffer.from("x") }],
+    ]);
+    await updateRelease({
+      docs,
+      files,
+      alts: new Map([["a.jpg", "Alt A"]]),
+      ids: { "page:home": "DOC1" },
+      headers: { repository: "r" },
+      fetch: fetchImpl,
+      sleep: async () => {},
+    });
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+      "POST https://asset-api.prismic.io/assets",
+      "PUT https://migration.prismic.io/documents/DOC1",
+    ]);
+    expect(JSON.parse(calls[1].body as string)).toEqual({
+      uid: "home",
+      title: "Home",
+      data: { image: { id: "NEW", alt: "Alt A" }, cta: { link_type: "Document", id: "DOC1" } },
+    });
+  });
+
+  it("stops when Prismic sizes no upload, before touching any document", async () => {
+    const urls: string[] = [];
+    await expect(
+      updateRelease({
+        docs,
+        files: new Map([["a.jpg", { name: "a.jpg", bytes: Buffer.from("x") }]]),
+        alts: new Map(),
+        ids: { "page:home": "DOC1" },
+        headers: {},
+        fetch: async (url: string) => {
+          urls.push(url);
+          return reply(200, { id: "U", width: null, height: null });
+        },
+        sleep: async () => {},
+      }),
+    ).rejects.toThrow(/no dimensions for a\.jpg/);
+    expect(urls).toEqual(["https://asset-api.prismic.io/assets"]);
   });
 });
