@@ -648,3 +648,19 @@ Round 1 of #7's review found that the manifest lists five photos twice: the orig
 - The library holds 74 photos, all sized.
 - Nothing is published; that is reddoor-maintenance Operator decisions 66.
 - The placeholder is still in `slicemachine.config.json`. Swapping it makes the build require a published `home`, so it waits on the publish.
+
+## 2026-10-04 — The content is published, and the site builds from Prismic (#10, `8a005df`)
+
+The operator answered reddoor-maintenance decision 66: publish. `seed.mjs --publish` returned `{"totalItems":5}`, and about 25 seconds later the Content API's master ref (`asKx_xIAACkAT7mT`) listed all five documents. The publish is accepted at once and completes a little later, so the read-back is the proof, not the 202.
+
+#10 replaced `your-prismic-repo-name`, listed the five kept paths in `reddoor.a11yRoutes`, and taught the smoke manifest to expect 200 on each and 404 on an unknown page and an unknown project. The build now prerenders exactly those five paths. axe reports 0 violations on them. Nothing in the output points at Blux.
+
+Two things the review found, filed rather than fixed:
+
+- **#11:** the starter's `/contact` (with a form, linked from nowhere) and the Prismic `/contact-us` (linked everywhere, no form yet) are both indexable. P4 puts the form on `/contact-us`, removes `/contact`, and 301s it. The same overlap is why a smoke mutation using `/contact` passed when it should have failed.
+- **#12:** bare `/preview` serves home without `noindex`, because the prefix list says `/preview/`. This is a starter defect.
+
+**Still open:**
+
+- **The Prismic-side publish webhook.** With every page prerendered, a publish reaches production only through the "Prismic publish" Netlify build hook, and the Prismic webhook that calls it is the operator's to add.
+- **The model-delivery workflow** (#13) waits on the `PRISMIC_WRITE_TOKEN` secret (reddoor-maintenance Operator decisions 69).
