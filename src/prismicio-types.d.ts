@@ -121,7 +121,7 @@ interface FormRepliesDocumentData {
  */
 export type FormRepliesDocument<Lang extends string = string> = prismic.PrismicDocumentWithoutUID<Simplify<FormRepliesDocumentData>, "form_replies", Lang>;
 
-type PageDocumentDataSlicesSlice = LeadTextSlice | TextColumnsSlice | AccordionSlice | RichTextSlice | HeroSlice | MediaTextSlice | SectionGridSlice | TestimonialSlice | CtaBannerSlice | SplitHeroSlice | FeatureTrioSlice | ServiceCardsSlice | StepsSlice | TextBlockSlice | ProjectListSlice
+type PageDocumentDataSlicesSlice = LeadTextSlice | TextColumnsSlice | AccordionSlice | RichTextSlice | HeroSlice | MediaTextSlice | SectionGridSlice | TestimonialSlice | CtaBannerSlice | SplitHeroSlice | FeatureTrioSlice | ServiceCardsSlice | StepsSlice | PageTitleSlice | TextBlockSlice | ProjectListSlice
 
 /**
  * Content for Page documents
@@ -931,6 +931,76 @@ type MediaTextSliceVariation = MediaTextSliceImageRight | MediaTextSliceImageLef
  * - **Documentation**: https://prismic.io/docs/slices
  */
 export type MediaTextSlice = prismic.SharedSlice<"media_text", MediaTextSliceVariation>;
+
+/**
+ * Primary content in *PageTitle → Default → Primary*
+ */
+export interface PageTitleSliceDefaultPrimary {
+	/**
+	 * heading field in *PageTitle → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: page_title.default.primary.heading
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	heading: prismic.RichTextField;
+	
+	/**
+	 * heading_style field in *PageTitle → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: eyebrow
+	 * - **API ID Path**: page_title.default.primary.heading_style
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	heading_style: prismic.SelectField<"eyebrow" | "display", "filled">;
+	
+	/**
+	 * body field in *PageTitle → Default → Primary*
+	 *
+	 * - **Field Type**: Rich Text
+	 * - **Placeholder**: *None*
+	 * - **API ID Path**: page_title.default.primary.body
+	 * - **Documentation**: https://prismic.io/docs/fields/rich-text
+	 */
+	body: prismic.RichTextField;
+	
+	/**
+	 * background field in *PageTitle → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: *None*
+	 * - **Default Value**: white
+	 * - **API ID Path**: page_title.default.primary.background
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	background: prismic.SelectField<"white" | "light" | "gold-deep" | "dark", "filled">;
+}
+
+/**
+ * Default variation for PageTitle Slice
+ *
+ * - **API ID**: `default`
+ * - **Description**: The page's one h1, as an eyebrow or a display heading, with an optional statement
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type PageTitleSliceDefault = prismic.SharedSliceVariation<"default", Simplify<PageTitleSliceDefaultPrimary>, never>;
+
+/**
+ * Slice variation for *PageTitle*
+ */
+type PageTitleSliceVariation = PageTitleSliceDefault
+
+/**
+ * PageTitle Shared Slice
+ *
+ * - **API ID**: `page_title`
+ * - **Description**: The page's one h1, as an eyebrow or a display heading, with an optional statement
+ * - **Documentation**: https://prismic.io/docs/slices
+ */
+export type PageTitleSlice = prismic.SharedSlice<"page_title", PageTitleSliceVariation>;
 
 /**
  * Primary content in *ProjectList → Default → Primary*
@@ -1779,6 +1849,10 @@ declare module "@prismicio/client" {
 			MediaTextSliceVariation,
 			MediaTextSliceImageRight,
 			MediaTextSliceImageLeft,
+			PageTitleSlice,
+			PageTitleSliceDefaultPrimary,
+			PageTitleSliceVariation,
+			PageTitleSliceDefault,
 			ProjectListSlice,
 			ProjectListSliceDefaultPrimary,
 			ProjectListSliceVariation,

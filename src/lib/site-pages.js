@@ -19,6 +19,7 @@ export const lang = "en-us";
 
 /** Alt text for every photo the pages use, keyed by the Blux original's file
  *  name (matching/spec/capture/manifest.json). */
+/** @type {Record<string, string>} */
 export const ALT = {
   "33aa34a6-890c-4faf-b2e8-737a265b4b6f": "Close-up of sunlit mint leaves",
   "054058c4-e73e-4803-9618-a453f966f45d":
@@ -154,8 +155,17 @@ export const ALT = {
   "fc68e11f-57e8-4c5b-b664-ac87e296f24f": "Lavender growing in front of a wooden raised bed",
 };
 
+/** @param {...string} paragraphs */
 const p = (...paragraphs) => paragraphs.map((text) => ({ type: "paragraph", text, spans: [] }));
+/**
+ * @param {number} level
+ * @param {string} text
+ */
 const h = (level, text) => [{ type: `heading${level}`, text, spans: [] }];
+/**
+ * @param {string} slice_type
+ * @param {Record<string, unknown>} primary
+ */
 const slice = (slice_type, primary) => ({ slice_type, variation: "default", primary, items: [] });
 
 /**
@@ -167,7 +177,12 @@ const slice = (slice_type, primary) => ({ slice_type, variation: "default", prim
  * @returns {Array<{type: string, uid: string, title: string, data: Record<string, unknown>}>}
  */
 export function documents(img, link = webLink) {
+  /** @param {string} file */
   const photo = (file) => img(file, ALT[file.replace(/\.[a-z]+$/, "")] ?? null);
+  /**
+   * @param {string} background
+   * @param {string} [image]
+   */
   const flourish = (background, image) =>
     slice("text_block", {
       heading: [],
@@ -353,15 +368,11 @@ export function documents(img, link = webLink) {
           "Water wise and edible gardens by Mantis Landscaping: rooftops, backyards, offices and community farms across Los Angeles.",
         meta_image: {},
         slices: [
-          slice("text_block", {
+          slice("page_title", {
             heading: h(1, "Projects"),
             heading_style: "eyebrow",
             body: p("It's not just plants, it's about a space for you to grow, relax, and escape."),
-            size: "statement",
-            align: "left",
             background: "white",
-            background_image: {},
-            buttons: [],
           }),
           slice("project_list", { heading: h(2, "Select a project below to learn more:") }),
         ],
@@ -378,15 +389,11 @@ export function documents(img, link = webLink) {
           "Have an idea for your garden? Send Mantis Landscaping a message or call 424-264-8944 to plan, plant or maintain your garden in Los Angeles.",
         meta_image: {},
         slices: [
-          slice("text_block", {
+          slice("page_title", {
             heading: h(1, "Contact Us"),
             heading_style: "display",
             body: [],
-            size: "body",
-            align: "left",
             background: "gold-deep",
-            background_image: {},
-            buttons: [],
           }),
           slice("text_block", {
             heading: h(2, "Have an idea for your garden?"),
@@ -646,6 +653,7 @@ export function documents(img, link = webLink) {
   ];
 }
 
+/** @param {string} target */
 function webLink(target) {
   const [type, uid] = target.split(":");
   const url = type === "project" ? `/projects/${uid}` : uid === "home" ? "/" : `/${uid}`;
