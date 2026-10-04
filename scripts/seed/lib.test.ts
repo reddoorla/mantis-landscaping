@@ -3,8 +3,13 @@ import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 
 import {
+  HEADER_LIMIT,
   REPOSITORY,
   listAssets,
+  makeIdLink,
+  metadataBytes,
+  stripXmp,
+  unsized,
   makeLink,
   missingModels,
   modelsUsed,
@@ -132,14 +137,20 @@ describe("the seed's GIF handling", () => {
 });
 
 describe("the seed's media-library read", () => {
-  it("follows the cursor to the last page", async () => {
+  it("follows the cursor to the last page, and prefers a copy Prismic sized", async () => {
     const pages: Record<string, unknown> = {
       "https://asset-api.prismic.io/assets?limit=500": {
-        items: [{ id: "1", filename: "a.jpg" }],
+        items: [
+          { id: "1", filename: "a.jpg", width: 10, height: 10 },
+          { id: "2u", filename: "b.jpg", width: null, height: null },
+        ],
         cursor: "c2",
       },
       "https://asset-api.prismic.io/assets?limit=500&cursor=c2": {
-        items: [{ id: "2", filename: "b.jpg" }],
+        items: [
+          { id: "2", filename: "b.jpg", width: 4, height: 3 },
+          { id: "3u", filename: "c.jpg" },
+        ],
       },
     };
     const asked: string[] = [];
@@ -148,10 +159,12 @@ describe("the seed's media-library read", () => {
       return pages[url];
     });
     expect([...byName]).toEqual([
-      ["a.jpg", "1"],
-      ["b.jpg", "2"],
+      ["a.jpg", { id: "1", sized: true }],
+      ["b.jpg", { id: "2", sized: true }],
+      ["c.jpg", { id: "3u", sized: false }],
     ]);
     expect(asked).toHaveLength(2);
+    expect(unsized(byName)).toEqual([{ name: "c.jpg", id: "3u" }]);
   });
 });
 
@@ -185,23 +198,91 @@ describe("the seed's pre-flight", () => {
 });
 
 describe("the seed's re-run", () => {
-  it("reuses a photo the media library already holds, by its upload name, and fetches the rest", () => {
+  it("reuses a sized photo the library holds, by its upload name, and fetches the rest", () => {
     const assets = [
       { file: "a.jpg", url: "u/a.jpg", sha256: "1", bytes: 1 },
       { file: "b.gif", url: "u/b.gif", sha256: "2", bytes: 1 },
       { file: "c.jpg", url: "u/c.jpg", sha256: "3", bytes: 1 },
+      { file: "d.jpg", url: "u/d.jpg", sha256: "4", bytes: 1 },
     ];
     const { reuse, fetch } = splitReused(
       assets,
       new Map([
-        ["a.jpg", "A"],
-        ["b.jpg", "B"],
+        ["a.jpg", { id: "A", sized: true }],
+        ["b.jpg", { id: "B", sized: true }],
+        ["d.jpg", { id: "D", sized: false }],
       ]),
     );
     expect([...reuse]).toEqual([
       ["a.jpg", "A"],
       ["b.gif", "B"],
     ]);
-    expect(fetch.map((asset) => asset.file)).toEqual(["c.jpg"]);
+    expect(fetch.map((asset) => asset.file)).toEqual(["c.jpg", "d.jpg"]);
+  });
+
+  it("links by document id when it updates an existing release", () => {
+    const link = makeIdLink({ "page:contact-us": "X1" });
+    expect(link("page:contact-us")).toEqual({ link_type: "Document", id: "X1" });
+    expect(() => link("page:nowhere")).toThrow(/page:nowhere/);
+  });
+});
+
+const segment = (marker: number, payload: Buffer) =>
+  Buffer.concat([
+    Buffer.from([0xff, marker, (payload.length + 2) >> 8, (payload.length + 2) & 0xff]),
+    payload,
+  ]);
+
+async function jpegWithXmp(xmpBytes: number) {
+  const plain = await sharp({ create: { width: 3, height: 2, channels: 3, background: "#3a5" } })
+    .jpeg()
+    .toBuffer();
+  const exif = segment(0xe1, Buffer.concat([Buffer.from("Exif\0\0", "latin1"), Buffer.alloc(20)]));
+  const xmp = segment(
+    0xe1,
+    Buffer.concat([Buffer.from("http://ns.adobe.com/xap/1.0/\0", "latin1"), Buffer.alloc(200)]),
+  );
+  const chunks = [];
+  for (let left = xmpBytes; left > 0; left -= 60000)
+    chunks.push(
+      segment(
+        0xe1,
+        Buffer.concat([
+          Buffer.from("http://ns.adobe.com/xmp/extension/\0", "latin1"),
+          Buffer.alloc(Math.min(left, 60000)),
+        ]),
+      ),
+    );
+  return Buffer.concat([plain.subarray(0, 2), exif, xmp, ...chunks, plain.subarray(2)]);
+}
+
+describe("the seed's metadata strip", () => {
+  it("removes XMP and extended XMP and keeps the image and its EXIF", async () => {
+    const heavy = await jpegWithXmp(200000);
+    expect(metadataBytes(heavy)).toBeGreaterThan(200000);
+    const light = stripXmp(heavy);
+    expect(metadataBytes(light)).toBeLessThan(1000);
+    expect(light.includes(Buffer.from("Exif\0\0", "latin1"))).toBe(true);
+    expect(light.includes(Buffer.from("http://ns.adobe.com/", "latin1"))).toBe(false);
+    const [a, b] = await Promise.all([
+      sharp(heavy).raw().toBuffer(),
+      sharp(light).raw().toBuffer(),
+    ]);
+    expect(a.equals(b)).toBe(true);
+  });
+
+  it("uploads the stripped bytes, under the limit Prismic can read dimensions within", async () => {
+    const out = await uploadable("p.jpg", await jpegWithXmp(1900000), sharp);
+    expect(out.name).toBe("p.jpg");
+    expect(metadataBytes(out.bytes)).toBeLessThanOrEqual(HEADER_LIMIT);
+  });
+
+  it("refuses a file whose other metadata alone is still too large", async () => {
+    const plain = await sharp({ create: { width: 3, height: 2, channels: 3, background: "#000" } })
+      .jpeg()
+      .toBuffer();
+    const icc = Array.from({ length: 2 }, () => segment(0xe2, Buffer.alloc(60000)));
+    const heavy = Buffer.concat([plain.subarray(0, 2), ...icc, plain.subarray(2)]);
+    await expect(uploadable("q.jpg", heavy, sharp)).rejects.toThrow(/q\.jpg/);
   });
 });

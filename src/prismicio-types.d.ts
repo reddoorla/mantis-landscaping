@@ -628,11 +628,10 @@ export interface FeatureTrioSliceDefaultPrimaryFeaturesItem {
 	 *
 	 * - **Field Type**: Select
 	 * - **Placeholder**: *None*
-	 * - **Default Value**: design
 	 * - **API ID Path**: feature_trio.default.primary.features[].icon
 	 * - **Documentation**: https://prismic.io/docs/fields/select
 	 */
-	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting", "filled">;
+	icon: prismic.SelectField<"design" | "water" | "edible" | "native" | "installation" | "maintenance" | "visit" | "plan" | "plant" | "sun" | "community" | "pest" | "consulting">;
 	
 	/**
 	 * label field in *FeatureTrio → Default → Primary → Features*
