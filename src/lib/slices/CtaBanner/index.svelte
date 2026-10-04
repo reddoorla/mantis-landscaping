@@ -6,7 +6,7 @@
     buttonSkinClasses,
     buttonSkinInverseClasses,
   } from "$lib/components/DefaultButton.svelte";
-  import { PrismicLink } from "@prismicio/svelte";
+  import SiteLink from "$lib/components/SiteLink.svelte";
   import { isFilled, type Content } from "@prismicio/client";
 
   type Props = { slice: Content.CtaBannerSlice };
@@ -57,8 +57,8 @@
   {/if}
 
   {#if hasButton}
-    <PrismicLink field={slice.primary.buttonLink} class={buttonClass}>
+    <SiteLink field={slice.primary.buttonLink} class={buttonClass}>
       {slice.primary.buttonLabel}
-    </PrismicLink>
+    </SiteLink>
   {/if}
 </ContentBand>

@@ -10,13 +10,15 @@ function netlifyRedirects() {
     .split("[[redirects]]")
     .slice(1)
     .map((block) => {
-      const field = (key: string) =>
-        new RegExp(`^\\s*${key}\\s*=\\s*"?([^"\\n]+?)"?\\s*$`, "m").exec(block)?.[1];
+      const string = (key: string) =>
+        new RegExp(`^\\s*${key}\\s*=\\s*"([^"\\n]+)"\\s*$`, "m").exec(block)?.[1];
+      const bare = (key: string) =>
+        new RegExp(`^\\s*${key}\\s*=\\s*([^"\\s]+)\\s*$`, "m").exec(block)?.[1];
       return {
-        from: field("from"),
-        to: field("to"),
-        status: field("status"),
-        force: field("force"),
+        from: string("from"),
+        to: string("to"),
+        status: bare("status"),
+        force: bare("force"),
       };
     });
 }

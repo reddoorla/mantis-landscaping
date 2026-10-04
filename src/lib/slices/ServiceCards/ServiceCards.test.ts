@@ -38,4 +38,16 @@ describe("ServiceCards slice", () => {
       "/projects/edible-gardens",
     );
   });
+
+  it("renders nothing when no card has a title", () => {
+    const empty = {
+      ...slice,
+      primary: {
+        ...slice.primary,
+        cards: [{ icon: "water", title: null, link: { link_type: "Any" } }],
+      },
+    } as unknown as Content.ServiceCardsSlice;
+    const { container } = render(ServiceCards, { props: { slice: empty } });
+    expect(container.querySelector("section")).toBeNull();
+  });
 });

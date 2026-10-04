@@ -43,10 +43,7 @@
                   class="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               {/if}
-              <span
-                class="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-black/50 to-black/20"
-                aria-hidden="true"
-              ></span>
+              <span class="absolute inset-0 -z-10 bg-black/60" aria-hidden="true"></span>
               <span class="flex flex-col gap-2">
                 {#if project.data.kicker}
                   <span class="eyebrow">{project.data.kicker}</span>

@@ -48,4 +48,16 @@ describe("FeatureTrio slice", () => {
     for (const svg of svgs) expect(svg.getAttribute("aria-hidden")).toBe("true");
     expect(within(container).getByRole("heading", { level: 2 }).textContent).toBe("Values");
   });
+
+  it("renders nothing when no feature has a label", () => {
+    const { container } = render(FeatureTrio, {
+      props: {
+        slice: slice(
+          [{ icon: "design", label: "" }],
+          [{ type: "heading2", text: "Values", spans: [] }],
+        ),
+      },
+    });
+    expect(container.querySelector("section")).toBeNull();
+  });
 });

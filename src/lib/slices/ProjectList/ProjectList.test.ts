@@ -56,4 +56,16 @@ describe("ProjectList slice", () => {
     const { container } = render(ProjectList, { props: { slice } });
     expect(container.querySelector("section")).toBeNull();
   });
+
+  it("darkens every photo enough for its 13px kicker even when the photo is white", () => {
+    const { container } = render(ProjectList, {
+      props: { slice, context: { projects: [project("edible-gardens", "Edible Gardens")] } },
+    });
+    const scrim = container.querySelector('a [aria-hidden="true"]');
+    const alpha = Number(/\bbg-black\/(\d+)\b/.exec(scrim?.className ?? "")?.[1] ?? 0) / 100;
+    const channel = Math.round(255 * (1 - alpha)) / 255;
+    const lum = channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    expect((1 + 0.05) / (lum + 0.05)).toBeGreaterThanOrEqual(4.5);
+    expect(scrim?.className).not.toMatch(/gradient/);
+  });
 });

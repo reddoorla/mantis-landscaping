@@ -63,4 +63,16 @@ describe("Steps slice", () => {
     expect(section?.className).toContain("text-primary");
     expect(section?.className).not.toContain("text-white");
   });
+
+  it("renders nothing when no step has a title", () => {
+    const empty = {
+      ...slice(howItWorks),
+      primary: {
+        ...slice(howItWorks).primary,
+        steps: [{ image: {}, icon: null, title: "", body: [] }],
+      },
+    } as unknown as Content.StepsSlice;
+    const { container } = render(Steps, { props: { slice: empty } });
+    expect(container.querySelector("section")).toBeNull();
+  });
 });

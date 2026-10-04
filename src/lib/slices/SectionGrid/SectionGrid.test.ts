@@ -48,4 +48,17 @@ describe("SectionGrid slice", () => {
     const grid = container.querySelector("[data-grid-columns='3']");
     expect(grid).not.toBeNull();
   });
+
+  it("resolves a document link to its route instead of an empty href", () => {
+    const linked = {
+      ...slice,
+      items: slice.items.map((item) => ({
+        ...item,
+        item_link: { link_type: "Document", type: "project", uid: "edible-gardens", id: "e1" },
+      })),
+    } as unknown as Content.SectionGridSlice;
+    const { container } = render(SectionGrid, { props: { slice: linked } });
+    const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual(["/projects/edible-gardens", "/projects/edible-gardens"]);
+  });
 });

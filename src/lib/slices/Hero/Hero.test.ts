@@ -44,4 +44,16 @@ describe("Hero slice", () => {
     expect(section?.querySelector("img")).toBeNull();
     expect(section?.hasAttribute("style")).toBe(false);
   });
+
+  it("resolves a document link to its route instead of an empty href", () => {
+    const linked = {
+      ...slice,
+      primary: {
+        ...slice.primary,
+        cta_link: { link_type: "Document", type: "project", uid: "edible-gardens", id: "e1" },
+      },
+    } as unknown as Content.HeroSlice;
+    const { container } = render(Hero, { props: { slice: linked } });
+    expect(container.querySelector("a")?.getAttribute("href")).toBe("/projects/edible-gardens");
+  });
 });

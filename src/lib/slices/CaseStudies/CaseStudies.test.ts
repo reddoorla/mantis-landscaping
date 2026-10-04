@@ -1,4 +1,6 @@
 import { render, within } from "@testing-library/svelte";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import type { ProjectDocument } from "../../../prismicio-types";
@@ -81,5 +83,21 @@ describe("CaseStudies slice", () => {
   it("renders nothing outside a project", () => {
     const { container } = render(CaseStudies, { props: { slice } });
     expect(container.querySelector("section")).toBeNull();
+  });
+
+  it("fits a lone photo to its column, so the strip has nothing to scroll", () => {
+    const { container } = render(CaseStudies, {
+      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
+    });
+    const item = container.querySelector('[role="region"] li');
+    expect(item?.className).toContain("w-full");
+    expect(item?.className).not.toMatch(/w-\[/);
+  });
+
+  it("backs the photo strip's white focus ring with a dark one, so it shows on a bright photo", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/app.css"), "utf8");
+    const rule = /:where\(\.scroll-strip\):focus-visible\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(rule).toMatch(/box-shadow:\s*inset 0 0 0 \d+px var\(--color-dark\)/);
+    expect(rule).toMatch(/outline-offset:\s*-4px/);
   });
 });

@@ -29,50 +29,52 @@
   const steps = $derived((slice.primary.steps ?? []).filter((item) => !!item.title));
 </script>
 
-<section
-  data-slice-type={slice.slice_type}
-  data-slice-variation={slice.variation}
-  class="w-full {ground}"
->
-  <div class="mx-auto max-w-6xl px-6 py-20">
-    {#if hasHeading}
-      <div class="eyebrow mb-12 text-center text-base md:text-xl">
-        <PrismicRichText field={slice.primary.heading} />
-      </div>
-    {/if}
-    <ol class="grid grid-cols-1 gap-12 md:auto-cols-fr md:grid-flow-col">
-      {#each steps as step, i (i)}
-        <li class="flex flex-col gap-4">
-          {#if isFilled.image(step.image)}
-            <PrismicImage
-              field={step.image}
-              fallbackAlt=""
-              widths={cappedWidths(step.image)}
-              sizes="(min-width: 768px) 360px, calc(100vw - 3rem)"
-              loading="lazy"
-              class="aspect-square w-full rounded-lg object-cover"
-            />
-          {:else if step.icon}
-            <Icon name={step.icon} class="h-14 w-14 {iconTone}" />
-          {/if}
-          <svelte:element this={hasHeading ? "h3" : "h2"} class="eyebrow"
-            >{step.title}</svelte:element
+{#if steps.length > 0}
+  <section
+    data-slice-type={slice.slice_type}
+    data-slice-variation={slice.variation}
+    class="w-full {ground}"
+  >
+    <div class="mx-auto max-w-6xl px-6 py-20">
+      {#if hasHeading}
+        <div class="eyebrow mb-12 text-center text-base md:text-xl">
+          <PrismicRichText field={slice.primary.heading} />
+        </div>
+      {/if}
+      <ol class="grid grid-cols-1 gap-12 md:auto-cols-fr md:grid-flow-col">
+        {#each steps as step, i (i)}
+          <li class="flex flex-col gap-4">
+            {#if isFilled.image(step.image)}
+              <PrismicImage
+                field={step.image}
+                fallbackAlt=""
+                widths={cappedWidths(step.image)}
+                sizes="(min-width: 768px) 360px, calc(100vw - 3rem)"
+                loading="lazy"
+                class="aspect-square w-full rounded-lg object-cover"
+              />
+            {:else if step.icon}
+              <Icon name={step.icon} class="h-14 w-14 {iconTone}" />
+            {/if}
+            <svelte:element this={hasHeading ? "h3" : "h2"} class="eyebrow"
+              >{step.title}</svelte:element
+            >
+            <div class="text-sm">
+              <PrismicRichText field={step.body} />
+            </div>
+          </li>
+        {/each}
+      </ol>
+      {#if slice.primary.cta_label && isFilled.link(slice.primary.cta_link)}
+        <div class="mt-12 text-center">
+          <SiteLink
+            field={slice.primary.cta_link}
+            class="eyebrow inline-block rounded px-6 py-3 transition-colors {buttonSkin}"
           >
-          <div class="text-sm">
-            <PrismicRichText field={step.body} />
-          </div>
-        </li>
-      {/each}
-    </ol>
-    {#if slice.primary.cta_label && isFilled.link(slice.primary.cta_link)}
-      <div class="mt-12 text-center">
-        <SiteLink
-          field={slice.primary.cta_link}
-          class="eyebrow inline-block rounded px-6 py-3 transition-colors {buttonSkin}"
-        >
-          {slice.primary.cta_label} +
-        </SiteLink>
-      </div>
-    {/if}
-  </div>
-</section>
+            {slice.primary.cta_label} +
+          </SiteLink>
+        </div>
+      {/if}
+    </div>
+  </section>
+{/if}

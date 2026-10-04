@@ -361,6 +361,7 @@ main > section.hero-band:first-child {
 
   :where(.scroll-strip):focus-visible {
     outline-offset: -4px;
+    box-shadow: inset 0 0 0 6px var(--color-dark);
   }
 
   a,

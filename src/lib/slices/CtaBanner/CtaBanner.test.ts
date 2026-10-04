@@ -63,4 +63,15 @@ describe("CtaBanner slice", () => {
     });
     expect(noLink.querySelector("a")).toBeNull();
   });
+
+  it("resolves a document link to its route instead of an empty href", () => {
+    const { container } = render(CtaBanner, {
+      props: {
+        slice: makeSlice({
+          buttonLink: { link_type: "Document", type: "project", uid: "edible-gardens", id: "e1" },
+        }),
+      },
+    });
+    expect(container.querySelector("a")?.getAttribute("href")).toBe("/projects/edible-gardens");
+  });
 });

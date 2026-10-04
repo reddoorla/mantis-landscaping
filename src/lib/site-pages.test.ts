@@ -22,7 +22,7 @@ import { documents } from "./site-pages.js";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SLICES = join(HERE, "slices");
 
-type Variation = { primary: string[]; items: string[] };
+type Variation = { primary: string[]; items: string[]; groups: Record<string, string[]> };
 type Slice = {
   slice_type: string;
   variation: string;
@@ -44,11 +44,44 @@ function loadModels(): Record<string, Record<string, Variation>> {
         {
           primary: Object.keys((v.primary as object) ?? {}),
           items: Object.keys((v.items as object) ?? {}),
+          groups: Object.fromEntries(
+            Object.entries(
+              (v.primary as Record<string, { type: string; config?: { fields?: object } }>) ?? {},
+            )
+              .filter(([, field]) => field.type === "Group")
+              .map(([id, field]) => [id, Object.keys(field.config?.fields ?? {})]),
+          ),
         },
       ]),
     );
   }
   return out;
+}
+
+function strippedFields(
+  pages: Array<[string, Slice[]]>,
+  models: Record<string, Record<string, Variation>>,
+): string[] {
+  const stripped: string[] = [];
+  for (const [uid, slices] of pages)
+    for (const s of slices) {
+      const variation = models[s.slice_type]?.[s.variation];
+      if (!variation) continue;
+      for (const key of Object.keys(s.primary ?? {}))
+        if (!variation.primary.includes(key))
+          stripped.push(`${uid} ${s.slice_type}/${s.variation} primary.${key}`);
+      for (const [group, allowed] of Object.entries(variation.groups)) {
+        const rows = (s.primary?.[group] as Array<Record<string, unknown>> | undefined) ?? [];
+        for (const key of new Set(rows.flatMap((row) => Object.keys(row))))
+          if (!allowed.includes(key))
+            stripped.push(`${uid} ${s.slice_type}/${s.variation} primary.${group}[].${key}`);
+      }
+      const itemKeys = new Set((s.items ?? []).flatMap((i) => Object.keys(i)));
+      for (const key of itemKeys)
+        if (!variation.items.includes(key))
+          stripped.push(`${uid} ${s.slice_type}/${s.variation} items.${key}`);
+    }
+  return stripped;
 }
 
 /** Image resolver stub — shape only; this test never reads image values. */
@@ -78,19 +111,25 @@ describe("site-pages documents vs slice models", () => {
 
   // The one that catches a silent Migration-API drop.
   it("declares every field the documents set, so Prismic strips nothing", () => {
-    const stripped: string[] = [];
-    for (const [uid, slices] of pages)
-      for (const s of slices) {
-        const variation = models[s.slice_type]?.[s.variation];
-        if (!variation) continue;
-        for (const key of Object.keys(s.primary ?? {}))
-          if (!variation.primary.includes(key))
-            stripped.push(`${uid} ${s.slice_type}/${s.variation} primary.${key}`);
-        const itemKeys = new Set((s.items ?? []).flatMap((i) => Object.keys(i)));
-        for (const key of itemKeys)
-          if (!variation.items.includes(key))
-            stripped.push(`${uid} ${s.slice_type}/${s.variation} items.${key}`);
-      }
-    expect(stripped).toEqual([]);
+    expect(strippedFields(pages, models)).toEqual([]);
+  });
+
+  it("sees a field the model lacks, at the top level and inside a primary group", () => {
+    const fabricated: Array<[string, Slice[]]> = [
+      [
+        "probe",
+        [
+          {
+            slice_type: "steps",
+            variation: "default",
+            primary: { bogus: 1, steps: [{ title: "Visit", bogus_field: "x" }] },
+          },
+        ],
+      ],
+    ];
+    expect(strippedFields(fabricated, models)).toEqual([
+      "probe steps/default primary.bogus",
+      "probe steps/default primary.steps[].bogus_field",
+    ]);
   });
 });

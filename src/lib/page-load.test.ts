@@ -49,19 +49,29 @@ describe("loadPage", () => {
   it("loads the projects only for a page that lists them", async () => {
     const projects = [{ uid: "edible-gardens" }];
     const calls: string[] = [];
+    const params: unknown[] = [];
     const client = {
       getByUID: async () => ({
         uid: "projects",
         type: "page",
         data: { title: [], slices: [{ slice_type: "project_list" }] },
       }),
-      getAllByType: async (type: string) => {
+      getAllByType: async (type: string, p: unknown) => {
         calls.push(type);
+        params.push(p);
         return projects;
       },
     } as unknown as PageClient;
     const data = await loadPage(client, "projects");
     expect(calls).toEqual(["project"]);
+    expect(params).toEqual([
+      {
+        orderings: [
+          { field: "my.project.order", direction: "asc" },
+          { field: "document.first_publication_date", direction: "asc" },
+        ],
+      },
+    ]);
     expect(data.context.projects).toBe(projects);
 
     calls.length = 0;

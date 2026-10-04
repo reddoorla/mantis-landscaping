@@ -44,7 +44,11 @@
           >
             <ul class="flex">
               {#each study.photos as entry, p (p)}
-                <li class="w-[85vw] shrink-0 snap-start md:w-[36rem]">
+                <li
+                  class="shrink-0 snap-start {study.photos.length > 1
+                    ? 'w-[85vw] md:w-[36rem]'
+                    : 'w-full'}"
+                >
                   <PrismicImage
                     field={entry.photo}
                     fallbackAlt=""
