@@ -580,3 +580,34 @@ The Netlify site `mantis-landscaping` was created at 18:33Z (`f0ce133b`), linked
 That is Blux's own analytics script. P0 vendored it with the rest of the live capture, and the key in it is Blux's browser key, which the live site serves to every visitor. P0's CI was green because CI does not run Netlify's scan, so nothing before the first production build could have caught it.
 
 The file is removed rather than exempting `matching/spec/` from the scan. The matching gate compares rendering and never needs an analytics script, and an exemption would also hide a real secret committed there later. The manifest keeps the file's sha256. The key remains in P0's commit, because rewriting published history is not done here.
+
+## 2026-10-04 — P2a built, two dirty review rounds, stopped (#3; reddoor-maintenance Operator decisions 64)
+
+#3 adds the native content model:
+
+- a `project` type, with a nested `case_studies.photos` group and an `order` field;
+- seven slices: SplitHero, FeatureTrio, ServiceCards, Steps, TextBlock, CaseStudies and ProjectList;
+- `/projects/[uid]`;
+- 301s from `/ediblegardens` and `/projects/ediblegardens`, served by the hook and forced in `netlify.toml`.
+
+It is not merged. Its second adversarial review round found a real defect: a single-photo case-study strip overflows at 768–1022px with no tab stop. The central repo's two-round rule sends it to the operator rather than into a third round.
+
+**Gold, by job.** White on the Blux gold `#dfb726` measured 1.91:1. White on `gold-deep` `#836a10` measures 5.21:1, and `gold-deep` on `#f5f5f5` measures 4.77:1. The bright gold stays as text on the dark band (7.48:1), and as the ground under dark type on the project "How it Works" band, which already passed (8.33:1).
+
+**Defects round 1 named, worth keeping.**
+
+- `PrismicImage` drops `alt` entirely when the field's alt is blank and no `fallbackAlt` is given.
+- SvelteKit throws on `url.search` during prerender. adapter-netlify writes a crawled redirect as a meta-refresh file, not a 301, hence `force = true`.
+- The routes-free client makes every Document link `href=""`, hence `SiteLink`.
+- Slice `items` is legacy, so the repeatables moved into primary Groups before any content existed.
+
+**An instrument that first failed its own mutation.** The class-pair contrast scan in `theme-contrast.test.ts` let `text-gold` on `bg-light` (the Blux Submit pair, 1.76:1) pass. Its quote regex paired across `class="… {x ? '…' : '…'}"`. Fixed, it reports 1.76:1.
+
+**Types without Slice Machine.** `scripts/generate-prismic-types.mjs` runs `prismic-ts-codegen`. On main's untouched models, `slices/index.js` came out byte-identical, and the types differed only by the `form_replies` type the committed file lacked.
+
+**Waiting:**
+
+- the seed content, all five documents with alt text on 74 photos, on `claude/p2b-seed-draft`;
+- the seed script; the Migration API does not dedupe existing assets, so a re-run must look up its own uploads;
+- the model push, with `PRISMIC_TOKEN_MANTIS_LANDSCAPING` set explicitly, because a generic token for another repository sits in the cloud environment;
+- the placeholder swap, P4 and P5.
