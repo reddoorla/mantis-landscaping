@@ -11,7 +11,8 @@ vi.mock("$env/dynamic/public", () => ({ env: {} }));
 
 const { default: ContactPage } = await import("./+page.svelte");
 
-const props = (form: unknown = null) => ({ data: { formTs: 1_700_000_000_000 }, form }) as never;
+const props = (form: unknown = null) =>
+  ({ data: { formTs: 1_700_000_000_000, page: null, context: {} }, form }) as never;
 
 afterEach(() => cleanup());
 

@@ -2,6 +2,7 @@ import { error, redirect } from "@sveltejs/kit";
 
 import { loadPage } from "$lib/page-load";
 import { createClient, isPlaceholderRepo } from "$lib/prismicio";
+import { ROUTED_ELSEWHERE } from "$lib/routes";
 
 export async function load({ params, fetch, cookies }) {
   if (params.uid === "home") redirect(308, "/");
@@ -22,5 +23,5 @@ export async function entries() {
   if (isPlaceholderRepo) return [];
 
   const pages = await createClient().getAllByType("page");
-  return pages.filter((page) => page.uid !== "home").map((page) => ({ uid: page.uid }));
+  return pages.filter((page) => !ROUTED_ELSEWHERE.has(page.uid)).map((page) => ({ uid: page.uid }));
 }

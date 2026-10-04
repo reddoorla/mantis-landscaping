@@ -35,8 +35,8 @@ describe("GET /sitemap.xml", () => {
   // from the template's own chrome and returns 200, and it is `prerender =
   // false` (a form action cannot live on a prerendered route), so no
   // build-output census would have caught its absence either.
-  it("lists the filesystem-only /contact route", async () => {
-    expect(await body()).toContain("<loc>https://example.com/contact</loc>");
+  it("lists the filesystem-only /contact-us route", async () => {
+    expect(await body()).toContain("<loc>https://example.com/contact-us</loc>");
   });
 
   it("still emits a well-formed urlset with no Prismic documents", async () => {
@@ -84,7 +84,7 @@ describe("GET /sitemap.xml on a netlify.app host", () => {
   it("gives a per-request static route no lastmod, which would change on every fetch", async () => {
     wired();
     const xml = await body("https://www.example.com");
-    expect(xml).toMatch(/<loc>https:\/\/www\.example\.com\/contact<\/loc>\s*<\/url>/);
+    expect(xml).toMatch(/<loc>https:\/\/www\.example\.com\/contact-us<\/loc>\s*<\/url>/);
     expect(xml).toContain("<lastmod>2026-09-01T00:00:00.000Z</lastmod>");
   });
 
@@ -94,7 +94,19 @@ describe("GET /sitemap.xml on a netlify.app host", () => {
       "https://www.example.com/",
       "https://www.example.com/about",
       "https://www.example.com/projects/edible-gardens",
-      "https://www.example.com/contact",
+      "https://www.example.com/contact-us",
     ]);
+  });
+});
+
+describe("GET /sitemap.xml when Prismic also has the contact-us page", () => {
+  it("lists /contact-us once and never the retired /contact", async () => {
+    prismic.isPlaceholderRepo = false;
+    prismic.getAllByType.mockImplementation(async (type?: string) =>
+      type === "page" ? [{ uid: "contact-us", last_publication_date: "2026-10-04T00:00:00Z" }] : [],
+    );
+    const urls = locs(await body("https://www.example.com"));
+    expect(urls.filter((url) => url.endsWith("/contact-us"))).toHaveLength(1);
+    expect(urls.some((url) => url.endsWith("/contact"))).toBe(false);
   });
 });
