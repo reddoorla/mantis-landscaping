@@ -10,8 +10,11 @@ import {
   missingModels,
   modelsUsed,
   planAssets,
+  readIds,
   resolveToken,
   splitReused,
+  unsized,
+  updateRelease,
   uploadable,
   verifySha,
 } from "./lib.mjs";
@@ -19,6 +22,8 @@ import {
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const publish = args.has("--publish");
+const idsFile = readIds(process.argv);
+const updateIds = idsFile ? JSON.parse(readFileSync(idsFile, "utf8")) : null;
 
 const manifest = JSON.parse(readFileSync("matching/spec/capture/manifest.json", "utf8"));
 
@@ -60,7 +65,8 @@ if (missing.length) {
   process.exit(1);
 }
 
-const { reuse, fetch: toFetch } = splitReused(assets, await listAssets(getJson));
+const existing = await listAssets(getJson);
+const { reuse, fetch: toFetch } = splitReused(assets, existing);
 const files = new Map([...reuse].map(([file, id]) => [file, { id }]));
 for (const asset of toFetch) {
   const response = await fetch(asset.url);
@@ -73,6 +79,23 @@ console.log(
   `seed: ${toFetch.length} originals fetched, every sha256 matches the manifest; ` +
     `${reuse.size} already in the media library are reused`,
 );
+
+if (updateIds) {
+  await updateRelease({
+    docs: documents,
+    files,
+    alts: used,
+    ids: updateIds,
+    headers,
+    fetch,
+    log: console.log,
+  });
+  for (const stale of unsized(existing))
+    console.log(
+      `seed: unsized asset (check nothing uses it before deleting): ${stale.name} ${stale.id}`,
+    );
+  process.exit(0);
+}
 
 const migration = prismic.createMigration();
 const migrated = new Map();
@@ -103,6 +126,6 @@ await client.migrate(migration, {
 });
 console.log("seed: done. Review the migration release in Prismic, then run again with --publish.");
 console.log(
-  "seed: if migrate() failed after creating documents, delete the release's documents in Prismic " +
-    "before running again: a second create for the same uid fails. Assets are reused either way.",
+  "seed: if migrate() failed after creating documents, run again with --update <ids.json> " +
+    '(a map of "type:uid" to the document ids in the release). Assets are reused either way.',
 );

@@ -14,6 +14,7 @@ type Field = {
     single?: string;
     multi?: string;
     options?: string[];
+    default_value?: string;
     fields?: Record<string, Field>;
     choices?: Record<string, unknown>;
   };
@@ -51,7 +52,10 @@ function blockTypes(field: Field): Set<string> {
 const LINK_TYPES = new Set(["Any", "Web", "Document", "Media"]);
 
 function fieldViolation(field: Field, value: unknown): string | null {
-  if (value === null) return null;
+  if (value === null)
+    return field.type === "Select" && field.config?.default_value !== undefined
+      ? `null becomes the Select's default ${JSON.stringify(field.config.default_value)}`
+      : null;
   switch (field.type) {
     case "StructuredText": {
       if (!Array.isArray(value)) return "not a rich-text array";
@@ -180,6 +184,7 @@ describe("the value check itself", () => {
   const fields: Fields = {
     heading: { type: "StructuredText", config: { single: "heading2" } },
     background: { type: "Select", config: { options: ["dark", "light"] } },
+    tone: { type: "Select", config: { options: ["dark"], default_value: "dark" } },
     order: { type: "Number" },
     cta_link: { type: "Link" },
     slices: { type: "Slices", config: { choices: { steps: {} } } },
@@ -207,6 +212,7 @@ describe("the value check itself", () => {
   it.each([
     ["a disallowed block type", { heading: [{ type: "heading1" }] }, "probe.heading: heading1"],
     ["a Select value that is not an option", { background: "golden" }, "probe.background:"],
+    ["a null Select that has a default", { tone: null }, "probe.tone: null becomes"],
     ["a string in a Number field", { order: "1" }, "probe.order:"],
     ["a string in a Link field", { cta_link: "/contact-us" }, "probe.cta_link:"],
     ["a slice that is not a choice", { slices: [{ slice_type: "hero" }] }, "probe.slices[0]:"],

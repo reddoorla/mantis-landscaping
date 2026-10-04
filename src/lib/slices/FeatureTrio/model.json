@@ -51,8 +51,7 @@
                     "community",
                     "pest",
                     "consulting"
-                  ],
-                  "default_value": "design"
+                  ]
                 }
               },
               "label": {
