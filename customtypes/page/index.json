@@ -66,6 +66,9 @@
             "steps": {
               "type": "SharedSlice"
             },
+            "page_title": {
+              "type": "SharedSlice"
+            },
             "text_block": {
               "type": "SharedSlice"
             },

@@ -7,6 +7,7 @@ import FeatureTrio from "./FeatureTrio/index.svelte";
 import Hero from "./Hero/index.svelte";
 import LeadText from "./LeadText/index.svelte";
 import MediaText from "./MediaText/index.svelte";
+import PageTitle from "./PageTitle/index.svelte";
 import ProjectList from "./ProjectList/index.svelte";
 import RichText from "./RichText/index.svelte";
 import SectionGrid from "./SectionGrid/index.svelte";
@@ -25,6 +26,7 @@ export const components = {
   hero: Hero,
   lead_text: LeadText,
   media_text: MediaText,
+  page_title: PageTitle,
   project_list: ProjectList,
   rich_text: RichText,
   section_grid: SectionGrid,

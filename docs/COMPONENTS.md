@@ -66,7 +66,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`reply-copy.ts`](../src/lib/server/reply-copy.ts) | `replyCopyFor` | — |  |
 | [`site-config.ts`](../src/lib/site-config.ts) | `loadSiteConfig`, `footerColumns` | 5 | Site chrome (navigation + footer) from a checked-in JSON stub |
 | [`site-link.ts`](../src/lib/site-link.ts) | `siteHref` | — |  |
-| [`site-pages.js`](../src/lib/site-pages.js) | `lang`, `documents` | 6 | The page assemblies for this site — the SINGLE source of truth for both consumers: a Prismic Migration API script, which publishes them (start from the starter's scripts/import/migrate.example.ts — no `reddoor-maint` command does this; the seed is per-site work), and src/routes/dev/match/[uid], the local matching surface |
+| [`site-pages.js`](../src/lib/site-pages.js) | `lang`, `ALT`, `documents` | 6 | The page assemblies for this site — the SINGLE source of truth for both consumers: scripts/seed/seed.mjs, which publishes them through the Prismic Migration API, and src/routes/dev/match/[uid], the local matching surface |
 | [`slice-context.ts`](../src/lib/slice-context.ts) | — | — |  |
 | [`viewport.svelte.ts`](../src/lib/stores/viewport.svelte.ts) | `viewport` | — |  |
 | [`transitions.ts`](../src/lib/transitions.ts) | `prefersReducedMotion`, `reducedMotion`, `fade`, `fly`, `slide` | 10 |  |

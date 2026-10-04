@@ -1,0 +1,49 @@
+{
+  "id": "page_title",
+  "type": "SharedSlice",
+  "name": "PageTitle",
+  "description": "The page's one h1, as an eyebrow or a display heading, with an optional statement",
+  "variations": [
+    {
+      "id": "default",
+      "name": "Default",
+      "docURL": "...",
+      "version": "initial",
+      "description": "The page's one h1, as an eyebrow or a display heading, with an optional statement",
+      "imageUrl": "",
+      "primary": {
+        "heading": {
+          "type": "StructuredText",
+          "config": {
+            "label": "heading",
+            "single": "heading1"
+          }
+        },
+        "heading_style": {
+          "type": "Select",
+          "config": {
+            "label": "heading_style",
+            "options": ["eyebrow", "display"],
+            "default_value": "eyebrow"
+          }
+        },
+        "body": {
+          "type": "StructuredText",
+          "config": {
+            "label": "body",
+            "multi": "paragraph,strong,em"
+          }
+        },
+        "background": {
+          "type": "Select",
+          "config": {
+            "label": "background",
+            "options": ["white", "light", "gold-deep", "dark"],
+            "default_value": "white"
+          }
+        }
+      },
+      "items": {}
+    }
+  ]
+}
