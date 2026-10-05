@@ -47,3 +47,23 @@ has been quietly widened and nothing records who widened it, or why.
   70px; the hero starts at y=69/70) and only turns fixed after `scrollTop > 1`
   (SPEC `## shared chrome`, Nav). This is the first geometry item for the next
   round; nothing was changed in this one.
+
+## 2026-10-05 — home, round 1 (carousels, census 3 and 11)
+
+- [correction] SPEC's "below 900px" / "below 600px" read as viewport widths
+  is wrong. `sliderAt` compares the grid's own `offsetWidth` to the config
+  width (`if(calcWidth<=self.config.width)`, `matching/spec/export/index.html`;
+  calls `{id:"page-block-1",from:"grid",width:"900"}` and
+  `{id:"page-block-9-item-1",from:"grid",width:"600"}`). Measured on the live
+  reference, fresh load and resize agreeing: pillars switch at viewport
+  ≤978 (grid 900 wide), values at ≤652 (grid 600). The candidate uses
+  container queries on the IconRow content box (`@container`,
+  `[@container(width<=900px)]`), so it switches on the same quantity.
+- [finding, not a deviation] the candidate's content box is `vw − 63` (max 1104) against the reference's 92% of vw, so today it switches at ≤963 and
+  ≤663. This closes when the section box is matched; no matrix viewport sits
+  between the two (1024 grid/grid, 834 carousel/grid, 390 carousel/carousel
+  on both).
+- [a11y] the values carousel autoplays (2000ms), so the candidate shows a
+  "Pause slides" control the reference lacks (WCAG 2.2.2), and both
+  carousels show dots: `Slider` always renders dots when arrows are hidden.
+  The reference's pillars carousel has dots; its values carousel has none.

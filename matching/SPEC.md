@@ -175,8 +175,9 @@ background on both pages before matching it.
 **3 · Pillars (`#page-block-1`) + 4 · photo band (`#page-block-2`).**
 Pillars: `background-color: rgb(223,183,38)` (`#dfb726`),
 `.blocks1container` with inline `padding:20px 4%`, three `grid-3` columns,
-centred h3 `.text4`: 300 **30px** `#fff` (24px/28px at 390). Below
-**900px** the grid becomes a slider (`sliderAt width:"900"`: Fade 250ms,
+centred h3 `.text4`: 300 **30px** `#fff` (24px/28px at 390). When the
+grid's own width is **≤900px** (viewport ≤978; `sliderAt` compares
+`offsetWidth`, not the viewport) the grid becomes a slider (`sliderAt width:"900"`: Fade 250ms,
 Circles dots Under, 8px dots `#ededed`/active `#fff`, 12px spacing, no
 arrows, **no autoplay**); so at 834 and 390 the reference shows one pillar
 at a time with dots, not three columns. Photo band: background photo
@@ -243,8 +244,8 @@ h3 `.text2` "the takeaway", body `.text4` (300 30px `#fff`; 24px/28px at 390) wi
 holder. Item 1: `border-radius:43px` wrapper, four `grid-4-s40` cards
 (`calc(25% - 30px)`; 3 per row at ≤1200px, 2 per row at ≤900px), each
 `border-radius:20px`, a 120px icon (`d91028b1…`, `3ce289d6…`, `8a32c3e9…`,
-`2d026842…`) and an h4 `.text7` (white; 10px at 390). Below **600px** the
-grid becomes a slider (`sliderAt width:"600"`: Fade 500ms, **autoplay
+`2d026842…`) and an h4 `.text7` (white; 10px at 390). When the grid's own
+width is **≤600px** (viewport ≤652) it becomes a slider (`sliderAt width:"600"`: Fade 500ms, **autoplay
 2000ms**, no dots, no arrows), which is why the section is 612px at 390
 against 1364px at 834.
 
@@ -286,7 +287,7 @@ Phase 5 verifies exactly these, at every matrix width where each exists.
    animation, panel.
 3. Nav links (2): no hover rule.
 4. Hero "Contact Us +" (`buttons0`): hover, active colours.
-5. Pillars slider below 900px: dots, fade 250ms.
+5. Pillars slider at grid width ≤900px (viewport ≤978): dots, fade 250ms.
 6. Mission "Contact Us +" (`buttons3`): hover, active, ripple.
 7. Mission "Join Newsletter +" (`buttons3`): hover, active, ripple.
 8. Service cards (4): click navigates (`data-link`), `cursor:pointer`.
@@ -296,7 +297,7 @@ Phase 5 verifies exactly these, at every matrix width where each exists.
 12. Slide 1 "Learn More +" (`buttons3`): hover, active, ripple.
 13. Slide 2 "Learn More +" (`buttons3`): hover, active, ripple.
 14. Takeaway "Let's Get Planting +" (`buttons0`): hover, active.
-15. Values slider below 600px: autoplay 2000ms, fade 500ms.
+15. Values slider at grid width ≤600px (viewport ≤652): autoplay 2000ms, fade 500ms.
 16. Flourish "Contact Us +" (`buttons0`): hover, active.
 17. Footer links: Contact Us, Instagram (no hover rule); the empty Projects link.
 

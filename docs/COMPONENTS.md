@@ -38,7 +38,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`Form.svelte`](../src/lib/components/Form.svelte) | `errors`, `errorSummaryTitle`, `children` | 3 |  |
 | [`HeroBackgroundImage.svelte`](../src/lib/components/HeroBackgroundImage.svelte) | `image`, `altFallback`, `preload` | 8 | LCP-optimized hero image |
 | [`Icon.svelte`](../src/lib/components/Icon.svelte) | `name` | — |  |
-| [`IconRow.svelte`](../src/lib/components/IconRow.svelte) | `heading`, `items`, `background`, `sliceType`, `variation` | — |  |
+| [`IconRow.svelte`](../src/lib/components/IconRow.svelte) | `heading`, `items`, `background`, `sliceType`, `variation`, `carouselBelow`, `autoplay`, `label` | — |  |
 | [`Img.svelte`](../src/lib/components/Img.svelte) | `src` | 5 | Progressive-loading wrapper around @zerodevx/svelte-img: the image renders blurred (`.progressive-img` in app.css) and sharpens once the underlying <img> finishes — or fails — loading |
 | [`LandscapeModal.svelte`](../src/lib/components/LandscapeModal.svelte) | — | 3 | Orientation lockout — a primitive the template deliberately does NOT mount (tests/smoke/landscape.spec.ts fails if it is re-mounted), because an undismissable landscape overlay fails WCAG 2.1 SC 1.3.4 (Orientation) |
 | [`Modal.svelte`](../src/lib/components/Modal.svelte) | `open`, `onclose`, `label`, `labelledby`, `children` | 16 | Accessible name for the dialog |

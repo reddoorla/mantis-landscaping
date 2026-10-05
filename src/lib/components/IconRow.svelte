@@ -23,12 +23,12 @@
   } = $props();
 
   const GRID_FROM: Record<string, string> = {
-    "900": "max-[899px]:hidden",
-    "600": "max-[599px]:hidden",
+    "900": "[@container(width<=900px)]:hidden",
+    "600": "[@container(width<=600px)]:hidden",
   };
   const CAROUSEL_UNTIL: Record<string, string> = {
-    "900": "min-[900px]:hidden",
-    "600": "min-[600px]:hidden",
+    "900": "[@container(width>900px)]:hidden",
+    "600": "[@container(width>600px)]:hidden",
   };
   const FADE: Record<string, string> = {
     "900": "duration-[250ms] ease-in-out",
@@ -59,7 +59,7 @@
 
 {#if labelled.length > 0}
   <section data-slice-type={sliceType} data-slice-variation={variation} class="w-full {ground}">
-    <div class="mx-auto max-w-6xl px-6 py-14 text-center">
+    <div class="mx-auto max-w-6xl px-6 py-14 text-center {carouselBelow ? '@container' : ''}">
       {#if heading}
         <div class="eyebrow mb-10 {headingTone}">{@render heading()}</div>
       {/if}

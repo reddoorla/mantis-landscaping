@@ -76,9 +76,10 @@ describe("FeatureTrio with nothing to show", () => {
       props: { slice: slice(pillars, [], { carousel_below: "900", autoplay: null }) },
     });
     const grid = container.querySelector("ul") as HTMLElement;
-    expect(grid.className).toContain("max-[899px]:hidden");
+    expect(grid.className).toContain("[@container(width<=900px)]:hidden");
+    expect(grid.parentElement!.classList.contains("@container")).toBe(true);
     const carousel = container.querySelector("[data-carousel-below]") as HTMLElement;
-    expect(carousel.className).toContain("min-[900px]:hidden");
+    expect(carousel.className).toContain("[@container(width>900px)]:hidden");
     expect(within(carousel).getByRole("region").getAttribute("aria-roledescription")).toBe(
       "carousel",
     );
@@ -89,9 +90,11 @@ describe("FeatureTrio with nothing to show", () => {
     const values = render(FeatureTrio, {
       props: { slice: slice(pillars, [], { carousel_below: "600", autoplay: 2000 }) },
     });
-    expect(values.container.querySelector("ul")!.className).toContain("max-[599px]:hidden");
+    expect(values.container.querySelector("ul")!.className).toContain(
+      "[@container(width<=600px)]:hidden",
+    );
     expect(values.container.querySelector("[data-carousel-below]")!.className).toContain(
-      "min-[600px]:hidden",
+      "[@container(width>600px)]:hidden",
     );
   });
 
