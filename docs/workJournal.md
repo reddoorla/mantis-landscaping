@@ -667,6 +667,8 @@ Two things the review found, filed rather than fixed:
 
 ## 2026-10-04 — The contact form moves to /contact-us, and survives a Prismic outage (#15)
 
+> Superseded in part by 2026-10-05 — The newsletter signup goes native, through Resend and the digest (P4b).
+
 P4a, for reddoor-maintenance P1-30. The starter's `/contact` form route and the Prismic `contact-us` page (#11) are now one route. `/contact-us` renders the page's slices and then the form. `/contact` answers 301 there from both the hook and `netlify.toml`, with the query string kept, so form-e2e's `goto('/contact')` still finds the form. The generic `[uid]` route no longer prerenders `contact-us`, because a form action cannot live on a prerendered page.
 
 **A defect the review caught.** The first cut threw on any Prismic error other than a 404, which I chose on purpose so an outage would not hide behind the fallback. That was the wrong trade, for a reason I had not counted: every other page is prerendered, so `/contact-us` became the only page whose render depended on Prismic at request time. With Prismic unreachable, the reviewer saw `/` answer 200 and `/contact-us` answer 500. Worse, a no-JS POST reached ingest and then the post-action reload threw, so a visitor whose message had been received was shown an error page and would resubmit. That also broke a rule this repo already states in `reply-copy.ts`: an outage costs a tailored confirmation, never the submission. The load now serves the form on any error and `console.error`s anything that is not a 404. `/health` already reports Prismic outages, so nothing is hidden.
@@ -682,3 +684,39 @@ Each now has a test, and each was mutated back and went red, along with the outa
 **Filed, not fixed:** #16. A Prismic preview of `contact-us` lands on the generic route and shows no form.
 
 **Next:** P4b, the newsletter signup, waits on the client's Mailchimp API key. The Turso row has neither the key nor the audience ID. When it lands, form-e2e fills the first `[name="email"]` on the page and marks the first `<form>`, so a newsletter form placed above the contact form would take the probe's submission.
+
+## 2026-10-05 — The newsletter signup goes native, through Resend and the digest (P4b)
+
+The Blux `/contact-us` carried Mailchimp's embed: 143 KB of `mc-validate.js`, an unlabelled badge, and a list that posted straight to Mailchimp. The plan said to replace it with a native signup "backed by Mailchimp". The Turso row for this site has no Mailchimp key and no audience ID. The operator says the client does not use Mailchimp, and that signups should go through our own Resend and the digest.
+
+The central code already does exactly that, so no credential was needed. Central ingest saves a `newsletter` submission, sends it through the same Resend notification as a contact message (subject "New newsletter from Mantis Landscaping"), and counts it as a signup in the digest. Mailchimp and a webhook are optional add-ons that run only when the site row names them.
+
+**Two forms on one route.** `/contact-us` now has two named actions, `contact` and `subscribe`. Each result is tagged with the form it came from, so one form's confirmation or error never appears in the other. Without the tags, a successful signup would have unmounted the contact form. The `?/contact` key that a named action adds to the URL is removed from `sourceUrl`.
+
+The signup sits **below** the contact form on purpose. form-e2e fills the first `[name="email"]` on the page and marks the first `<form>`. A test checks that the contact form owns both. The signup has its own honeypot, timing token and Turnstile widget. Without Turnstile, a signup would be bucketed as spam on any site row with `requireTurnstile` set.
+
+Its copy ("Mantis Monthly Newsletter" and the one-line pitch) is the Blux band's, and is written in the route rather than in Prismic, because the seed never carried that band. The home page's "Join Newsletter" button still links to `/contact-us` without the `#newsletter` anchor. Adding the anchor is a content change in Prismic.
+
+**Proof.** The seven mutations named before the code each went red. On a production build pointed at a local fake ingest:
+
+- A no-JS POST to `?/subscribe` delivered `{email, firstName, lastName, sourceUrl, formType: "newsletter"}` and left the contact form on the page.
+- A no-JS POST to `?/contact` delivered a contact payload and left the signup on the page.
+- A browser signup with JS showed and focused its confirmation, and the text typed into the contact form survived.
+- form-e2e, run against that build, still submitted the contact form (`formType: contact`, `testMode: true`).
+
+`pnpm verify` passed: 699 unit and 21 smoke tests, and axe 0 violations on 7 routes.
+
+**Review round 1 found the PR's own evidence was hand-built.** A relative `action="?/contact"` _replaces_ the page's query string. So once the forms had named actions, every POST from `/contact-us?utm_source=x` went to `/contact-us?/contact`, and no lead carried its UTMs. On `main`, the form had no `action`, posted to the page's own URL and kept them. My unit test and PR body "showed" UTMs surviving, from a URL no browser sends (`?/subscribe&utm_source=x`). Each form's action is now built from the live query (`$lib/action-url.ts`, through `$app/state`), and a component test renders the page at `?utm_source=x`.
+
+Two more from the same round:
+
+- **Each form's result was the only record of it.** The confirmations derived from the single `form` prop, so sending the contact form and then signing up brought the contact form back, empty, which invites a duplicate. Each success now latches.
+- **A POST to `/contact-us` naming no action 404s** once named actions exist. That is what a tab opened before this deploy sends. The hook answers it with a 307 to `?…&/contact`, and the browser re-sends the same body there.
+
+Also: each form's timing token is fixed when it mounts. `update()` re-runs `load`, which used to re-plant the other form's token and could screen a quick second submit as too fast. The forms got distinct accessible names, and `testMode`, which form-e2e never sends to the signup, was dropped from it.
+
+**Round 2 confirmed every round-1 fix on a production build, and found one defect the fix had introduced.** SvelteKit decodes each query key and takes the first that starts with `/` as the action. My filter matched only the raw prefixes `/` and `%2F`, so a crafted `?%2fsubscribe=` link sent the contact form's fields to the signup action. The name and message were dropped with no error. The filter now decodes each key first, which is the same rule SvelteKit and `pageUrl` apply. Round 2's other finding: the signup latch had no test of its own, because round 1's mutation removed both latches at once. It now has one.
+
+That made two dirty rounds. The operator chose to fix and land on green CI rather than run a third. The reviewer's request for a comment on the hook's 307 went unmet, because the operator wants code without comments. The reason is here instead: a tab opened before this deploy posts to `/contact-us` with no action. A 303 would turn that POST into a GET and lose the body, while a 307 makes the browser re-send it to `?…&/contact`.
+
+One instrument failure is worth remembering. Round 1's reviewer wrote its fake ingest over mine in the shared scratchpad and left it bound to another port. My next browser run then showed a 502 and an error banner on a correct page. A probe confirming the fake ingest answers, run first, would have caught that before the browser run.

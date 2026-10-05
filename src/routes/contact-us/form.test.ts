@@ -1,13 +1,20 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup, within } from "@testing-library/svelte";
 
+const appState = vi.hoisted(() => ({
+  page: { url: new URL("https://mantislandscaping.com/contact-us") },
+}));
+vi.mock("$app/state", () => appState);
 vi.mock("$app/forms", () => ({ enhance: () => ({ destroy() {} }) }));
 vi.mock("$env/dynamic/public", () => ({ env: { PUBLIC_TURNSTILE_SITE_KEY: "0xSITEKEY" } }));
 vi.mock("$lib/turnstile", () => ({ loadTurnstile: () => new Promise(() => {}) }));
 
 const { default: ContactPage } = await import("./+page.svelte");
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  appState.page.url = new URL("https://mantislandscaping.com/contact-us");
+});
 
 const page = {
   uid: "contact-us",
@@ -49,13 +56,15 @@ const page = {
   },
 };
 
-const mount = (withPage: boolean) =>
+const mount = (withPage: boolean, form: Record<string, unknown> | null = null) =>
   render(ContactPage, {
     props: {
       data: { formTs: 1_700_000_000_000, page: withPage ? page : null, context: {} },
-      form: null,
+      form,
     } as never,
   });
+
+const forms = (container: HTMLElement) => [...container.querySelectorAll("form")];
 
 describe("/contact-us", () => {
   it("renders the Prismic bands, then the form, with exactly one h1", () => {
@@ -90,5 +99,110 @@ describe("/contact-us", () => {
     expect(honeypot?.getAttribute("aria-hidden")).toBe("true");
     expect(honeypot?.getAttribute("tabindex")).toBe("-1");
     expect(form.querySelector(".cf-turnstile")).not.toBeNull();
+  });
+
+  it("the contact form is the first form and owns the first email field", () => {
+    const { container } = mount(true);
+    const [contact, signup] = forms(container);
+    expect(contact.getAttribute("action")).toBe("?/contact");
+    expect(signup.getAttribute("action")).toBe("?/subscribe");
+    expect(contact.contains(container.querySelector('[name="email"]'))).toBe(true);
+  });
+
+  it("the signup posts email, names, honeypot, timing token and a Turnstile mount", () => {
+    const { container } = mount(true);
+    const signup = forms(container)[1];
+    const view = within(signup);
+    expect(signup.getAttribute("method")).toBe("POST");
+    expect((view.getByLabelText(/Email/) as HTMLInputElement).type).toBe("email");
+    expect((view.getByLabelText(/Email/) as HTMLInputElement).required).toBe(true);
+    expect((view.getByLabelText(/First name/) as HTMLInputElement).name).toBe("firstName");
+    expect((view.getByLabelText(/Last name/) as HTMLInputElement).name).toBe("lastName");
+    expect(signup.querySelector('input[name="ts"]')?.getAttribute("value")).toBe("1700000000000");
+    expect(signup.querySelector('input[name="bot-field"]')?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+    expect(signup.querySelector(".cf-turnstile")).not.toBeNull();
+    expect(
+      within(container).getByRole("heading", { level: 2, name: "Mantis Monthly Newsletter" }),
+    ).toBeTruthy();
+    expect(container.querySelector("#newsletter")?.contains(signup)).toBe(true);
+  });
+
+  it("a signup success leaves the contact form in place", () => {
+    const { container } = mount(true, { success: true, form: "subscribe" });
+    const remaining = forms(container);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].getAttribute("action")).toBe("?/contact");
+    const status = within(container).getByRole("status");
+    expect(container.querySelector("#newsletter")?.contains(status)).toBe(true);
+  });
+
+  it("a contact success leaves the signup in place", () => {
+    const { container } = mount(true, { success: true, form: "contact" });
+    const remaining = forms(container);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].getAttribute("action")).toBe("?/subscribe");
+  });
+
+  it("a contact error stays with the contact form", () => {
+    const { container } = mount(true, { error: "Something went wrong", form: "contact" });
+    const [contact, signup] = forms(container);
+    expect(within(contact).getByRole("alert").textContent).toContain("Something went wrong");
+    expect(within(signup).queryByRole("alert")).toBeNull();
+  });
+
+  it("a signup error stays with the signup form", () => {
+    const { container } = mount(true, { error: "Signup failed", form: "subscribe" });
+    const [contact, signup] = forms(container);
+    expect(within(signup).getByRole("alert").textContent).toContain("Signup failed");
+    expect(within(contact).queryByRole("alert")).toBeNull();
+  });
+
+  it("both actions keep the page's query string", () => {
+    appState.page.url = new URL(
+      "https://mantislandscaping.com/contact-us?utm_source=x&utm_campaign=y",
+    );
+    const { container } = mount(true);
+    const [contact, signup] = forms(container);
+    expect(contact.getAttribute("action")).toBe("?utm_source=x&utm_campaign=y&/contact");
+    expect(signup.getAttribute("action")).toBe("?utm_source=x&utm_campaign=y&/subscribe");
+  });
+
+  it("each form has its own accessible name", () => {
+    const { container } = mount(true);
+    const view = within(container);
+    expect(view.getByRole("form", { name: "Send us a message" })).toBe(forms(container)[0]);
+    expect(view.getByRole("form", { name: "Mantis Monthly Newsletter" })).toBe(forms(container)[1]);
+  });
+
+  it("both confirmations survive using both forms", async () => {
+    const { container, rerender } = mount(true, { success: true, form: "contact" });
+    await rerender({
+      data: { formTs: 1_700_000_000_000, page, context: {} },
+      form: { success: true, form: "subscribe" },
+    } as never);
+    expect(forms(container)).toHaveLength(0);
+    expect(within(container).getAllByRole("status")).toHaveLength(2);
+  });
+
+  it("a form's timing token is fixed when it mounts", async () => {
+    const { container, rerender } = mount(true);
+    await rerender({
+      data: { formTs: 1_800_000_000_000, page, context: {} },
+      form: { error: "nope", form: "subscribe" },
+    } as never);
+    for (const form of forms(container))
+      expect(form.querySelector('input[name="ts"]')?.getAttribute("value")).toBe("1700000000000");
+  });
+
+  it("both confirmations survive when the signup comes first", async () => {
+    const { container, rerender } = mount(true, { success: true, form: "subscribe" });
+    await rerender({
+      data: { formTs: 1_700_000_000_000, page, context: {} },
+      form: { success: true, form: "contact" },
+    } as never);
+    expect(forms(container)).toHaveLength(0);
+    expect(within(container).getAllByRole("status")).toHaveLength(2);
   });
 });

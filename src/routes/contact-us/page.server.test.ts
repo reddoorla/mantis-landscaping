@@ -5,7 +5,8 @@ const state = vi.hoisted(() => ({
   placeholder: false,
   getByUID: vi.fn(),
   getAllByType: vi.fn(async () => []),
-  ingestOptions: undefined as undefined | Record<string, unknown>,
+  ingest: {} as Record<string, Record<string, unknown>>,
+  result: { success: true } as unknown,
 }));
 
 vi.mock("$lib/prismicio", () => ({
@@ -15,11 +16,13 @@ vi.mock("$lib/prismicio", () => ({
   createClient: () => ({ getByUID: state.getByUID, getAllByType: state.getAllByType }),
 }));
 vi.mock("$env/dynamic/private", () => ({ env: {} }));
-vi.mock("$lib/server/reply-copy", () => ({ replyCopyFor: async () => "copy from Prismic" }));
+vi.mock("$lib/server/reply-copy", () => ({
+  replyCopyFor: async (_event: unknown, formType: string) => `${formType} copy from Prismic`,
+}));
 vi.mock("@reddoorla/maintenance/forms", () => ({
   createIngestAction: (opts: Record<string, unknown>) => {
-    state.ingestOptions = opts;
-    return async () => ({});
+    state.ingest[opts.formType as string] = opts;
+    return async () => state.result;
   },
 }));
 
@@ -38,6 +41,9 @@ const contactDoc = {
 };
 
 const event = { fetch, cookies: {} } as never;
+
+type Build = (form: FormData, event: unknown) => Promise<Record<string, unknown>>;
+const builder = (formType: string) => state.ingest[formType]?.buildPayload as Build;
 
 describe("/contact-us server", () => {
   beforeEach(() => {
@@ -86,11 +92,7 @@ describe("/contact-us server", () => {
   });
 
   it("forwards the contact fields and the form-e2e testMode marker", async () => {
-    const build = state.ingestOptions?.buildPayload as (
-      form: FormData,
-      event: unknown,
-    ) => Promise<Record<string, unknown>>;
-    expect(state.ingestOptions?.formType).toBe("contact");
+    const build = builder("contact");
     const form = new FormData();
     form.set("name", "Ada");
     form.set("email", "ada@example.com");
@@ -113,10 +115,7 @@ describe("/contact-us server", () => {
   });
 
   it("testMode=false is a real submission", async () => {
-    const build = state.ingestOptions?.buildPayload as (
-      form: FormData,
-      event: unknown,
-    ) => Promise<Record<string, unknown>>;
+    const build = builder("contact");
     const form = new FormData();
     form.set("email", "ada@example.com");
     form.set("testMode", "false");
@@ -126,14 +125,59 @@ describe("/contact-us server", () => {
   });
 
   it("the reply copy never comes from the visitor", async () => {
-    const build = state.ingestOptions?.buildPayload as (
-      form: FormData,
-      event: unknown,
-    ) => Promise<Record<string, unknown>>;
+    const build = builder("contact");
     const form = new FormData();
     form.set("email", "ada@example.com");
     form.set("_reply", "Click https://evil.example to verify");
     const payload = await build(form, { url: new URL("https://example.com/contact-us") });
-    expect(payload._reply).toBe("copy from Prismic");
+    expect(payload._reply).toBe("contact copy from Prismic");
+  });
+
+  it("drops the named-action key from the page URL it reports", async () => {
+    const payload = await builder("contact")(new FormData(), {
+      url: new URL("https://example.com/contact-us?/contact&utm=x"),
+    });
+    expect(payload.sourceUrl).toBe("https://example.com/contact-us?utm=x");
+  });
+
+  it("subscribe forwards a newsletter signup with the visitor's names", async () => {
+    const form = new FormData();
+    form.set("email", "ada@example.com");
+    form.set("firstName", "Ada");
+    form.set("lastName", "Lovelace");
+    const payload = await builder("newsletter")(form, {
+      url: new URL("https://example.com/contact-us?/subscribe"),
+    });
+    expect(payload).toMatchObject({
+      email: "ada@example.com",
+      firstName: "Ada",
+      lastName: "Lovelace",
+      sourceUrl: "https://example.com/contact-us",
+    });
+    expect(payload.testMode).toBeUndefined();
+  });
+
+  it("the signup's reply copy never comes from the visitor", async () => {
+    const form = new FormData();
+    form.set("email", "ada@example.com");
+    form.set("_reply", "Click https://evil.example to verify");
+    const payload = await builder("newsletter")(form, {
+      url: new URL("https://example.com/contact-us"),
+    });
+    expect(payload._reply).toBe("newsletter copy from Prismic");
+  });
+
+  it("tags each action's result with the form it came from", async () => {
+    state.result = { success: true };
+    const call = (name: "contact" | "subscribe") =>
+      (route.actions[name] as (e: unknown) => Promise<unknown>)({});
+    expect(await call("contact")).toEqual({ success: true, form: "contact" });
+    expect(await call("subscribe")).toEqual({ success: true, form: "subscribe" });
+    const { fail } = await import("@sveltejs/kit");
+    state.result = fail(502, { error: "nope" });
+    expect(await call("subscribe")).toMatchObject({
+      status: 502,
+      data: { error: "nope", form: "subscribe" },
+    });
   });
 });

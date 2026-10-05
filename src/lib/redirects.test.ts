@@ -27,7 +27,7 @@ const run = async (path: string) => {
   const url = new URL(`https://mantislandscaping.com${path}`);
   let resolved = false;
   const response = await handle({
-    event: { url } as never,
+    event: { url, request: new Request(url) } as never,
     resolve: async () => {
       resolved = true;
       return new Response("page", { status: 200 });
