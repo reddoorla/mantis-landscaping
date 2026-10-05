@@ -788,3 +788,30 @@ The script settled things no screenshot could. The pillars become a carousel bel
 - the projects carousel against our stacked list;
 - the two responsive carousels against our grids;
 - whether the 901–1200px band, which has its own CSS rules, joins the matrix.
+
+## 2026-10-05 — Matching round 1 on `/`: the chrome, and the gate now counts
+
+The operator answered the three Phase 1 asks: keep the projects list, match the two responsive carousels, and add 1024 to the matrix. This round was the chrome, because nothing else could be scored until the nav was in flow.
+
+**Each change, with its source in `matching/spec/export/index.html`:**
+
+- The nav is `sticky` and 70px tall: `.navigation0` is static at load, then fixed after `scrollTop > 1` (`checkYoScroll`), plus `padding:5px 4%` and a 60px `:before` strut. It has a 1280px inner container (`.navigation0h`).
+- `scroll-padding-top: 70px`, because the script scrolls hash targets to `offsetTop - navH`.
+- No scrollbar gutter: the reference's `body.clientWidth` equals the viewport.
+- Nav links are 300 16px with `line-height: normal` and 10px padding.
+- The footer box is `#ededed`, `40px 4%`, two columns, with 600 `#444d33` links and the Instagram link back. The columns path had never rendered socials.
+
+**Measured.** r1 was the first countable run, and `top` (the nav) passed at all four widths. After the link and footer work it reads 1.3/1.8/2.9/5.8%, and the style census fell from 111 to 105 mismatches. Every other region still fails; those are the next batches.
+
+**Three instruments were wrong before they were right**, each caught by its mutation surviving:
+
+- The anchor-offset test first sampled before the browser had scrolled.
+- It then targeted `#newsletter`, which sits so close to the page end that it can never reach the top.
+- It now inserts an anchor mid-page on `/`, and goes red (−70px) without `scroll-padding-top`.
+
+**Two side effects caught by the gates, not by me.**
+
+- Removing the gutter widened every slot by 15px, so #25's `sizes` formula (`100vw − 63px`, where the 63 was 48px of padding plus the 15px gutter) went red in two smoke tests. It is now `100vw − 48px`, re-measured.
+- Tailwind v4's `leading-normal` is 1.5, not CSS `normal`, which made the nav 78px. `leading-[normal]` is the real value. The same debugging showed that "Contact Us" had always wrapped to two lines, hidden under the old 60px minimum height.
+
+**A composite region got worse, and that is fine.** The flourish+footer region went from 40.3% to 45.8% at 1440 while its height delta improved. The footer is now grey like the reference's, but it sits under a band that is still 448px against 700, so the grey box covers the reference's photo. The skill's composite-region rule applies: verify at the element level (the smoke tests do), and let the number move when the band is matched.

@@ -28,7 +28,7 @@ import { describe, it, expect } from "vitest";
 const AA_NORMAL_TEXT = 4.5;
 
 /** Tokens the template renders as text on a LIGHT ground. */
-const LIGHT_GROUND_TEXT = ["secondary", "primary", "dark", "black", "gold-deep"] as const;
+const LIGHT_GROUND_TEXT = ["secondary", "primary", "dark", "black", "gold-deep", "olive"] as const;
 /** The light grounds those land on. */
 const LIGHT_GROUNDS = ["background", "white", "light"] as const;
 
@@ -58,6 +58,7 @@ const COMPOSED_PAIRS = [
   { text: "accent", ground: "dark" },
   { text: "primary", ground: "gold" },
   { text: "primary", ground: "light" },
+  { text: "olive", ground: "footer" },
 ] as const;
 
 type Rgb = [number, number, number];

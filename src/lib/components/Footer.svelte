@@ -75,24 +75,42 @@
   />
 {/snippet}
 
-<footer class="mt-auto w-full px-8 py-12">
+<footer class="mt-auto w-full {columns?.length ? 'bg-footer px-[4%] py-10' : 'px-8 py-12'}">
   {#if columns?.length}
-    <div class="flex flex-col sm:flex-row justify-between gap-8">
+    <div class="mx-auto grid max-w-[1280px] grid-cols-1 min-[601px]:grid-cols-2">
       {#each columns as col, colIndex (colIndex)}
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col items-start">
           {#each col.items as item, itemIndex (itemIndex)}
             {#if isImage(item)}
               {#if item.href}
-                <a {...linkAttrs(item.href)}>{@render logo(item.image)}</a>
+                <a {...linkAttrs(item.href)} class="block p-[10px]">{@render logo(item.image)}</a>
               {:else}
-                {@render logo(item.image)}
+                <div class="p-[10px]">{@render logo(item.image)}</div>
               {/if}
             {:else if item.href}
-              <a {...linkAttrs(item.href)}>{item.text}</a>
+              <a
+                {...linkAttrs(item.href)}
+                class="block p-[10px] leading-[normal] font-semibold text-olive">{item.text}</a
+              >
             {:else}
-              <p>{item.text}</p>
+              <p class="p-[10px] leading-[normal] font-semibold text-olive">{item.text}</p>
             {/if}
           {/each}
+          {#if colIndex === columns.length - 1}
+            {#each known as social, i (i)}
+              {#if social.href}
+                <a
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.meta.label}
+                  class="inline-flex p-[10px] text-olive hover:opacity-70"
+                >
+                  <BrandIcon platform={social.meta.platform} class="h-8 w-8" />
+                </a>
+              {/if}
+            {/each}
+          {/if}
         </div>
       {/each}
     </div>

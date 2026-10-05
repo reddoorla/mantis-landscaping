@@ -93,6 +93,17 @@ describe("Footer", () => {
     expect(img?.getAttribute("height")).toBe("153");
   });
 
+  it("columns mode still renders the social links", () => {
+    const { container } = render(Footer, {
+      props: {
+        columns: [{ items: [{ text: "Contact Us", href: "/contact-us" }] }],
+        socials: [{ network: "instagram", href: "https://www.instagram.com/mantis_landscaping/" }],
+      },
+    });
+    const ig = container.querySelector('a[href="https://www.instagram.com/mantis_landscaping/"]');
+    expect(ig?.getAttribute("aria-label")).toBe("Instagram");
+  });
+
   it("linked logo exposes its alt as the link's accessible name (a11y)", () => {
     const { getByRole } = render(Footer, {
       props: {
