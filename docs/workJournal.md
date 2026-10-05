@@ -758,3 +758,33 @@ The other categories:
 **A defect in my own test, which the mutation caught.** #25's first smoke test made a one-photo strip by mutating the DOM after `load`. Svelte then hydrated, found DOM it had not rendered, re-mounted, and the test measured the original strip. Restoring the old `sizes` passed at 1440 on one run and failed on another. This is the same pre-hydration trap that made form-e2e report a "wipe" on 10-04 (reddoor-maintenance#1148). The test now measures the strip region, mutates nothing, passes 3 out of 3, and fails 3 out of 3 under the old value. One more mutation (X3, in #24) survived, so the class it tested, `min-w-0`, was removed rather than kept untested.
 
 **One false alarm, avoided.** The live sitemap was empty. That is the mirror rule working (`isNetlifyMirrorHost`), and the non-mirror build lists all five pages.
+
+## 2026-10-05 — Matching Phase 1 for `/`, in the cloud; the gate's first real run is blocked by the nav (#27)
+
+The matching gate was believed to be laptop-only, because `matching/harness.json` points at `~/.claude/skills/matching-a-page`. The skill's source is the private `reddoorla/claude-skills` repo. Once that repo is attached to the session, its `install.sh` and one `npm ci` give a cloud container the same path. `page-diff --version` printed `report-schema 1`, which is what `harness.mjs` reads.
+
+**The first "baseline" measured nothing.** Before Phase 1, I ran the gate with `SPEC_OPTIONAL=1` and read its FAIL ("ref 7 regions, cand 4") as a real comparison. Phase 0's candidate check then showed `/dev/match/home` answering **500**: the match twin passes the seed's photo filenames to `PrismicImage` as URLs (#27). The run had compared Blux against an error page. The skill's first Phase 0 step, curl the candidate and check it is this site, exists for exactly this. `home`'s candidate is now `/`, the published page, and the decision is in the LEDGER.
+
+**Phase 0, measured on both pages:**
+
+- Root font-size is 16px at 1440, 834 and 390, so there is no rem ladder.
+- The reference reserves no scrollbar gutter, and the candidate does (1425 against 1440).
+- The reference loads Nunito 300 and 700 only, so its computed 600 and 900 render with the 700 face.
+- The live page's sha256 equals the 10-01 capture.
+
+**Phase 1** (`matching/SPEC.md`, built from `spec-sections/home.md` and `_chrome.md`):
+
+- a 13-row census;
+- nine anchors that resolve once each, in the same order, on both pages at all three widths;
+- the container and type ladders, and four button patterns with their hover and active colours, all from the inline CSS;
+- a 17-entry interaction inventory and the reveal census, from the inline script.
+
+The script settled things no screenshot could. The pillars become a carousel below 900px. The values become a 2-second autoplaying carousel below 600px, which is why that section is 612px tall at 390 against 1364px at 834. The nav is in flow at load and turns fixed after one pixel of scroll.
+
+**The first real gate run (r0) is TRUNCATED and counts for nothing.** All nine anchors resolve, but the candidate's `top` region is empty: our nav is fixed from load and overlays the hero, which starts at y=0, while the reference's hero starts at y=70 below an in-flow nav. That is the first geometry item, and nothing was changed in this round.
+
+**Three structural differences wait on the operator** (LEDGER, ACK-required):
+
+- the projects carousel against our stacked list;
+- the two responsive carousels against our grids;
+- whether the 901–1200px band, which has its own CSS rules, joins the matrix.

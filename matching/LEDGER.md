@@ -10,3 +10,40 @@ has been quietly widened and nothing records who widened it, or why.
 
 - [deviation | floor | mask | a11y] `<region or selector>` — what differs, why
   it is accepted, and the evidence: a spec citation, a census row, a gate run.
+
+## 2026-10-05 — home, Phase 1 (cloud session; reddoor-maintenance P1-30, Operator decisions 78)
+
+- [deviation] harness candidate for `home` is `/`, not `/dev/match/home` — the
+  twin 500s on every request: `src/routes/dev/match/[uid]/+page.server.ts`'s
+  `devImg` passes the seed's photo FILENAMES (`$lib/site-pages.js` `photo()`)
+  to `PrismicImage` as URLs, and `asImageWidthSrcSet` throws `Invalid URL`. It
+  has been broken since P2b moved photos to Prismic assets. `/` on the dev
+  server renders the published Prismic page, which is what ships. A gate run
+  before this change measured the twin's 500 page against the reference (a
+  "baseline" whose 4 candidate regions were an error page) — that run is not
+  evidence of anything. Tracked as mantis-landscaping#27.
+- [deviation] census rows 4 (photo band), 9 (projects) and 13 (footer) have no
+  anchor of their own; they are measured inside regions 3, 8 and 12. Why: SPEC
+  `## home`, census notes. Region 8 is therefore not a pass for the projects
+  band by itself.
+- [ACK-REQUIRED: structural] projects band (census 9): the reference is a
+  two-slide fading carousel (`slider` config in SPEC); the candidate is a
+  stacked list of project cards. Not a geometry defect until the operator
+  chooses: match the carousel, or accept the list.
+- [ACK-REQUIRED: structural] pillars (census 3) below 900px and values (census 11) below 600px become carousels on the reference (`sliderAt`); the
+  candidate keeps grids. Same choice.
+- [ACK-REQUIRED: matrix] the reference CSS has rules in the 901–1200px band
+  that 1440·834·390 never samples; adding 1024 is the operator's call.
+- [deviation] links the candidate fixed on purpose, to be kept: the
+  services cards point at real pages (three 404 on the reference), "Join
+  Newsletter +" goes to `/contact-us` (the native signup, P4b; the
+  `#newsletter` anchor is a pending Prismic content change) instead of
+  Mailchimp, and the footer has no empty "Projects" link (plan §4, OD 62).
+- [finding, not yet a deviation] gate r0 (2026-10-05 20:29Z, the first run with
+  SPEC and anchors): every anchor resolved on both pages at 1440/834/390, but
+  the run is TRUNCATED (ref 10 regions, cand 9) and counts for nothing. The
+  candidate's `top` region is empty: its nav is `position:fixed` from load and
+  the hero starts at y=0, while the reference nav is in flow at load (static,
+  70px; the hero starts at y=69/70) and only turns fixed after `scrollTop > 1`
+  (SPEC `## shared chrome`, Nav). This is the first geometry item for the next
+  round; nothing was changed in this one.

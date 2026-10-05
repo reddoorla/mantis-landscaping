@@ -17,9 +17,19 @@
     "home": {
       "uid": "home",
       "ref": "/",
-      "cand": "/dev/match/home",
+      "cand": "/",
       "published": "/",
-      "anchors": [],
+      "anchors": [
+        "Creating green spaces",
+        "Professionally",
+        "our Mission",
+        "Select a Service",
+        "The Difference",
+        "ready to save on water",
+        "The Takeaway",
+        "Thoughtfully Designed",
+        "It's time for your garden"
+      ],
       "spec": "home",
       "group": "nav"
     }
