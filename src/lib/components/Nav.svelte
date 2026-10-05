@@ -21,7 +21,7 @@
     items?: NavItem[];
     /** The site logo (resolved from site-config); falls back to the "Logo"
      * wordmark. */
-    logo?: { url: string; maxWidth?: string };
+    logo?: { url: string; maxWidth?: string; width?: number; height?: number };
   }
 
   let { navLinks = [], items = [], logo }: Props = $props();
@@ -123,6 +123,8 @@
         <img
           src={logo.url}
           alt="Home"
+          width={logo.width}
+          height={logo.height}
           class="h-8 w-auto"
           style={logo.maxWidth ? `max-width:${logo.maxWidth}` : undefined}
         />

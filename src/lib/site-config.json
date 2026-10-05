@@ -1,6 +1,6 @@
 {
   "nav": {
-    "logo": { "url": "/logo.png", "maxWidth": "15rem" },
+    "logo": { "url": "/logo.png", "maxWidth": "15rem", "width": 1377, "height": 153 },
     "items": [
       { "label": "Projects", "href": "/projects" },
       { "label": "Contact Us", "href": "/contact-us" }
@@ -15,7 +15,13 @@
       {
         "items": [
           {
-            "image": { "url": "/logo.png", "maxWidth": "15rem", "alt": "Mantis Landscaping" },
+            "image": {
+              "url": "/logo.png",
+              "maxWidth": "15rem",
+              "alt": "Mantis Landscaping",
+              "width": 1377,
+              "height": 153
+            },
             "href": "/"
           }
         ]

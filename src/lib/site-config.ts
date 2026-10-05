@@ -12,7 +12,7 @@ export type FooterSocial = { network: string; href?: string };
 // through the layout into Footer as one source of truth.
 export type FooterText = { text: string; href?: string };
 export type FooterImage = {
-  image: { url: string; maxWidth?: string; alt?: string };
+  image: { url: string; maxWidth?: string; alt?: string; width?: number; height?: number };
   href?: string;
 };
 export type FooterItem = FooterText | FooterImage;
@@ -20,7 +20,7 @@ export type FooterColumn = { items: FooterItem[] };
 
 export type SiteConfig = {
   nav: {
-    logo?: { url: string; maxWidth?: string };
+    logo?: { url: string; maxWidth?: string; width?: number; height?: number };
     items: NavItem[];
   };
   footer: {
