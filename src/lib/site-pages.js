@@ -247,6 +247,8 @@ export function documents(img, link = webLink) {
           slice("feature_trio", {
             heading: [],
             background: "gold-deep",
+            carousel_below: "900",
+            autoplay: null,
             features: [
               { icon: null, label: "Professionally Designed" },
               { icon: null, label: "Gorgeously Grown" },
@@ -346,6 +348,8 @@ export function documents(img, link = webLink) {
           slice("feature_trio", {
             heading: [],
             background: "dark",
+            carousel_below: "600",
+            autoplay: 2000,
             features: [
               { icon: "design", label: "Thoughtfully Designed" },
               { icon: "sun", label: "California Friendly" },

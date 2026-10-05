@@ -16,4 +16,6 @@
   heading={isFilled.richText(slice.primary.heading) ? heading : undefined}
   items={slice.primary.features ?? []}
   background={slice.primary.background}
+  carouselBelow={slice.primary.carousel_below}
+  autoplay={slice.primary.autoplay}
 />
