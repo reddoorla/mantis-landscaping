@@ -69,3 +69,21 @@ has been quietly widened and nothing records who widened it, or why.
   assertions), but it sits under a flourish band that is still 448px against
   the reference's 700, so the grey box lands on the reference's photo. Region
   number is the wrong instrument for the footer until the band is matched.
+- [a11y] in-page anchors land 70px below the sticky nav (`main [id] {
+scroll-margin-top: 70px }`). The reference lands them under its nav:
+  `scrollPageToTarget` keeps `navH=0` unless the nav's `data-type` contains
+  "sticky", and `<nav id="navigation0" ... data-nav-height="60px">` has no
+  `data-type` (`matching/spec/export/index.html`). A heading hidden under the
+  nav fails WCAG 2.4.11. r1 first did this with `html { scroll-padding-top }`,
+  which made every `focus()` inside the stuck nav scroll the page up by
+  ~420px (review of #29: 1500 → 1078 at 390); the per-target margin does not.
+  Guard: `tests/smoke/chrome-geometry.spec.ts` "focusing a nav control does
+  not scroll the page" and "an in-page anchor lands below the sticky nav".
+- [deviation] `scrollbar-gutter: auto` (the starter reserves `stable`). The r1
+  evidence for it, `body.clientWidth` equal to the viewport, was a headless
+  artifact: Chromium headless hides scrollbars. With real 15px scrollbars at
+  1440 both builds read 1425 on `/`; on a page too short to scroll this build
+  reads 1440 and the starter 1425. So on classic-scrollbar desktops this
+  brings back a 15px sideways shift between short and long pages, and it
+  changes nothing on long ones. Kept because the gate's headless captures
+  are what is being matched, and the reference reserves no gutter.

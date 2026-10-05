@@ -19,10 +19,33 @@ for (const width of [1440, 1024, 834, 390]) {
       .toBe(0);
   });
 
-  test(`no scrollbar gutter at ${width}px`, async ({ page }) => {
+  test(`the html element reserves no scrollbar gutter at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    expect(await page.evaluate(() => document.body.clientWidth)).toBe(width);
+    expect(
+      await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter),
+    ).toBe("auto");
+  });
+
+  test(`nothing paints over the sticky nav while scrolling at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const covered = await page.evaluate(async () => {
+      document.documentElement.style.scrollBehavior = "auto";
+      const nav = document.querySelector("nav")!;
+      const hits: number[] = [];
+      const end = document.documentElement.scrollHeight - innerHeight;
+      for (let y = 0; y <= end; y += 150) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        for (const x of [innerWidth * 0.25, innerWidth * 0.5, innerWidth * 0.75]) {
+          const el = document.elementFromPoint(x, 35);
+          if (!el || !nav.contains(el)) hits.push(y);
+        }
+      }
+      return hits;
+    });
+    expect(covered).toEqual([]);
   });
 
   test(`the logo sits at the 1280px container edge at ${width}px`, async ({ page }) => {
@@ -36,6 +59,48 @@ for (const width of [1440, 1024, 834, 390]) {
     expect(Math.abs(left - expected)).toBeLessThanOrEqual(1);
   });
 }
+
+test("focusing a nav control does not scroll the page", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const after = await page.evaluate(async () => {
+    document.documentElement.style.scrollBehavior = "auto";
+    window.scrollTo(0, 1500);
+    await new Promise((r) => setTimeout(r, 100));
+    (document.querySelector('nav a[href="/"]') as HTMLElement).focus();
+    await new Promise((r) => setTimeout(r, 300));
+    return scrollY;
+  });
+  expect(after).toBe(1500);
+});
+
+for (const [width, cols] of [
+  [600, 1],
+  [601, 2],
+] as const) {
+  test(`the footer has ${cols} column(s) at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const n = await page.evaluate(
+      () =>
+        getComputedStyle(document.querySelector("footer > div")!).gridTemplateColumns.split(" ")
+          .length,
+    );
+    expect(n).toBe(cols);
+  });
+}
+
+test("the footer Instagram link is a 52px target around a 32px icon", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const box = await page.evaluate(() => {
+    const a = document.querySelector('footer a[aria-label="Instagram"]')!;
+    const r = a.getBoundingClientRect();
+    const i = a.querySelector("svg")!.getBoundingClientRect();
+    return [Math.round(r.width), Math.round(r.height), i.width, i.height].join(" ");
+  });
+  expect(box).toBe("52 52 32 32");
+});
 
 test("an in-page anchor lands below the sticky nav", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

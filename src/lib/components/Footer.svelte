@@ -108,6 +108,14 @@
                 >
                   <BrandIcon platform={social.meta.platform} class="h-8 w-8" />
                 </a>
+              {:else}
+                <span
+                  class="inline-flex p-[10px] text-olive"
+                  aria-label={social.meta.label}
+                  role="img"
+                >
+                  <BrandIcon platform={social.meta.platform} class="h-8 w-8" />
+                </span>
               {/if}
             {/each}
           {/if}

@@ -104,6 +104,18 @@ describe("Footer", () => {
     expect(ig?.getAttribute("aria-label")).toBe("Instagram");
   });
 
+  it("columns mode renders a social with no url as an image, not a dead link", () => {
+    const { container } = render(Footer, {
+      props: {
+        columns: [{ items: [{ text: "Contact Us", href: "/contact-us" }] }],
+        socials: [{ network: "instagram", href: "" }],
+      },
+    });
+    const glyph = container.querySelector('[role="img"][aria-label="Instagram"]');
+    expect(glyph).not.toBeNull();
+    expect(container.querySelector('a[aria-label="Instagram"]')).toBeNull();
+  });
+
   it("linked logo exposes its alt as the link's accessible name (a11y)", () => {
     const { getByRole } = render(Footer, {
       props: {

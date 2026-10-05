@@ -262,7 +262,10 @@ main > section.hero-band:first-child {
   html {
     scroll-behavior: smooth;
     scrollbar-gutter: auto;
-    scroll-padding-top: 70px;
+  }
+
+  main [id] {
+    scroll-margin-top: 70px;
   }
 
   body {
