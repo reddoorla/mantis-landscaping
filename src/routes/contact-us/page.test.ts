@@ -42,8 +42,16 @@ describe("the contact page's confirmation", () => {
   // longer exists — focus falls to <body> and a keyboard or screen-reader user
   // is dropped at the top of the document with no idea it went through.
   it("takes focus when it replaces the form", async () => {
-    const { container } = render(ContactPage, props({ success: true }));
+    const { container } = render(ContactPage, props({ success: true, form: "contact" }));
     const status = container.querySelector('[role="status"]') as HTMLElement;
+    expect(status).not.toBeNull();
+    expect(status.getAttribute("tabindex")).toBe("-1");
+    await vi.waitFor(() => expect(document.activeElement).toBe(status));
+  });
+
+  it("takes focus when the signup confirmation replaces the signup form", async () => {
+    const { container } = render(ContactPage, props({ success: true, form: "subscribe" }));
+    const status = container.querySelector('#newsletter [role="status"]') as HTMLElement;
     expect(status).not.toBeNull();
     expect(status.getAttribute("tabindex")).toBe("-1");
     await vi.waitFor(() => expect(document.activeElement).toBe(status));

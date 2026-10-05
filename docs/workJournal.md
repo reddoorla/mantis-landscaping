@@ -682,3 +682,24 @@ Each now has a test, and each was mutated back and went red, along with the outa
 **Filed, not fixed:** #16. A Prismic preview of `contact-us` lands on the generic route and shows no form.
 
 **Next:** P4b, the newsletter signup, waits on the client's Mailchimp API key. The Turso row has neither the key nor the audience ID. When it lands, form-e2e fills the first `[name="email"]` on the page and marks the first `<form>`, so a newsletter form placed above the contact form would take the probe's submission.
+
+## 2026-10-05 — The newsletter signup goes native, through Resend and the digest (P4b)
+
+The Blux `/contact-us` carried Mailchimp's embed: 143 KB of `mc-validate.js`, an unlabelled badge, and a list that posted straight to Mailchimp. The plan said to replace it with a native signup "backed by Mailchimp". The Turso row for this site has no Mailchimp key and no audience ID. The operator says the client does not use Mailchimp, and that signups should go through our own Resend and the digest.
+
+The central code already does exactly that, so no credential was needed. Central ingest saves a `newsletter` submission, sends it through the same Resend notification as a contact message (subject "New newsletter from Mantis Landscaping"), and counts it as a signup in the digest. Mailchimp and a webhook are optional add-ons that run only when the site row names them.
+
+**Two forms on one route.** `/contact-us` now has two named actions, `contact` and `subscribe`. Each result is tagged with the form it came from, so one form's confirmation or error never appears in the other. Without the tags, a successful signup would have unmounted the contact form. The `?/contact` key that a named action adds to the URL is removed from `sourceUrl`.
+
+The signup sits **below** the contact form on purpose. form-e2e fills the first `[name="email"]` on the page and marks the first `<form>`. A test checks that the contact form owns both. The signup has its own honeypot, timing token and Turnstile widget. Without Turnstile, a signup would be bucketed as spam on any site row with `requireTurnstile` set.
+
+Its copy ("Mantis Monthly Newsletter" and the one-line pitch) is the Blux band's, and is written in the route rather than in Prismic, because the seed never carried that band. The home page's "Join Newsletter" button still links to `/contact-us` without the `#newsletter` anchor. Adding the anchor is a content change in Prismic.
+
+**Proof.** The seven mutations named before the code each went red. On a production build pointed at a local fake ingest:
+
+- A no-JS POST to `?/subscribe` delivered `{email, firstName, lastName, sourceUrl, formType: "newsletter"}` and left the contact form on the page.
+- A no-JS POST to `?/contact` delivered a contact payload and left the signup on the page.
+- A browser signup with JS showed and focused its confirmation, and the text typed into the contact form survived.
+- form-e2e, run against that build, still submitted the contact form (`formType: contact`, `testMode: true`).
+
+`pnpm verify` passed: 699 unit and 21 smoke tests, and axe 0 violations on 7 routes.
