@@ -131,6 +131,7 @@ for (const width of [1440, 390]) {
     await page.keyboard.press("Tab");
     await expect(page.locator('a[href="#main-content"]')).toBeFocused();
     await page.keyboard.press("Enter");
+    await expect(page.locator("main")).toBeFocused();
     await expect
       .poll(() =>
         page.evaluate(() =>
