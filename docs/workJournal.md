@@ -720,3 +720,41 @@ Also: each form's timing token is fixed when it mounts. `update()` re-runs `load
 That made two dirty rounds. The operator chose to fix and land on green CI rather than run a third. The reviewer's request for a comment on the hook's 307 went unmet, because the operator wants code without comments. The reason is here instead: a tab opened before this deploy posts to `/contact-us` with no action. A 303 would turn that POST into a GET and lose the body, while a 307 makes the browser re-send it to `?…&/contact`.
 
 One instrument failure is worth remembering. Round 1's reviewer wrote its fake ingest over mine in the shared scratchpad and left it bound to another port. My next browser run then showed a 502 and an error banner on a correct page. A probe confirming the fake ingest answers, run first, would have caught that before the browser run.
+
+## 2026-10-05 — P5: faster than Blux on every measured page, 0 axe violations; the matching gate waits on the laptop (#19, #20, #24, #25)
+
+P5's "done when" had five parts. Four are met and measured here. The fifth, the matching gate, cannot run in a cloud container: `page-diff.mjs` lives in the laptop's `~/.claude/skills/matching-a-page`. No page has a `matching/SPEC.md` section yet either, and the matching rules forbid a geometry round without one.
+
+**Lighthouse.** Lighthouse 12.6.1, mobile, 3 runs per page, medians. Blux was measured the same way on the same day, because single runs swing too far to compare against the plan's one-run baseline from 10-01. Blux's project page ran 92, 74 and 66.
+
+| Page                           | Blux perf | This site's perf, production `f636d3d` |
+| ------------------------------ | --------- | -------------------------------------- |
+| `/`                            | 97        | **98**                                 |
+| `/projects/water-wise-gardens` | 74        | **98**                                 |
+| `/contact-us`                  | 92        | **100**                                |
+
+The other categories:
+
+- **Accessibility:** 100 on every page, against Blux's 76–79.
+- **SEO** reads 69 on the `netlify.app` mirror, whose only failing audit is `is-crawlable`: the mirror's deliberate `noindex`. A production build served from a non-mirror host scores SEO 100 and Best Practices 100 on all three pages. That build lists five URLs in the sitemap and names the sitemap in `robots.txt`.
+- **Best Practices** on `/contact-us` reads 96 because headless Chrome draws Turnstile error 600010. Cloudflare refuses automation, and the operator's live submission in an ordinary browser passed Turnstile.
+
+**What moved the numbers.**
+
+- On `/`, first paint was 2.0–2.9 s behind three render-blocking stylesheets: Google Fonts' CSS at 850 ms, plus a gstatic hop, and two app CSS files, one of them 122 bytes costing 592 ms. Self-hosting Nunito (#20; Google's own two variable woff2 files, sha256-pinned) and inlining the 43 KB of CSS brought first paint to 1.1 s on every page.
+- `/contact-us` weighed 1,532 KiB, of which 1,366 KiB was Cloudflare's challenge, about 570 KB per Turnstile widget. The signup's widget now renders on first focus and keeps its reserved box, which brought the page to 288 KiB at load.
+
+**Accessibility, checked by more than one instrument.**
+
+- The CI gate's axe found 0 violations.
+- A full axe run (all rules) on the five live pages at 1440 and 390 also found 0. A positive control on the same page proved axe could see faults: an injected unlabelled image and `#ddd` text on white came back `critical: image-alt` and `serious: color-contrast`.
+- Text over photos, which axe can only call "incomplete", was measured by pixel sampling with the text hidden. The fifth-percentile contrast ran 5.49–14.67 against the required 3 or 4.5.
+
+**Defects found and fixed.**
+
+- **The logo was squashed** (#19, #24). It rendered at 240×32 (7.5:1) from a 1377×153 (9:1) file. It was invisible until #19 gave the image its intrinsic size and Lighthouse could compare the two. The fix is sized from the Blux capture (`navigation0logobox` 260px, the footer 280px) and shrinks at 320 px instead of pushing the menu button off-screen.
+- **A single case-study photo's `sizes` was wrong at both ends** (#25, #6). It undersold the slot by 13% at 1440 and oversold it by 25% at 834.
+
+**A defect in my own test, which the mutation caught.** #25's first smoke test made a one-photo strip by mutating the DOM after `load`. Svelte then hydrated, found DOM it had not rendered, re-mounted, and the test measured the original strip. Restoring the old `sizes` passed at 1440 on one run and failed on another. This is the same pre-hydration trap that made form-e2e report a "wipe" on 10-04 (reddoor-maintenance#1148). The test now measures the strip region, mutates nothing, passes 3 out of 3, and fails 3 out of 3 under the old value. One more mutation (X3, in #24) survived, so the class it tested, `min-w-0`, was removed rather than kept untested.
+
+**One false alarm, avoided.** The live sitemap was empty. That is the mirror rule working (`isNetlifyMirrorHost`), and the non-mirror build lists all five pages.
