@@ -21,6 +21,7 @@
   let firstName = $state("");
   let lastName = $state("");
   let subscribing = $state(false);
+  let signupEngaged = $state(false);
 
   const contactResult = $derived(form?.form === "contact" ? form : null);
   const signupResult = $derived(form?.form === "subscribe" ? form : null);
@@ -184,6 +185,7 @@
           action={actionHref(page.url.search, "subscribe")}
           aria-labelledby="newsletter-heading"
           class="space-y-4"
+          onfocusin={() => (signupEngaged = true)}
           use:enhance={() => {
             subscribing = true;
             return async ({ update }) => {
@@ -229,7 +231,7 @@
             bind:value={lastName}
           />
 
-          <TurnstileWidget />
+          <TurnstileWidget active={signupEngaged} />
 
           <button
             type="submit"

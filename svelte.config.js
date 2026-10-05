@@ -55,6 +55,7 @@ const config = {
   },
   kit: {
     adapter: adapter(),
+    inlineStyleThreshold: 50_000,
     // Until a clone is wired to a real Prismic repo, every Prismic-backed
     // route returns 404 during prerender. Tolerate that on the placeholder
     // so `pnpm build` (and Netlify CI) succeed; real sites still fail loudly

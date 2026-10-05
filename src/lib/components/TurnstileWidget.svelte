@@ -10,14 +10,15 @@
   // contact form relies on this). For a widget living outside the submitted form
   // (e.g. mirroring into a hidden form), pass `onToken` to receive the token and
   // forward it yourself.
-  let { onToken }: { onToken?: (token: string) => void } = $props();
+  let { onToken, active = true }: { onToken?: (token: string) => void; active?: boolean } =
+    $props();
 
   const turnstileSiteKey = env.PUBLIC_TURNSTILE_SITE_KEY?.trim();
   let turnstileEl = $state<HTMLDivElement>();
 
   $effect(() => {
     const el = turnstileEl;
-    if (!turnstileSiteKey || !el) return;
+    if (!turnstileSiteKey || !el || !active) return;
     let widgetId: string | undefined;
     let cancelled = false;
     loadTurnstile()
