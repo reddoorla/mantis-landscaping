@@ -115,90 +115,95 @@
   </nav>
 {:else}
   <!-- site-config (#71) chrome: logo + dropdown nav. -->
-  <nav
-    class="fixed top-0 left-0 z-50 flex w-full items-center justify-between bg-background/95 px-8 py-4 backdrop-blur-sm"
-  >
-    <a href="/" class="flex items-center text-lg font-bold">
-      {#if logo}
-        <img
-          src={logo.url}
-          alt="Home"
-          width={logo.width}
-          height={logo.height}
-          class="h-auto w-auto max-w-full"
-          style={logo.maxWidth ? `max-width:${logo.maxWidth}` : undefined}
-        />
-      {:else}
-        Logo
-      {/if}
-    </a>
+  <nav class="sticky top-0 z-50 w-full bg-light px-[4%] py-[5px]">
+    <div class="mx-auto flex min-h-[60px] w-full max-w-[1280px] items-center justify-between">
+      <a href="/" class="flex items-center text-lg font-bold">
+        {#if logo}
+          <img
+            src={logo.url}
+            alt="Home"
+            width={logo.width}
+            height={logo.height}
+            class="h-auto w-auto max-w-full"
+            style={logo.maxWidth ? `max-width:${logo.maxWidth}` : undefined}
+          />
+        {:else}
+          Logo
+        {/if}
+      </a>
 
-    {#if items.length > 0}
-      <!-- Desktop: inline top items. An item with children is a disclosure —
+      {#if items.length > 0}
+        <!-- Desktop: inline top items. An item with children is a disclosure —
            click toggles it (aria-expanded), and hover/focus-within also reveal it
            for pointer/keyboard-tab users. Keyed by index: nav labels/hrefs aren't
            unique (two "" heading hrefs or repeated labels would collide and Svelte
            throws each_key_duplicate at hydration). -->
-      <ul class="hidden items-center gap-8 lg:flex">
-        {#each items as item, i (i)}
-          {#if item.children && item.children.length > 0}
-            <li class="group relative">
-              <button
-                type="button"
-                class="flex items-center gap-1"
-                aria-expanded={openDesktopIndex === i}
-                aria-controls="nav-dropdown-{i}"
-                onclick={() => (openDesktopIndex = openDesktopIndex === i ? null : i)}
-                onkeydown={(e) => {
-                  if (e.key === "Escape") openDesktopIndex = null;
-                }}
-              >
-                {item.label}
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-              <ul
-                id="nav-dropdown-{i}"
-                class="absolute top-full left-0 flex min-w-48 flex-col gap-1 bg-background p-2 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
-                class:invisible={openDesktopIndex !== i}
-                class:opacity-0={openDesktopIndex !== i}
-              >
-                {#each item.children as child, ci (ci)}
-                  <li>
-                    {#if child.href}
-                      <a href={child.href} class="block px-3 py-2 hover:opacity-70">{child.label}</a
-                      >
-                    {:else}
-                      <span class="block px-3 py-2">{child.label}</span>
-                    {/if}
-                  </li>
-                {/each}
-              </ul>
-            </li>
-          {:else if item.href}
-            <li><a href={item.href}>{item.label}</a></li>
-          {:else}
-            <li><span>{item.label}</span></li>
-          {/if}
-        {/each}
-      </ul>
+        <ul class="hidden shrink-0 items-center lg:flex">
+          {#each items as item, i (i)}
+            {#if item.children && item.children.length > 0}
+              <li class="group relative">
+                <button
+                  type="button"
+                  class="flex items-center gap-1"
+                  aria-expanded={openDesktopIndex === i}
+                  aria-controls="nav-dropdown-{i}"
+                  onclick={() => (openDesktopIndex = openDesktopIndex === i ? null : i)}
+                  onkeydown={(e) => {
+                    if (e.key === "Escape") openDesktopIndex = null;
+                  }}
+                >
+                  {item.label}
+                  <ChevronDown size={16} aria-hidden="true" />
+                </button>
+                <ul
+                  id="nav-dropdown-{i}"
+                  class="absolute top-full left-0 flex min-w-48 flex-col gap-1 bg-background p-2 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                  class:invisible={openDesktopIndex !== i}
+                  class:opacity-0={openDesktopIndex !== i}
+                >
+                  {#each item.children as child, ci (ci)}
+                    <li>
+                      {#if child.href}
+                        <a href={child.href} class="block px-3 py-2 hover:opacity-70"
+                          >{child.label}</a
+                        >
+                      {:else}
+                        <span class="block px-3 py-2">{child.label}</span>
+                      {/if}
+                    </li>
+                  {/each}
+                </ul>
+              </li>
+            {:else if item.href}
+              <li>
+                <a href={item.href} class="block p-[10px] leading-[normal] whitespace-nowrap"
+                  >{item.label}</a
+                >
+              </li>
+            {:else}
+              <li><span>{item.label}</span></li>
+            {/if}
+          {/each}
+        </ul>
 
-      {#if !isMenuOpen}
-        <button
-          bind:this={openButtonEl}
-          type="button"
-          class="group flex min-h-11 min-w-11 items-center justify-center lg:hidden"
-          onclick={openMenu}
-          aria-label="Open menu"
-          aria-expanded={isMenuOpen}
-          aria-controls={MENU_ID}
-          {...pressProps("trigger")}
-        >
-          <span class={ICON_GLYPH}>
-            <Menu size={24} />
-          </span>
-        </button>
+        {#if !isMenuOpen}
+          <button
+            bind:this={openButtonEl}
+            type="button"
+            class="group flex min-h-11 min-w-11 items-center justify-center lg:hidden"
+            onclick={openMenu}
+            aria-label="Open menu"
+            aria-expanded={isMenuOpen}
+            aria-controls={MENU_ID}
+            {...pressProps("trigger")}
+          >
+            <span class={ICON_GLYPH}>
+              <Menu size={24} />
+            </span>
+          </button>
+        {/if}
       {/if}
-    {/if}
+    </div>
   </nav>
 {/if}
 
