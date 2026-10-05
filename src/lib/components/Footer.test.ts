@@ -79,6 +79,20 @@ describe("Footer", () => {
     expect(container.querySelectorAll("a > img").length).toBe(1);
   });
 
+  it("the footer logo loads lazily, at its intrinsic size", () => {
+    const { container } = render(Footer, {
+      props: {
+        columns: [
+          { items: [{ image: { url: "/logo.png", alt: "Logo", width: 1377, height: 153 } }] },
+        ],
+      },
+    });
+    const img = container.querySelector("img");
+    expect(img?.getAttribute("loading")).toBe("lazy");
+    expect(img?.getAttribute("width")).toBe("1377");
+    expect(img?.getAttribute("height")).toBe("153");
+  });
+
   it("linked logo exposes its alt as the link's accessible name (a11y)", () => {
     const { getByRole } = render(Footer, {
       props: {

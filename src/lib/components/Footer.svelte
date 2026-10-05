@@ -68,6 +68,9 @@
   <img
     src={img.url}
     alt={img.alt ?? ""}
+    width={img.width}
+    height={img.height}
+    loading="lazy"
     style={img.maxWidth ? `max-width:${img.maxWidth}` : undefined}
   />
 {/snippet}

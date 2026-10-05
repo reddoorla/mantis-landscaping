@@ -34,7 +34,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`DefaultButton.svelte`](../src/lib/components/DefaultButton.svelte) | `href`, `onclick`, `children` | — | Shape and skin of the shared button, split so callers that must render a different element can still wear it |
 | [`DelayedLink.svelte`](../src/lib/components/DelayedLink.svelte) | `href`, `delay`, `children`, `beforeNavigate`, `onclick` | 5 |  |
 | [`Field.svelte`](../src/lib/components/Field.svelte) | `name`, `label`, `type`, `value`, `description`, `error`, `required`, `autocomplete`, `placeholder`, `minlength`, `maxlength`, `pattern`, `inputmode`, `rows`, `autofocus` | 11 | Marks this control as the one a containing dialog should open onto |
-| [`Footer.svelte`](../src/lib/components/Footer.svelte) | `columns`, `socials`, `text`, `owner` | 14 | Optional per-route override of the `$lib/site-config.json` footer (no route in the bare template supplies this) |
+| [`Footer.svelte`](../src/lib/components/Footer.svelte) | `columns`, `socials`, `text`, `owner` | 15 | Optional per-route override of the `$lib/site-config.json` footer (no route in the bare template supplies this) |
 | [`Form.svelte`](../src/lib/components/Form.svelte) | `errors`, `errorSummaryTitle`, `children` | 3 |  |
 | [`HeroBackgroundImage.svelte`](../src/lib/components/HeroBackgroundImage.svelte) | `image`, `altFallback`, `preload` | 8 | LCP-optimized hero image |
 | [`Icon.svelte`](../src/lib/components/Icon.svelte) | `name` | — |  |
@@ -42,7 +42,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`Img.svelte`](../src/lib/components/Img.svelte) | `src` | 5 | Progressive-loading wrapper around @zerodevx/svelte-img: the image renders blurred (`.progressive-img` in app.css) and sharpens once the underlying <img> finishes — or fails — loading |
 | [`LandscapeModal.svelte`](../src/lib/components/LandscapeModal.svelte) | — | 3 | Orientation lockout — a primitive the template deliberately does NOT mount (tests/smoke/landscape.spec.ts fails if it is re-mounted), because an undismissable landscape overlay fails WCAG 2.1 SC 1.3.4 (Orientation) |
 | [`Modal.svelte`](../src/lib/components/Modal.svelte) | `open`, `onclose`, `label`, `labelledby`, `children` | 16 | Accessible name for the dialog |
-| [`Nav.svelte`](../src/lib/components/Nav.svelte) | `navLinks`, `items`, `logo` | 17 | Optional per-route override of the `$lib/site-config.json` nav (no route in the bare template supplies this) |
+| [`Nav.svelte`](../src/lib/components/Nav.svelte) | `navLinks`, `items`, `logo` | 18 | Optional per-route override of the `$lib/site-config.json` nav (no route in the bare template supplies this) |
 | [`PreNavTransition.svelte`](../src/lib/components/PreNavTransition.svelte) | `duration`, `holdDuration` | 10 | ms the overlay fades in before the deferred navigation is issued |
 | [`RichTextBody.svelte`](../src/lib/components/RichTextBody.svelte) | `field` | 4 |  |
 | [`RichTextHeading.svelte`](../src/lib/components/RichTextHeading.svelte) | `node`, `children` | — |  |
@@ -82,4 +82,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-61 modules, 378 tests behind them.
+61 modules, 380 tests behind them.

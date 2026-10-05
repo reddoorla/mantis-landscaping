@@ -77,6 +77,15 @@ describe("Nav — logo-only mode", () => {
     expect(img.getAttribute("src")).toBe("https://cdn.example/logo.png");
     expect(img.style.maxWidth).toBe("250px");
   });
+
+  it("the logo carries its intrinsic size", () => {
+    const { getByAltText } = render(Nav, {
+      logo: { url: "/logo.png", width: 1377, height: 153 },
+    });
+    const img = getByAltText("Home") as HTMLImageElement;
+    expect(img.getAttribute("width")).toBe("1377");
+    expect(img.getAttribute("height")).toBe("153");
+  });
 });
 
 describe("Nav — mobile menu", () => {
