@@ -264,6 +264,7 @@ main > section.hero-band:first-child {
     scrollbar-gutter: auto;
   }
 
+  main,
   main [id] {
     scroll-margin-top: 70px;
   }

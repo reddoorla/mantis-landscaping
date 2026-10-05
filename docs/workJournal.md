@@ -796,8 +796,8 @@ The operator answered the three Phase 1 asks: keep the projects list, match the 
 **Each change, with its source in `matching/spec/export/index.html`:**
 
 - The nav is `sticky` and 70px tall: `.navigation0` is static at load, then fixed after `scrollTop > 1` (`checkYoScroll`), plus `padding:5px 4%` and a 60px `:before` strut. It has a 1280px inner container (`.navigation0h`).
-- In-page anchors land below the nav. This one is an a11y deviation rather than a match: see the review paragraph below.
-- No scrollbar gutter (`scrollbar-gutter: auto`), with the caveat in the review paragraph below.
+- `scroll-padding-top: 70px`, because the script scrolls hash targets to `offsetTop - navH`.
+- No scrollbar gutter: the reference's `body.clientWidth` equals the viewport.
 - Nav links are 300 16px with `line-height: normal` and 10px padding.
 - The footer box is `#ededed`, `40px 4%`, two columns, with 600 `#444d33` links and the Instagram link back. The columns path had never rendered socials.
 
@@ -807,7 +807,7 @@ The operator answered the three Phase 1 asks: keep the projects list, match the 
 
 - The anchor-offset test first sampled before the browser had scrolled.
 - It then targeted `#newsletter`, which sits so close to the page end that it can never reach the top.
-- It now inserts an anchor mid-page on `/`, and goes red without the 70px offset.
+- It now inserts an anchor mid-page on `/`, and goes red (−70px) without `scroll-padding-top`.
 
 **Two side effects caught by the gates, not by me.**
 
@@ -817,3 +817,5 @@ The operator answered the three Phase 1 asks: keep the projects list, match the 
 **A composite region got worse, and that is fine.** The flourish+footer region went from 40.3% to 45.8% at 1440 while its height delta improved. The footer is now grey like the reference's, but it sits under a band that is still 448px against 700, so the grey box covers the reference's photo. The skill's composite-region rule applies: verify at the element level (the smoke tests do), and let the number move when the band is matched.
 
 **The adversarial review of #29 found one major defect and two wrong citations, all mine.** I first put the anchor offset on `html` as `scroll-padding-top: 70px`, citing the reference's `offsetTop - navH`. Chrome then treats the stuck nav as hidden under the scroll padding, so every `focus()` inside it scrolls the page: at 390, tapping Close on the mobile menu moved the page from 1500 to 1078, and tabbing through the nav at 1440 went 1500 → 1050 → 600. No test caught it. The citation was also wrong: `scrollPageToTarget` only sets `navH` when the nav's `data-type` contains "sticky", and this nav has no `data-type`, so the reference lands anchors under its nav. The offset is now `main [id] { scroll-margin-top: 70px }`, ledgered as an a11y deviation. The "no gutter" evidence was a headless artifact too, because headless Chromium hides scrollbars. With real 15px scrollbars at 1440 both builds read 1425 on `/`, so the change only matters on short pages, where it brings back a 15px sideways shift; it is ledgered as a trade-off. Four new behaviours had no guard. Removing the nav's `z-50` let slice images paint over the nav at 45–305 scroll positions per page, the footer could lose its one-column stack at 600px, and the Instagram box could shrink, all with every test passing. The old gutter test was also vacuous under headless. Each now has a smoke test, and the seven mutations named for this fix all went red.
+
+**The second review found that the fix moved the problem.** `main [id]` covers targets inside `main`, but the site's only real in-page anchor is the skip link, and its target is `<main id="main-content">` itself. After the round-1 fix, Enter on the skip link left `scrollY=70` with main's top 70px and its focus ring under the nav, which was worse than round 1. The mid-page anchor test never exercised it. The rule is now `main, main [id]`, with a smoke test that follows the skip link. Under the two-dirty-rounds rule, the PR went to Operator decisions instead of a third review. The three bullets above about `scroll-padding-top` and the gutter are left as they were believed when written; this entry's later paragraphs correct them.

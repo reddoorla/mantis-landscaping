@@ -74,6 +74,24 @@ test("focusing a nav control does not scroll the page", async ({ page }) => {
   expect(after).toBe(1500);
 });
 
+test("opening and closing the mobile menu does not scroll the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = "auto";
+    window.scrollTo(0, 1500);
+  });
+  const close = page.getByRole("button", { name: "Close menu" });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(close).toBeVisible({ timeout: 1000 });
+  }).toPass({ timeout: 20000 });
+  await close.click();
+  await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => scrollY)).toBe(1500);
+});
+
 for (const [width, cols] of [
   [600, 1],
   [601, 2],
@@ -101,6 +119,30 @@ test("the footer Instagram link is a 52px target around a 32px icon", async ({ p
   });
   expect(box).toBe("52 52 32 32");
 });
+
+for (const width of [1440, 390]) {
+  test(`the skip link lands main below the sticky nav at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await page.evaluate(() => {
+      document.documentElement.style.scrollBehavior = "auto";
+      window.scrollTo(0, 600);
+    });
+    await page.keyboard.press("Tab");
+    await expect(page.locator('a[href="#main-content"]')).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Math.round(
+            document.querySelector("main")!.getBoundingClientRect().top -
+              document.querySelector("nav")!.getBoundingClientRect().bottom,
+          ),
+        ),
+      )
+      .toBeGreaterThanOrEqual(0);
+  });
+}
 
 test("an in-page anchor lands below the sticky nav", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

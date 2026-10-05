@@ -87,3 +87,8 @@ scroll-margin-top: 70px }`). The reference lands them under its nav:
   brings back a 15px sideways shift between short and long pages, and it
   changes nothing on long ones. Kept because the gate's headless captures
   are what is being matched, and the reference reserves no gutter.
+- [a11y, correction] the 70px margin also covers `main` itself
+  (`main, main [id]`). The site's only real in-page anchor is the skip link to
+  `<main id="main-content">`, which `main [id]` did not match: after the r1
+  fix, Enter on it left main's top 70px under the nav (round-2 review of
+  #29). Guard: "the skip link lands main below the sticky nav" (1440, 390).
