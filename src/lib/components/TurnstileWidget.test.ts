@@ -54,6 +54,20 @@ describe("TurnstileWidget", () => {
     expect(api.render).not.toHaveBeenCalled();
   });
 
+  it("an inactive widget keeps its box and renders nothing until activated", async () => {
+    mockEnv.env.PUBLIC_TURNSTILE_SITE_KEY = "site-key";
+    const api = stubTurnstile();
+    const { container, rerender } = render(TurnstileWidget, { active: false });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(container.querySelector(".cf-turnstile")).not.toBeNull();
+    expect(api.render).not.toHaveBeenCalled();
+
+    await rerender({ active: true });
+    await vi.waitFor(() => expect(api.render).toHaveBeenCalledTimes(1));
+  });
+
   it("renders the mount point and forwards tokens via onToken", async () => {
     mockEnv.env.PUBLIC_TURNSTILE_SITE_KEY = " site-key ";
     const api = stubTurnstile();
