@@ -74,3 +74,9 @@ has been quietly widened and nothing records who widened it, or why.
   colour, SPEC census 3): 4.45:1 on `gold-deep`, where `white/50` was 2.53:1.
   Each carousel's region is named after its own content (heading, else its
   item labels), so the two never share a landmark name.
+- [correction] the dot line above was false when written: `bg-footer` is a
+  token #29 adds, and this branch is based on `main`, where it does not
+  exist, so Tailwind generated nothing and the inactive dots were
+  `rgba(0,0,0,0)`, invisible (round-2 review of #30, computed style at 390).
+  The class is now `bg-[#ededed]`, an arbitrary value that always resolves;
+  read back from the built CSS.

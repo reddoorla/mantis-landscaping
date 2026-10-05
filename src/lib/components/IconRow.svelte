@@ -48,7 +48,9 @@
   const headingTone = $derived(onGold ? "text-white" : "text-gold");
   const labelled = $derived(items.filter((item) => !!item.label));
   const anyIcon = $derived(labelled.some((item) => !!item.icon));
-  const breakpoint = $derived(carouselBelow && carouselBelow in GRID_FROM ? carouselBelow : null);
+  const breakpoint = $derived(
+    carouselBelow && Object.hasOwn(GRID_FROM, carouselBelow) ? carouselBelow : null,
+  );
   const carouselLabel = $derived(label || labelled.map((item) => item.label).join(", "));
 </script>
 
@@ -86,7 +88,7 @@
             autoplay={autoplay ?? 0}
             transitionClass={FADE[breakpoint]}
             pauseClass="text-white hover:bg-white/10"
-            dotClass="bg-footer"
+            dotClass="bg-[#ededed]"
             activeDotClass="bg-white"
           >
             {#snippet children({ index })}

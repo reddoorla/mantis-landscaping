@@ -127,12 +127,12 @@ describe("FeatureTrio with nothing to show", () => {
     expect(fadeOf("600")).not.toContain("duration-[250ms]");
   });
 
-  it("inactive dots are solid #ededed (bg-footer), not translucent white", () => {
+  it("inactive dots are solid #ededed, not translucent white", () => {
     const { container } = render(FeatureTrio, {
       props: { slice: slice(pillars, [], { carousel_below: "900", autoplay: null }) },
     });
     const dot = within(container).getByRole("button", { name: "Go to slide 2" });
-    expect(dot.innerHTML).toContain("bg-footer");
+    expect(dot.innerHTML).toContain("bg-[#ededed]");
     expect(dot.innerHTML).not.toContain("bg-white/50");
   });
 
