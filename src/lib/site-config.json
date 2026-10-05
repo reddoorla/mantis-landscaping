@@ -1,6 +1,6 @@
 {
   "nav": {
-    "logo": { "url": "/logo.png", "maxWidth": "15rem", "width": 1377, "height": 153 },
+    "logo": { "url": "/logo.png", "maxWidth": "min(260px, 100%)", "width": 1377, "height": 153 },
     "items": [
       { "label": "Projects", "href": "/projects" },
       { "label": "Contact Us", "href": "/contact-us" }
@@ -17,7 +17,7 @@
           {
             "image": {
               "url": "/logo.png",
-              "maxWidth": "15rem",
+              "maxWidth": "280px",
               "alt": "Mantis Landscaping",
               "width": 1377,
               "height": 153
