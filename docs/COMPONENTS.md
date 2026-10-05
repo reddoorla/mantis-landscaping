@@ -34,7 +34,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`DefaultButton.svelte`](../src/lib/components/DefaultButton.svelte) | `href`, `onclick`, `children` | — | Shape and skin of the shared button, split so callers that must render a different element can still wear it |
 | [`DelayedLink.svelte`](../src/lib/components/DelayedLink.svelte) | `href`, `delay`, `children`, `beforeNavigate`, `onclick` | 5 |  |
 | [`Field.svelte`](../src/lib/components/Field.svelte) | `name`, `label`, `type`, `value`, `description`, `error`, `required`, `autocomplete`, `placeholder`, `minlength`, `maxlength`, `pattern`, `inputmode`, `rows`, `autofocus` | 11 | Marks this control as the one a containing dialog should open onto |
-| [`Footer.svelte`](../src/lib/components/Footer.svelte) | `columns`, `socials`, `text`, `owner` | 15 | Optional per-route override of the `$lib/site-config.json` footer (no route in the bare template supplies this) |
+| [`Footer.svelte`](../src/lib/components/Footer.svelte) | `columns`, `socials`, `text`, `owner` | 17 | Optional per-route override of the `$lib/site-config.json` footer (no route in the bare template supplies this) |
 | [`Form.svelte`](../src/lib/components/Form.svelte) | `errors`, `errorSummaryTitle`, `children` | 3 |  |
 | [`HeroBackgroundImage.svelte`](../src/lib/components/HeroBackgroundImage.svelte) | `image`, `altFallback`, `preload` | 8 | LCP-optimized hero image |
 | [`Icon.svelte`](../src/lib/components/Icon.svelte) | `name` | — |  |
@@ -82,4 +82,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-61 modules, 382 tests behind them.
+61 modules, 384 tests behind them.

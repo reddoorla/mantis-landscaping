@@ -44,6 +44,8 @@
      #dfb726 measured 1.91:1. */
   --color-background: white;
   --color-light: #f5f5f5;
+  --color-footer: #ededed;
+  --color-olive: #444d33;
   --color-primary: #2e1e15;
   --color-dark: #232d1b;
   --color-moss: #323b21;
@@ -259,7 +261,12 @@ main > section.hero-band:first-child {
 @layer base {
   html {
     scroll-behavior: smooth;
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
+  }
+
+  main,
+  main [id] {
+    scroll-margin-top: 70px;
   }
 
   body {

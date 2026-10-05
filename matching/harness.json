@@ -3,6 +3,7 @@
   "cand": "http://localhost:5173",
   "matrix": [
     1440,
+    1024,
     834,
     390
   ],
