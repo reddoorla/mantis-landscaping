@@ -45,7 +45,7 @@
     "jsdom": "^30.0.0",
     "prettier": "^3.8.3",
     "prettier-plugin-svelte": "^4.0.1",
-    "prismic-ts-codegen": "0.1.27",
+    "prismic-ts-codegen": "0.1.30",
     "sharp": "^0.35.0",
     "slice-machine-ui": "^2.21.3",
     "svelte": "^5.55.10",
@@ -66,7 +66,7 @@
     "@lucide/svelte": "^1.17.0",
     "@prismicio/client": "^7.21.8",
     "@prismicio/svelte": "^2.2.1",
-    "@reddoorla/maintenance": "^0.97.0",
+    "@reddoorla/maintenance": "^0.103.0",
     "@tailwindcss/vite": "^4.3.0",
     "@zerodevx/svelte-img": "^2.1.2",
     "svelte-gestures": "^5.2.2"
