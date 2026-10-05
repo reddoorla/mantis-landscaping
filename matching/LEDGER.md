@@ -67,3 +67,10 @@ has been quietly widened and nothing records who widened it, or why.
   "Pause slides" control the reference lacks (WCAG 2.2.2), and both
   carousels show dots: `Slider` always renders dots when arrows are hidden.
   The reference's pillars carousel has dots; its values carousel has none.
+- [correction] the candidate switch points "≤963/≤663" above assume the
+  starter's reserved 15px gutter as measured; with overlay scrollbars the
+  content box is `vw − 48` and the switch is ≤948/≤648 (review of #30).
+- [a11y] inactive dots are solid `#ededed` (the reference's own inactive-dot
+  colour, SPEC census 3): 4.45:1 on `gold-deep`, where `white/50` was 2.53:1.
+  Each carousel's region is named after its own content (heading, else its
+  item labels), so the two never share a landmark name.

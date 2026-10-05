@@ -64,6 +64,7 @@
   let pageHidden = $state(false);
   let reducedMotion = $state(false);
   let userPaused = $state(false);
+  let rotationButton = $state<HTMLButtonElement>();
 
   onMount(() => viewport.subscribe());
 
@@ -173,8 +174,8 @@
   // an explicit play press restarts it. Sticky state also can't strand a
   // paused carousel the way a tracked focus-within flag can (no focusout
   // fires when the focused control unmounts).
-  const onFocusIn = () => {
-    if (autoplayEligible) userPaused = true;
+  const onFocusIn = (e: FocusEvent) => {
+    if (autoplayEligible && e.target !== rotationButton) userPaused = true;
   };
 
   const arrowsShown = $derived(showArrows && maxSlide > 0);
@@ -261,6 +262,7 @@
         <!-- First control in the carousel's tab order (APG). -->
         <button
           type="button"
+          bind:this={rotationButton}
           onclick={() => (userPaused = !userPaused)}
           class="w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center {pauseClass}"
           aria-label={userPaused ? "Play slides" : "Pause slides"}

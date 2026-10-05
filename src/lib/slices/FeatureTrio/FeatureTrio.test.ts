@@ -71,7 +71,7 @@ describe("FeatureTrio with nothing to show", () => {
     { icon: null, label: "Beautifully Maintained" },
   ];
 
-  it("below the breakpoint the items are a fade carousel; at and above it, the grid", () => {
+  it("at or under the breakpoint the items are a fade carousel; above it, the grid", () => {
     const { container } = render(FeatureTrio, {
       props: { slice: slice(pillars, [], { carousel_below: "900", autoplay: null }) },
     });
@@ -105,10 +105,52 @@ describe("FeatureTrio with nothing to show", () => {
     expect(within(container).getByRole("button", { name: "Pause slides" })).toBeTruthy();
   });
 
-  it("with no carousel_below there is only the grid", () => {
-    const { container } = render(FeatureTrio, { props: { slice: slice(pillars) } });
-    expect(container.querySelector("[data-carousel-below]")).toBeNull();
-    expect(container.querySelector("ul")!.className).not.toMatch(/max-\[\d+px\]:hidden/);
+  for (const carousel_below of [undefined, null, "750"]) {
+    it(`with carousel_below ${String(carousel_below)} there is only the grid`, () => {
+      const { container } = render(FeatureTrio, {
+        props: { slice: slice(pillars, [], { carousel_below }) },
+      });
+      expect(container.querySelector("[data-carousel-below]")).toBeNull();
+      expect(container.querySelector("ul")!.className).not.toMatch(/@container|hidden/);
+      expect(container.querySelector(".\\@container")).toBeNull();
+    });
+  }
+
+  it("the pillars fade over 250ms, the values over 500ms", () => {
+    const fadeOf = (carousel_below: string) =>
+      render(FeatureTrio, {
+        props: { slice: slice(pillars, [], { carousel_below, autoplay: null }) },
+      }).container.querySelector("[data-carousel-below]")!.innerHTML;
+    expect(fadeOf("900")).toContain("duration-[250ms]");
+    expect(fadeOf("900")).not.toContain("duration-500");
+    expect(fadeOf("600")).toContain("duration-500");
+    expect(fadeOf("600")).not.toContain("duration-[250ms]");
+  });
+
+  it("inactive dots are solid #ededed (bg-footer), not translucent white", () => {
+    const { container } = render(FeatureTrio, {
+      props: { slice: slice(pillars, [], { carousel_below: "900", autoplay: null }) },
+    });
+    const dot = within(container).getByRole("button", { name: "Go to slide 2" });
+    expect(dot.innerHTML).toContain("bg-footer");
+    expect(dot.innerHTML).not.toContain("bg-white/50");
+  });
+
+  it("each carousel is named after its own content, so two never share a landmark name", () => {
+    const named = (heading: unknown[], items: typeof pillars) =>
+      within(
+        render(FeatureTrio, {
+          props: { slice: slice(items, heading, { carousel_below: "900", autoplay: null }) },
+        }).container,
+      )
+        .getByRole("region")
+        .getAttribute("aria-label");
+    expect(named([], pillars)).toBe(
+      "Professionally Designed, Gorgeously Grown, Beautifully Maintained",
+    );
+    expect(named([{ type: "heading2", text: "Our Values", spans: [] }], pillars)).toBe(
+      "Our Values",
+    );
   });
 });
 

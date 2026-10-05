@@ -10,7 +10,7 @@
     variation,
     carouselBelow = null,
     autoplay = 0,
-    label = "Highlights",
+    label,
   }: {
     heading?: import("svelte").Snippet;
     items: { icon?: string | null; label?: string | null }[];
@@ -48,6 +48,8 @@
   const headingTone = $derived(onGold ? "text-white" : "text-gold");
   const labelled = $derived(items.filter((item) => !!item.label));
   const anyIcon = $derived(labelled.some((item) => !!item.icon));
+  const breakpoint = $derived(carouselBelow && carouselBelow in GRID_FROM ? carouselBelow : null);
+  const carouselLabel = $derived(label || labelled.map((item) => item.label).join(", "));
 </script>
 
 {#snippet feature(item: { icon?: string | null; label?: string | null })}
@@ -59,13 +61,13 @@
 
 {#if labelled.length > 0}
   <section data-slice-type={sliceType} data-slice-variation={variation} class="w-full {ground}">
-    <div class="mx-auto max-w-6xl px-6 py-14 text-center {carouselBelow ? '@container' : ''}">
+    <div class="mx-auto max-w-6xl px-6 py-14 text-center {breakpoint ? '@container' : ''}">
       {#if heading}
         <div class="eyebrow mb-10 {headingTone}">{@render heading()}</div>
       {/if}
       <ul
-        class="grid grid-cols-2 gap-x-6 gap-y-10 md:auto-cols-fr md:grid-flow-col md:grid-cols-none {carouselBelow
-          ? GRID_FROM[carouselBelow]
+        class="grid grid-cols-2 gap-x-6 gap-y-10 md:auto-cols-fr md:grid-flow-col md:grid-cols-none {breakpoint
+          ? GRID_FROM[breakpoint]
           : ''}"
       >
         {#each labelled as item, i (i)}
@@ -74,17 +76,17 @@
           </li>
         {/each}
       </ul>
-      {#if carouselBelow}
-        <div class={CAROUSEL_UNTIL[carouselBelow]} data-carousel-below={carouselBelow}>
+      {#if breakpoint}
+        <div class={CAROUSEL_UNTIL[breakpoint]} data-carousel-below={breakpoint}>
           <Slider
             itemCount={labelled.length}
-            {label}
+            label={carouselLabel}
             mode="fade"
             showArrows={false}
             autoplay={autoplay ?? 0}
-            transitionClass={FADE[carouselBelow]}
+            transitionClass={FADE[breakpoint]}
             pauseClass="text-white hover:bg-white/10"
-            dotClass="bg-white/50"
+            dotClass="bg-footer"
             activeDotClass="bg-white"
           >
             {#snippet children({ index })}

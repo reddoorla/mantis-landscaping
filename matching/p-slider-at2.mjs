@@ -11,7 +11,7 @@ try {
   for (const w of [1440, 1024, 979, 978, 834, 653, 652, 390]) {
     const p = await b.newPage({ viewport: { width: w, height: 900 } });
     await p.goto("http://localhost:4992/dev/match/home", { waitUntil: "networkidle" });
-    console.log("cand", w, await p.evaluate(() => [...document.querySelectorAll("section")].filter((s) => /Professionally|Thoughtfully/i.test(s.textContent)).map((s) => { const g = [...s.querySelectorAll("*")].find((e) => /max-\[(899|599)px\]:hidden/.test(e.className)); return `${Math.round(g.parentElement.getBoundingClientRect().width)}/${Math.round(g.getBoundingClientRect().width)}`; }).join(" ")));
+    console.log("cand", w, await p.evaluate(() => [...document.querySelectorAll("section")].filter((s) => /Professionally|Thoughtfully/i.test(s.textContent)).map((s) => { const g = [...s.querySelectorAll("*")].find((e) => /@container\(width<=(900|600)px\)\]:hidden/.test(e.className)); return `${Math.round(g.parentElement.getBoundingClientRect().width)}/${Math.round(g.getBoundingClientRect().width)}`; }).join(" ")));
     await p.close();
   }
 } finally { await b.close(); }
