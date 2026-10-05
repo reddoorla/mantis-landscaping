@@ -667,6 +667,8 @@ Two things the review found, filed rather than fixed:
 
 ## 2026-10-04 — The contact form moves to /contact-us, and survives a Prismic outage (#15)
 
+> Superseded in part by 2026-10-05 — The newsletter signup goes native, through Resend and the digest (P4b).
+
 P4a, for reddoor-maintenance P1-30. The starter's `/contact` form route and the Prismic `contact-us` page (#11) are now one route. `/contact-us` renders the page's slices and then the form. `/contact` answers 301 there from both the hook and `netlify.toml`, with the query string kept, so form-e2e's `goto('/contact')` still finds the form. The generic `[uid]` route no longer prerenders `contact-us`, because a form action cannot live on a prerendered page.
 
 **A defect the review caught.** The first cut threw on any Prismic error other than a 404, which I chose on purpose so an outage would not hide behind the fallback. That was the wrong trade, for a reason I had not counted: every other page is prerendered, so `/contact-us` became the only page whose render depended on Prismic at request time. With Prismic unreachable, the reviewer saw `/` answer 200 and `/contact-us` answer 500. Worse, a no-JS POST reached ingest and then the post-action reload threw, so a visitor whose message had been received was shown an error page and would resubmit. That also broke a rule this repo already states in `reply-copy.ts`: an outage costs a tailored confirmation, never the submission. The load now serves the form on any error and `console.error`s anything that is not a 404. `/health` already reports Prismic outages, so nothing is hidden.
@@ -703,3 +705,12 @@ Its copy ("Mantis Monthly Newsletter" and the one-line pitch) is the Blux band's
 - form-e2e, run against that build, still submitted the contact form (`formType: contact`, `testMode: true`).
 
 `pnpm verify` passed: 699 unit and 21 smoke tests, and axe 0 violations on 7 routes.
+
+**Review round 1 found the PR's own evidence was hand-built.** A relative `action="?/contact"` _replaces_ the page's query string. So once the forms had named actions, every POST from `/contact-us?utm_source=x` went to `/contact-us?/contact`, and no lead carried its UTMs. On `main`, the form had no `action`, posted to the page's own URL and kept them. My unit test and PR body "showed" UTMs surviving, from a URL no browser sends (`?/subscribe&utm_source=x`). Each form's action is now built from the live query (`$lib/action-url.ts`, through `$app/state`), and a component test renders the page at `?utm_source=x`.
+
+Two more from the same round:
+
+- **Each form's result was the only record of it.** The confirmations derived from the single `form` prop, so sending the contact form and then signing up brought the contact form back, empty, which invites a duplicate. Each success now latches.
+- **A POST to `/contact-us` naming no action 404s** once named actions exist. That is what a tab opened before this deploy sends. The hook answers it with a 307 to `?…&/contact`, and the browser re-sends the same body there.
+
+Also: each form's timing token is fixed when it mounts. `update()` re-runs `load`, which used to re-plant the other form's token and could screen a quick second submit as too fast. The forms got distinct accessible names, and `testMode`, which form-e2e never sends to the signup, was dropped from it.

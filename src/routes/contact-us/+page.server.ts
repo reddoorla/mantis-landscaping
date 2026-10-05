@@ -66,7 +66,6 @@ export const actions: Actions = {
         firstName: form.get("firstName")?.toString(),
         lastName: form.get("lastName")?.toString(),
         sourceUrl: pageUrl(event.url),
-        testMode: form.get("testMode")?.toString() === "true" || undefined,
         _reply: await replyCopyFor(event, "newsletter"),
       }),
       errorMessage: "Something went wrong signing you up. Please try again.",

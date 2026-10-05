@@ -1,5 +1,8 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import { page } from "$app/state";
+  import { untrack } from "svelte";
+  import { actionHref } from "$lib/action-url";
   import Field from "$lib/components/Field.svelte";
   import TurnstileWidget from "$lib/components/TurnstileWidget.svelte";
   import { SliceZone } from "@prismicio/svelte";
@@ -21,6 +24,18 @@
 
   const contactResult = $derived(form?.form === "contact" ? form : null);
   const signupResult = $derived(form?.form === "subscribe" ? form : null);
+
+  let contactLatched = $state(false);
+  let signupLatched = $state(false);
+  $effect(() => {
+    if (contactResult?.success) contactLatched = true;
+    if (signupResult?.success) signupLatched = true;
+  });
+  const contactSent = $derived(!!contactResult?.success || contactLatched);
+  const subscribed = $derived(!!signupResult?.success || signupLatched);
+
+  const contactTs = untrack(() => data.formTs);
+  const signupTs = untrack(() => data.formTs);
 
   /** Focused when the confirmation replaces the form. Without this, focus is
    *  left on a submit button that no longer exists, which drops it to <body> —
@@ -51,7 +66,7 @@
   <div class="mx-auto max-w-5xl px-6 pb-20">
     <div class="max-w-3xl space-y-8">
       <!-- One-and-done: on success the form unmounts. To allow another submission, keep the form mounted and reset the field state instead. -->
-      {#if contactResult?.success}
+      {#if contactSent}
         <!-- tabindex=-1 so the effect above can move focus here; role=status
          announces it to assistive tech without stealing the reading position
          from someone who is already elsewhere on the page. -->
@@ -66,7 +81,8 @@
       {:else}
         <form
           method="POST"
-          action="?/contact"
+          action={actionHref(page.url.search, "contact")}
+          aria-label="Send us a message"
           class="space-y-4"
           use:enhance={() => {
             submitting = true;
@@ -85,7 +101,7 @@
 
           <!-- Anti-bot: per-request timing token + a hidden honeypot. Naive bots
            fill the honeypot; a too-fast fill is caught by the timing screen. -->
-          <input type="hidden" name="ts" value={data.formTs} />
+          <input type="hidden" name="ts" value={contactTs} />
           <input
             type="text"
             name="bot-field"
@@ -153,7 +169,7 @@
         Interested in keeping up with Mantis? Join the mailing list for monthly newsletters on our
         seedling giveaways, gardening tips, and more.
       </p>
-      {#if signupResult?.success}
+      {#if subscribed}
         <p
           bind:this={signupConfirmationEl}
           role="status"
@@ -165,7 +181,8 @@
       {:else}
         <form
           method="POST"
-          action="?/subscribe"
+          action={actionHref(page.url.search, "subscribe")}
+          aria-labelledby="newsletter-heading"
           class="space-y-4"
           use:enhance={() => {
             subscribing = true;
@@ -181,7 +198,7 @@
             </p>
           {/if}
 
-          <input type="hidden" name="ts" value={data.formTs} />
+          <input type="hidden" name="ts" value={signupTs} />
           <input
             type="text"
             name="bot-field"

@@ -3,6 +3,10 @@ import { render, cleanup } from "@testing-library/svelte";
 
 // `use:enhance` needs no behaviour here — these cases are about what the page
 // renders and where focus lands, not about submission.
+const appState = vi.hoisted(() => ({
+  page: { url: new URL("https://mantislandscaping.com/contact-us") },
+}));
+vi.mock("$app/state", () => appState);
 vi.mock("$app/forms", () => ({
   enhance: () => ({ destroy() {} }),
 }));
