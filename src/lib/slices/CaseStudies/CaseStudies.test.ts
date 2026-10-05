@@ -1,4 +1,5 @@
 import { render, within } from "@testing-library/svelte";
+import { SINGLE_PHOTO_SIZES, STRIP_PHOTO_SIZES } from "./sizes";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import type { ProjectDocument } from "../../../prismicio-types";
@@ -95,6 +96,22 @@ describe("CaseStudies photo strip width", () => {
     expect(item.className.split(/\s+/)).toContain("w-full");
     expect(item.className).not.toMatch(/(^|\s)(md:)?w-\[/);
     expect(item.className).not.toMatch(/(^|\s)shrink-0/);
+  });
+
+  it("a single photo describes its own slot; a strip photo describes the strip item", () => {
+    const single = render(CaseStudies, {
+      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
+    });
+    expect(single.container.querySelector("img")?.getAttribute("sizes")).toBe(SINGLE_PHOTO_SIZES);
+    single.unmount();
+    const strip = render(CaseStudies, {
+      props: {
+        slice,
+        context: { project: project([photo(1, "Roof garden"), photo(2, "Fireplace")]) },
+      },
+    });
+    for (const img of strip.container.querySelectorAll("img"))
+      expect(img.getAttribute("sizes")).toBe(STRIP_PHOTO_SIZES);
   });
 
   it("makes a strip of several photos a named, focusable scroll region", () => {

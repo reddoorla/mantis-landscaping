@@ -2,6 +2,7 @@
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
   import { isFilled, type Content } from "@prismicio/client";
   import { cappedWidths } from "@reddoorla/maintenance/images";
+  import { SINGLE_PHOTO_SIZES, STRIP_PHOTO_SIZES } from "./sizes";
   import type { SliceContext } from "$lib/slice-context";
 
   let { slice, context = {} }: { slice: Content.CaseStudiesSlice; context?: SliceContext } =
@@ -54,7 +55,7 @@
                       field={entry.photo}
                       fallbackAlt=""
                       widths={cappedWidths(entry.photo)}
-                      sizes="(min-width: 768px) 576px, 85vw"
+                      sizes={study.scrolls ? STRIP_PHOTO_SIZES : SINGLE_PHOTO_SIZES}
                       loading="lazy"
                       class="aspect-[4/3] h-full w-full object-cover"
                     />
