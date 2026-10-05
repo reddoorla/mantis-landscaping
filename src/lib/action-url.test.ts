@@ -12,6 +12,15 @@ describe("actionHref", () => {
     );
   });
 
+  it("replaces an action key in any encoding", () => {
+    expect(actionHref("?%2fsubscribe=&a=1", "contact")).toBe("?a=1&/contact");
+    expect(actionHref("?%2Fsubscribe", "contact")).toBe("?/contact");
+  });
+
+  it("keeps a key that only looks encoded", () => {
+    expect(actionHref("?%E0%A4%A=1", "contact")).toBe("?%E0%A4%A=1&/contact");
+  });
+
   it("replaces an action key already in the query", () => {
     expect(actionHref("?utm_source=x&/contact", "subscribe")).toBe("?utm_source=x&/subscribe");
     expect(actionHref("?%2Fcontact=&a=1", "contact")).toBe("?a=1&/contact");

@@ -714,3 +714,9 @@ Two more from the same round:
 - **A POST to `/contact-us` naming no action 404s** once named actions exist. That is what a tab opened before this deploy sends. The hook answers it with a 307 to `?…&/contact`, and the browser re-sends the same body there.
 
 Also: each form's timing token is fixed when it mounts. `update()` re-runs `load`, which used to re-plant the other form's token and could screen a quick second submit as too fast. The forms got distinct accessible names, and `testMode`, which form-e2e never sends to the signup, was dropped from it.
+
+**Round 2 confirmed every round-1 fix on a production build, and found one defect the fix had introduced.** SvelteKit decodes each query key and takes the first that starts with `/` as the action. My filter matched only the raw prefixes `/` and `%2F`, so a crafted `?%2fsubscribe=` link sent the contact form's fields to the signup action. The name and message were dropped with no error. The filter now decodes each key first, which is the same rule SvelteKit and `pageUrl` apply. Round 2's other finding: the signup latch had no test of its own, because round 1's mutation removed both latches at once. It now has one.
+
+That made two dirty rounds. The operator chose to fix and land on green CI rather than run a third. The reviewer's request for a comment on the hook's 307 went unmet, because the operator wants code without comments. The reason is here instead: a tab opened before this deploy posts to `/contact-us` with no action. A 303 would turn that POST into a GET and lose the body, while a 307 makes the browser re-send it to `?…&/contact`.
+
+One instrument failure is worth remembering. Round 1's reviewer wrote its fake ingest over mine in the shared scratchpad and left it bound to another port. My next browser run then showed a 502 and an error banner on a correct page. A probe confirming the fake ingest answers, run first, would have caught that before the browser run.

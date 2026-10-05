@@ -15,7 +15,7 @@ const post = async (path: string, method = "POST") => {
 };
 
 describe("a POST to /contact-us that names no action", () => {
-  it("is re-sent to the contact action, keeping the query string and the body", async () => {
+  it("is redirected with a 307 to the contact action, keeping the query string", async () => {
     const { response, resolved } = await post("/contact-us?utm_source=x");
     expect(resolved).toBe(false);
     expect(response.status).toBe(307);

@@ -195,4 +195,14 @@ describe("/contact-us", () => {
     for (const form of forms(container))
       expect(form.querySelector('input[name="ts"]')?.getAttribute("value")).toBe("1700000000000");
   });
+
+  it("both confirmations survive when the signup comes first", async () => {
+    const { container, rerender } = mount(true, { success: true, form: "subscribe" });
+    await rerender({
+      data: { formTs: 1_700_000_000_000, page, context: {} },
+      form: { success: true, form: "contact" },
+    } as never);
+    expect(forms(container)).toHaveLength(0);
+    expect(within(container).getAllByRole("status")).toHaveLength(2);
+  });
 });
