@@ -329,6 +329,22 @@ describe("Slider autoplay", () => {
     ).toBeNull();
   });
 
+  it("arrowClass reaches both arrows in either placement", () => {
+    for (const arrowPlacement of ["row", "overlay"]) {
+      const { getByLabelText } = renderSlider({ arrowPlacement, arrowClass: "x-probe" });
+      expect(getByLabelText("Previous slide").classList.contains("x-probe")).toBe(true);
+      expect(getByLabelText("Next slide").classList.contains("x-probe")).toBe(true);
+      cleanup();
+    }
+  });
+
+  it("an overlay arrow's focus ring sits on a dark halo, so it reads over a light photo", () => {
+    const { getByLabelText } = renderSlider({ arrowPlacement: "overlay" });
+    expect(getByLabelText("Next slide").className).toMatch(
+      /focus-visible:shadow-\[0_0_0_\d+px_rgb\(0_0_0\/0\.\d+\)\]/,
+    );
+  });
+
   it("the arrow glyphs are hidden from assistive tech inside their labelled buttons", () => {
     const { getByLabelText } = renderSlider({});
     expect(getByLabelText("Next slide").querySelector("svg")?.getAttribute("aria-hidden")).toBe(
