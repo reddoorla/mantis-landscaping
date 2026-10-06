@@ -861,3 +861,25 @@ Overlay arrows are 40px white chevrons on a `black/50` disc, vertically centred 
 The review found what the chevron numbers hid: the focus ring. The site's white outline sits 2px _outside_ the button, directly on the photo, and fell below 3:1 against it at 112 of the 132 positions. Overlay arrows now add a 6px `rgb(0 0 0/0.6)` halo on `:focus-visible`, so the ring always sits on dark, at about 5.7:1 even over white. That was read back as the computed `box-shadow` in Chromium.
 
 A mutation that removed the disc survived the first test. The assertion was a substring check, and `aria-disabled:hover:bg-black/50` satisfied it on its own; it now checks the class token. Another survivor showed that `arrowClass` had lost its only caller and its only test, so a test now covers both placements.
+
+## 2026-10-06 — Slideshow dots over the photo, and photos run the card's full height (#38, `49355bc`)
+
+The operator asked for the dots to float over the photo like the arrows, and for the image to be full bleed vertically. `Slider` gained `dotPlacement` (`"row"` default, or `"overlay"`: the dots on a dark pill 12px above the bottom of the slides) and `fill` (in fade mode the slides stretch to the parent). With nothing left in the controls row, the row no longer renders. The home carousels keep the defaults.
+
+**Two layout defects, both found by measuring, not by looking.**
+
+- **Grid row:** the fade grid's implicit row sized itself to the image's natural height, so a 497px card held an 883px photo; overflow hid the excess. The row is now `minmax(0,1fr)`.
+- **Aspect ratio:** the photo column is `aspect-[4/3] self-stretch`, which gives 4:3 on phones and, from md up, the card's height. On a card whose text was taller than 4:3, the aspect ratio turned the stretched height back into width: at 834 one photo grew to 522px and ran under the text. `w-full` pins the width.
+
+A production-build probe then checked every card on both project pages at five widths from 390 to 1440: flush top and bottom, column width, no overlap.
+
+**What the review found.** At 320 the 9-dot pill (304px) was wider than the 272px photo and clipped its own ends; the overlay dots dropped their gap and the pill is capped at the photo width, giving 240px. The dots' focus ring fell off the 24px pill onto the photo, so the dots got the arrows' dark halo. The pill went to `black/70`: inactive dots are 4.28:1 and active ones 8.52:1 over a pure-white pixel.
+
+**The smoke test lied twice before it was right.**
+
+- It compared the photo with the card only from md up, so the grid-row bug was invisible at 390. It now compares the photo with its own column at every width.
+- It loaded only edible-gardens, whose studies have at most 7 photos, so the 9-dot overflow could not appear. It now covers both pages and adds 320.
+
+With the pill's width cap removed, water-wise at 320 goes red and the other seven cases stay green.
+
+I pushed one commit before reading its `pnpm verify` result. It had failed on a svelte-check ordering error, and the next commit fixed it. Chaining commit after verify with `;` instead of `&&` is how that happened.
