@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useSwipe, type SwipeCustomEvent } from "svelte-gestures";
-  import { onMount, type Snippet } from "svelte";
+  import { onMount, tick, type Snippet } from "svelte";
   import { viewport } from "$stores/viewport.svelte";
 
   interface Props {
@@ -64,6 +64,7 @@
   let pageHidden = $state(false);
   let reducedMotion = $state(false);
   let userPaused = $state(false);
+  let dotEls = $state<HTMLButtonElement[]>([]);
   let rotationButton = $state<HTMLButtonElement>();
 
   onMount(() => viewport.subscribe());
@@ -161,13 +162,12 @@
   // Arrow-key nav when one of the carousel's own controls has focus — avoids
   // needing a tabindex on a non-interactive wrapper.
   const handleKeydown = (e: KeyboardEvent) => {
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      prevSlide();
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault();
-      nextSlide();
-    }
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    if (e.key === "ArrowLeft") prevSlide();
+    else nextSlide();
+    if (dotEls.includes(e.currentTarget as HTMLButtonElement))
+      tick().then(() => dotEls[currentSlide]?.focus());
   };
 
   // APG: rotation stopped by focus does not resume when focus leaves — only
@@ -290,7 +290,13 @@
           class="w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default {arrowClass}"
           aria-label="Previous slide"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-6 h-6"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -307,6 +313,8 @@
             <!-- 24px hit target (WCAG 2.5.8); the visual dot is the span. -->
             <button
               type="button"
+              bind:this={dotEls[i]}
+              tabindex={currentSlide === i ? 0 : -1}
               onclick={() => goToSlide(i)}
               onkeydown={handleKeydown}
               class="group h-6 min-w-6 flex items-center justify-center {currentSlide === i
@@ -335,7 +343,13 @@
           class="w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default {arrowClass}"
           aria-label="Next slide"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-6 h-6"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"

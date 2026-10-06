@@ -72,6 +72,14 @@ describe("CaseStudies slice", () => {
     expect(imgs.map((img) => img.getAttribute("alt"))).toEqual(["", "A roof deck"]);
   });
 
+  it("a study with no photos renders no empty photo region", () => {
+    const { container } = render(CaseStudies, {
+      props: { slice, context: { project: project([]) } },
+    });
+    expect(container.querySelector("article")).not.toBeNull();
+    expect(container.querySelector('[role="region"]')).toBeNull();
+  });
+
   it("renders nothing outside a project", () => {
     const { container } = render(CaseStudies, { props: { slice } });
     expect(container.querySelector("section")).toBeNull();

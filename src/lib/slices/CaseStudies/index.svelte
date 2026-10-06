@@ -50,28 +50,30 @@
           class="grid grid-cols-1 overflow-hidden rounded-lg bg-moss text-white md:grid-cols-5"
           aria-labelledby="case-study-{i}"
         >
-          <div class="relative min-w-0 md:col-span-3">
-            {#if study.photos.length > 1}
-              <Slider
-                itemCount={study.photos.length}
-                label="{study.title} photos"
-                mode="fade"
-                transitionClass="duration-500 ease-in-out"
-                navigationClass="!mt-0 py-2"
-                arrowClass="text-white hover:bg-white/10"
-                dotClass="bg-white/60"
-                activeDotClass="bg-white"
-              >
-                {#snippet children({ index })}
-                  {@render photo(study.photos[index].photo)}
-                {/snippet}
-              </Slider>
-            {:else}
-              <div role="region" aria-label="{study.title} photos">
-                {@render photo(study.photos[0]?.photo)}
-              </div>
-            {/if}
-          </div>
+          {#if study.photos.length > 0}
+            <div class="relative min-w-0 md:col-span-3">
+              {#if study.photos.length > 1}
+                <Slider
+                  itemCount={study.photos.length}
+                  label="{study.title} photos"
+                  mode="fade"
+                  transitionClass="duration-500 ease-in-out"
+                  navigationClass="!mt-0 py-2"
+                  arrowClass="text-white hover:bg-white/10"
+                  dotClass="bg-white/60"
+                  activeDotClass="bg-white"
+                >
+                  {#snippet children({ index })}
+                    {@render photo(study.photos[index].photo)}
+                  {/snippet}
+                </Slider>
+              {:else}
+                <div role="region" aria-label="{study.title} photos">
+                  {@render photo(study.photos[0]?.photo)}
+                </div>
+              {/if}
+            </div>
+          {/if}
           <div class="flex flex-col gap-4 p-8 md:col-span-2">
             {#if study.label}
               <p class="eyebrow">{study.label}</p>

@@ -288,6 +288,24 @@ describe("Slider autoplay", () => {
     expect(activeDot(container)?.getAttribute("aria-label")).toBe("Go to slide 1");
   });
 
+  it("only the current dot is a tab stop, and arrow keys move focus along the dots", async () => {
+    const { getByLabelText } = renderSlider({});
+    const dot = (n: number) => getByLabelText(`Go to slide ${n}`);
+    expect([1, 2, 3].map((n) => dot(n).getAttribute("tabindex"))).toEqual(["0", "-1", "-1"]);
+    dot(1).focus();
+    await fireEvent.keyDown(dot(1), { key: "ArrowRight" });
+    await tick();
+    expect(document.activeElement).toBe(dot(2));
+    expect([1, 2, 3].map((n) => dot(n).getAttribute("tabindex"))).toEqual(["-1", "0", "-1"]);
+  });
+
+  it("the arrow glyphs are hidden from assistive tech inside their labelled buttons", () => {
+    const { getByLabelText } = renderSlider({});
+    expect(getByLabelText("Next slide").querySelector("svg")?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+  });
+
   it("offers a pause control that stops rotation until played again", async () => {
     vi.useFakeTimers();
     const { container, getByLabelText } = renderSlider({ autoplay: 1000 });
