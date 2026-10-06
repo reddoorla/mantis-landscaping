@@ -191,17 +191,17 @@
   };
 
   const arrowsShown = $derived(showArrows && maxSlide > 0);
+  const ROW_ARROW =
+    "w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default";
+  const OVERLAY_ARROW =
+    "absolute top-1/2 z-10 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-black/50 aria-disabled:cursor-default focus-visible:shadow-[0_0_0_6px_rgb(0_0_0/0.6)]";
+  const dotsShown = $derived(showDots || !arrowsShown);
   const dotsInRow = $derived(dotsShown && dotPlacement === "row");
   const rowShown = $derived(
     autoplayEligible || (arrowsShown && arrowPlacement === "row") || dotsInRow,
   );
   const OVERLAY_DOTS =
     "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-2";
-  const ROW_ARROW =
-    "w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default";
-  const OVERLAY_ARROW =
-    "absolute top-1/2 z-10 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-black/50 aria-disabled:cursor-default focus-visible:shadow-[0_0_0_6px_rgb(0_0_0/0.6)]";
-  const dotsShown = $derived(showDots || !arrowsShown);
   const atStart = $derived(!loop && currentSlide === 0);
   const atEnd = $derived(!loop && currentSlide === maxSlide);
 
