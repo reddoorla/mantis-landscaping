@@ -138,10 +138,14 @@ describe("CaseStudies photos", () => {
   it("controls are white on the moss card", () => {
     const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
     const view = within(container);
-    expect(view.getByRole("button", { name: "Next slide" }).className).toContain("text-white");
-    expect(view.getByRole("button", { name: "Go to slide 2" }).innerHTML).toContain("bg-white/60");
-    expect(view.getByRole("button", { name: "Next slide" }).parentElement!.className).toContain(
-      "!mt-0",
+    const next = view.getByRole("button", { name: "Next slide" });
+    expect(next.className).toContain("text-white");
+    expect(next.classList.contains("bg-black/50")).toBe(true);
+    expect(next.parentElement!.querySelector('[aria-roledescription="slide"]')).not.toBeNull();
+    expect(view.getByRole("button", { name: "Previous slide" }).parentElement).toBe(
+      next.parentElement,
     );
+    expect(view.getByRole("button", { name: "Go to slide 2" }).innerHTML).toContain("bg-white/60");
+    expect(view.getByRole("button", { name: "Go to slide 1" }).closest(".\\!mt-0")).not.toBeNull();
   });
 });

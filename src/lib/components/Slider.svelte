@@ -27,6 +27,9 @@
      *  carousel always keeps a non-swipe control. */
     showDots?: boolean;
     showArrows?: boolean;
+    /** "row" puts the arrows beside the dots; "overlay" floats them over the
+     *  slides, vertically centred, on a dark disc so they read on any photo. */
+    arrowPlacement?: "row" | "overlay";
     /** Tailwind duration/easing utilities for the slide/fade movement. */
     transitionClass?: string;
     navigationClass?: string;
@@ -50,6 +53,7 @@
     autoplay = 0,
     showDots = true,
     showArrows = true,
+    arrowPlacement = "row",
     transitionClass = "duration-500 ease-in-out",
     navigationClass = "",
     arrowClass = "",
@@ -179,6 +183,10 @@
   };
 
   const arrowsShown = $derived(showArrows && maxSlide > 0);
+  const ROW_ARROW =
+    "w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default";
+  const OVERLAY_ARROW =
+    "absolute top-1/2 z-10 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-black/50 aria-disabled:cursor-default focus-visible:shadow-[0_0_0_6px_rgb(0_0_0/0.6)]";
   const dotsShown = $derived(showDots || !arrowsShown);
   const atStart = $derived(!loop && currentSlide === 0);
   const atEnd = $derived(!loop && currentSlide === maxSlide);
@@ -186,6 +194,38 @@
   const slideVisible = (i: number) =>
     i >= currentSlide && i < currentSlide + responsiveCardsPerView;
 </script>
+
+<!-- aria-disabled (not disabled) so the bound arrow keeps focus
+     instead of dumping the keyboard user back to <body>. -->
+{#snippet prevArrow(base: string)}
+  <button
+    type="button"
+    onclick={prevSlide}
+    onkeydown={handleKeydown}
+    aria-disabled={atStart ? "true" : undefined}
+    class="{base} {arrowClass}"
+    aria-label="Previous slide"
+  >
+    <svg class="w-6 h-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </svg>
+  </button>
+{/snippet}
+
+{#snippet nextArrow(base: string)}
+  <button
+    type="button"
+    onclick={nextSlide}
+    onkeydown={handleKeydown}
+    aria-disabled={atEnd ? "true" : undefined}
+    class="{base} {arrowClass}"
+    aria-label="Next slide"
+  >
+    <svg class="w-6 h-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+{/snippet}
 
 <div
   class="relative w-full {passedClasses}"
@@ -243,6 +283,10 @@
         {/each}
       </div>
     {/if}
+    {#if arrowsShown && arrowPlacement === "overlay"}
+      {@render prevArrow(`${OVERLAY_ARROW} left-3`)}
+      {@render nextArrow(`${OVERLAY_ARROW} right-3`)}
+    {/if}
   </div>
 
   <!-- Announce position to screen readers only when the user is driving;
@@ -279,32 +323,8 @@
         </button>
       {/if}
 
-      {#if arrowsShown}
-        <!-- aria-disabled (not disabled) so the bound arrow keeps focus
-             instead of dumping the keyboard user back to <body>. -->
-        <button
-          type="button"
-          onclick={prevSlide}
-          onkeydown={handleKeydown}
-          aria-disabled={atStart ? "true" : undefined}
-          class="w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default {arrowClass}"
-          aria-label="Previous slide"
-        >
-          <svg
-            class="w-6 h-6"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
+      {#if arrowsShown && arrowPlacement === "row"}
+        {@render prevArrow(ROW_ARROW)}
       {/if}
 
       {#if dotsShown}
@@ -334,30 +354,8 @@
         </div>
       {/if}
 
-      {#if arrowsShown}
-        <button
-          type="button"
-          onclick={nextSlide}
-          onkeydown={handleKeydown}
-          aria-disabled={atEnd ? "true" : undefined}
-          class="w-8 h-8 rounded-full text-gray-700 hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-transparent aria-disabled:cursor-default {arrowClass}"
-          aria-label="Next slide"
-        >
-          <svg
-            class="w-6 h-6"
-            aria-hidden="true"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+      {#if arrowsShown && arrowPlacement === "row"}
+        {@render nextArrow(ROW_ARROW)}
       {/if}
     </div>
   {/if}
