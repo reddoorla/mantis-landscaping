@@ -78,6 +78,8 @@ describe("CaseStudies slice", () => {
     });
     expect(container.querySelector("article")).not.toBeNull();
     expect(container.querySelector('[role="region"]')).toBeNull();
+    const text = container.querySelector("article > div") as HTMLElement;
+    expect(text.className).toContain("md:col-span-5");
   });
 
   it("renders nothing outside a project", () => {

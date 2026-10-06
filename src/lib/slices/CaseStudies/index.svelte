@@ -74,7 +74,11 @@
               {/if}
             </div>
           {/if}
-          <div class="flex flex-col gap-4 p-8 md:col-span-2">
+          <div
+            class="flex flex-col gap-4 p-8 {study.photos.length > 0
+              ? 'md:col-span-2'
+              : 'md:col-span-5'}"
+          >
             {#if study.label}
               <p class="eyebrow">{study.label}</p>
             {/if}

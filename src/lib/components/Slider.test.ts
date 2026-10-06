@@ -299,6 +299,16 @@ describe("Slider autoplay", () => {
     expect([1, 2, 3].map((n) => dot(n).getAttribute("tabindex"))).toEqual(["-1", "0", "-1"]);
   });
 
+  it("arrow keys on Previous/Next change the slide but leave focus on the arrow", async () => {
+    const { getByLabelText } = renderSlider({});
+    const next = getByLabelText("Next slide");
+    next.focus();
+    await fireEvent.keyDown(next, { key: "ArrowRight" });
+    await tick();
+    expect(document.activeElement).toBe(next);
+    expect(getByLabelText("Go to slide 2").getAttribute("aria-current")).toBe("true");
+  });
+
   it("the arrow glyphs are hidden from assistive tech inside their labelled buttons", () => {
     const { getByLabelText } = renderSlider({});
     expect(getByLabelText("Next slide").querySelector("svg")?.getAttribute("aria-hidden")).toBe(
