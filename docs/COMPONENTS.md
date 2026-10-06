@@ -38,7 +38,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`Form.svelte`](../src/lib/components/Form.svelte) | `errors`, `errorSummaryTitle`, `children` | 3 |  |
 | [`HeroBackgroundImage.svelte`](../src/lib/components/HeroBackgroundImage.svelte) | `image`, `altFallback`, `preload` | 8 | LCP-optimized hero image |
 | [`Icon.svelte`](../src/lib/components/Icon.svelte) | `name` | — |  |
-| [`IconRow.svelte`](../src/lib/components/IconRow.svelte) | `heading`, `items`, `background`, `sliceType`, `variation` | — |  |
+| [`IconRow.svelte`](../src/lib/components/IconRow.svelte) | `heading`, `items`, `background`, `sliceType`, `variation`, `carouselBelow`, `autoplay`, `label` | — |  |
 | [`Img.svelte`](../src/lib/components/Img.svelte) | `src` | 5 | Progressive-loading wrapper around @zerodevx/svelte-img: the image renders blurred (`.progressive-img` in app.css) and sharpens once the underlying <img> finishes — or fails — loading |
 | [`LandscapeModal.svelte`](../src/lib/components/LandscapeModal.svelte) | — | 3 | Orientation lockout — a primitive the template deliberately does NOT mount (tests/smoke/landscape.spec.ts fails if it is re-mounted), because an undismissable landscape overlay fails WCAG 2.1 SC 1.3.4 (Orientation) |
 | [`Modal.svelte`](../src/lib/components/Modal.svelte) | `open`, `onclose`, `label`, `labelledby`, `children` | 16 | Accessible name for the dialog |
@@ -51,7 +51,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`Seo.svelte`](../src/lib/components/Seo.svelte) | `title`, `description`, `image`, `imageAlt`, `url`, `type`, `siteName`, `locale`, `noindex`, `jsonLd` | 14 | The page title — used verbatim for <title> and og/twitter:title |
 | [`SiteLink.svelte`](../src/lib/components/SiteLink.svelte) | `field`, `as`, `children` | 5 |  |
 | [`SkeletonLoader.svelte`](../src/lib/components/SkeletonLoader.svelte) | `lines`, `circle`, `height`, `width` | — |  |
-| [`Slider.svelte`](../src/lib/components/Slider.svelte) | `itemCount`, `label`, `children`, `cardsPerView`, `gap`, `mobileGap`, `mode`, `loop`, `autoplay`, `showDots`, `showArrows`, `transitionClass`, `navigationClass`, `arrowClass`, `pauseClass`, `dotClass`, `activeDotClass` | 23 | Accessible name for the carousel region — say what's inside ("Customer testimonials"), not "Slider" |
+| [`Slider.svelte`](../src/lib/components/Slider.svelte) | `itemCount`, `label`, `children`, `cardsPerView`, `gap`, `mobileGap`, `mode`, `loop`, `autoplay`, `showDots`, `showArrows`, `transitionClass`, `navigationClass`, `arrowClass`, `pauseClass`, `dotClass`, `activeDotClass` | 24 | Accessible name for the carousel region — say what's inside ("Customer testimonials"), not "Slider" |
 | [`SplitHero.svelte`](../src/lib/components/SplitHero.svelte) | `image`, `kicker`, `heading`, `body`, `ctaLabel`, `ctaLink`, `tone`, `sliceType`, `variation` | — |  |
 | [`TransitionOverlay.svelte`](../src/lib/components/TransitionOverlay.svelte) | `visibleDuration`, `fadeInDuration`, `fadeOutDuration`, `so` | 9 | ms the cover holds once the incoming route has arrived |
 | [`TurnstileWidget.svelte`](../src/lib/components/TurnstileWidget.svelte) | — | 7 |  |
@@ -82,4 +82,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-61 modules, 383 tests behind them.
+61 modules, 384 tests behind them.

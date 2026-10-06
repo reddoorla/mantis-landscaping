@@ -670,6 +670,26 @@ export interface FeatureTrioSliceDefaultPrimary {
 	background: prismic.SelectField<"gold-deep" | "dark" | "moss", "filled">;
 	
 	/**
+	 * carousel below field in *FeatureTrio → Default → Primary*
+	 *
+	 * - **Field Type**: Select
+	 * - **Placeholder**: Leave empty for a grid at every width
+	 * - **API ID Path**: feature_trio.default.primary.carousel_below
+	 * - **Documentation**: https://prismic.io/docs/fields/select
+	 */
+	carousel_below: prismic.SelectField<"900" | "600">;
+	
+	/**
+	 * autoplay (ms) field in *FeatureTrio → Default → Primary*
+	 *
+	 * - **Field Type**: Number
+	 * - **Placeholder**: Leave empty for no autoplay
+	 * - **API ID Path**: feature_trio.default.primary.autoplay
+	 * - **Documentation**: https://prismic.io/docs/fields/number
+	 */
+	autoplay: prismic.NumberField;
+	
+	/**
 	 * Features field in *FeatureTrio → Default → Primary*
 	 *
 	 * - **Field Type**: Group

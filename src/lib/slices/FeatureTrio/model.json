@@ -27,6 +27,21 @@
             "default_value": "gold-deep"
           }
         },
+        "carousel_below": {
+          "type": "Select",
+          "config": {
+            "label": "carousel below",
+            "placeholder": "Leave empty for a grid at every width",
+            "options": ["900", "600"]
+          }
+        },
+        "autoplay": {
+          "type": "Number",
+          "config": {
+            "label": "autoplay (ms)",
+            "placeholder": "Leave empty for no autoplay"
+          }
+        },
         "features": {
           "type": "Group",
           "config": {

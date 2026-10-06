@@ -251,4 +251,15 @@ describe("the documents' links", () => {
     expect(targets.length).toBeGreaterThan(0);
     expect(targets.filter((target) => !created.has(target))).toEqual([]);
   });
+
+  it("home's pillars carousel below 900 without autoplay; its values below 600 at 2000ms", () => {
+    const home = docs.find((d) => d.uid === "home")!;
+    const trios = (home.data.slices as { slice_type: string; primary: Record<string, unknown> }[])
+      .filter((sl) => sl.slice_type === "feature_trio")
+      .map((sl) => [sl.primary.carousel_below, sl.primary.autoplay]);
+    expect(trios).toEqual([
+      ["900", null],
+      ["600", 2000],
+    ]);
+  });
 });

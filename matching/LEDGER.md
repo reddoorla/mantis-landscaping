@@ -92,3 +92,36 @@ scroll-margin-top: 70px }`). The reference lands them under its nav:
   `<main id="main-content">`, which `main [id]` did not match: after the r1
   fix, Enter on it left main's top 70px under the nav (round-2 review of
   #29). Guard: "the skip link lands main below the sticky nav" (1440, 390).
+
+## 2026-10-05 — home, round 1 (carousels, census 3 and 11)
+
+- [correction] SPEC's "below 900px" / "below 600px" read as viewport widths
+  is wrong. `sliderAt` compares the grid's own `offsetWidth` to the config
+  width (`if(calcWidth<=self.config.width)`, `matching/spec/export/index.html`;
+  calls `{id:"page-block-1",from:"grid",width:"900"}` and
+  `{id:"page-block-9-item-1",from:"grid",width:"600"}`). Measured on the live
+  reference, fresh load and resize agreeing: pillars switch at viewport
+  ≤978 (grid 900 wide), values at ≤652 (grid 600). The candidate uses
+  container queries on the IconRow content box (`@container`,
+  `[@container(width<=900px)]`), so it switches on the same quantity.
+- [finding, not a deviation] the candidate's content box is `vw − 63` (max 1104) against the reference's 92% of vw, so today it switches at ≤963 and
+  ≤663. This closes when the section box is matched; no matrix viewport sits
+  between the two (1024 grid/grid, 834 carousel/grid, 390 carousel/carousel
+  on both).
+- [a11y] the values carousel autoplays (2000ms), so the candidate shows a
+  "Pause slides" control the reference lacks (WCAG 2.2.2), and both
+  carousels show dots: `Slider` always renders dots when arrows are hidden.
+  The reference's pillars carousel has dots; its values carousel has none.
+- [correction] the candidate switch points "≤963/≤663" above assume the
+  starter's reserved 15px gutter as measured; with overlay scrollbars the
+  content box is `vw − 48` and the switch is ≤948/≤648 (review of #30).
+- [a11y] inactive dots are solid `#ededed` (the reference's own inactive-dot
+  colour, SPEC census 3): 4.45:1 on `gold-deep`, where `white/50` was 2.53:1.
+  Each carousel's region is named after its own content (heading, else its
+  item labels), so the two never share a landmark name.
+- [correction] the dot line above was false when written: `bg-footer` is a
+  token #29 adds, and this branch is based on `main`, where it does not
+  exist, so Tailwind generated nothing and the inactive dots were
+  `rgba(0,0,0,0)`, invisible (round-2 review of #30, computed style at 390).
+  The class is now `bg-[#ededed]`, an arbitrary value that always resolves;
+  read back from the built CSS.

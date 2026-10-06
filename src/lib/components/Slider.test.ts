@@ -275,6 +275,19 @@ describe("Slider autoplay", () => {
     expect(activeDot(container)?.getAttribute("aria-label")).toBe("Go to slide 2");
   });
 
+  it("a press on the pause control pauses even though it focuses the control first", async () => {
+    vi.useFakeTimers();
+    const { container, getByLabelText } = renderSlider({ autoplay: 1000 });
+    const pause = getByLabelText("Pause slides");
+
+    await fireEvent(pause, new FocusEvent("focusin", { bubbles: true }));
+    expect(pause.getAttribute("aria-label")).toBe("Pause slides");
+    await fireEvent.click(pause);
+    await advance(3000);
+    expect(pause.getAttribute("aria-label")).toBe("Play slides");
+    expect(activeDot(container)?.getAttribute("aria-label")).toBe("Go to slide 1");
+  });
+
   it("offers a pause control that stops rotation until played again", async () => {
     vi.useFakeTimers();
     const { container, getByLabelText } = renderSlider({ autoplay: 1000 });

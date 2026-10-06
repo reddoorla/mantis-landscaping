@@ -3,11 +3,15 @@ import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import FeatureTrio from "./index.svelte";
 
-const slice = (items: { icon: string | null; label: string }[], heading: unknown[] = []) =>
+const slice = (
+  items: { icon: string | null; label: string }[],
+  heading: unknown[] = [],
+  extra: Record<string, unknown> = {},
+) =>
   ({
     slice_type: "feature_trio",
     variation: "default",
-    primary: { heading, background: "gold-deep", features: items },
+    primary: { heading, background: "gold-deep", features: items, ...extra },
     items: [],
   }) as unknown as Content.FeatureTrioSlice;
 
@@ -59,5 +63,105 @@ describe("FeatureTrio with nothing to show", () => {
       props: { slice: slice(items, [{ type: "heading2", text: "Our values", spans: [] }]) },
     });
     expect(container.querySelector("section")).toBeNull();
+  });
+
+  const pillars = [
+    { icon: null, label: "Professionally Designed" },
+    { icon: null, label: "Gorgeously Grown" },
+    { icon: null, label: "Beautifully Maintained" },
+  ];
+
+  it("at or under the breakpoint the items are a fade carousel; above it, the grid", () => {
+    const { container } = render(FeatureTrio, {
+      props: { slice: slice(pillars, [], { carousel_below: "900", autoplay: null }) },
+    });
+    const grid = container.querySelector("ul") as HTMLElement;
+    expect(grid.className).toContain("[@container(width<=900px)]:hidden");
+    expect(grid.parentElement!.classList.contains("@container")).toBe(true);
+    const carousel = container.querySelector("[data-carousel-below]") as HTMLElement;
+    expect(carousel.className).toContain("[@container(width>900px)]:hidden");
+    expect(within(carousel).getByRole("region").getAttribute("aria-roledescription")).toBe(
+      "carousel",
+    );
+    expect(within(carousel).queryByRole("button", { name: /Pause slides/ })).toBeNull();
+  });
+
+  it("the pillars switch at 900, the values at 600", () => {
+    const values = render(FeatureTrio, {
+      props: { slice: slice(pillars, [], { carousel_below: "600", autoplay: 2000 }) },
+    });
+    expect(values.container.querySelector("ul")!.className).toContain(
+      "[@container(width<=600px)]:hidden",
+    );
+    expect(values.container.querySelector("[data-carousel-below]")!.className).toContain(
+      "[@container(width>600px)]:hidden",
+    );
+  });
+
+  it("the values carousel autoplays (and so offers a pause control)", () => {
+    const { container } = render(FeatureTrio, {
+      props: { slice: slice(pillars, [], { carousel_below: "600", autoplay: 2000 }) },
+    });
+    expect(within(container).getByRole("button", { name: "Pause slides" })).toBeTruthy();
+  });
+
+  for (const carousel_below of [undefined, null, "750"]) {
+    it(`with carousel_below ${String(carousel_below)} there is only the grid`, () => {
+      const { container } = render(FeatureTrio, {
+        props: { slice: slice(pillars, [], { carousel_below }) },
+      });
+      expect(container.querySelector("[data-carousel-below]")).toBeNull();
+      expect(container.querySelector("ul")!.className).not.toMatch(/@container|hidden/);
+      expect(container.querySelector(".\\@container")).toBeNull();
+    });
+  }
+
+  it("the pillars fade over 250ms, the values over 500ms", () => {
+    const fadeOf = (carousel_below: string) =>
+      render(FeatureTrio, {
+        props: { slice: slice(pillars, [], { carousel_below, autoplay: null }) },
+      }).container.querySelector("[data-carousel-below]")!.innerHTML;
+    expect(fadeOf("900")).toContain("duration-[250ms]");
+    expect(fadeOf("900")).not.toContain("duration-500");
+    expect(fadeOf("600")).toContain("duration-500");
+    expect(fadeOf("600")).not.toContain("duration-[250ms]");
+  });
+
+  it("inactive dots are solid #ededed, not translucent white", () => {
+    const { container } = render(FeatureTrio, {
+      props: { slice: slice(pillars, [], { carousel_below: "900", autoplay: null }) },
+    });
+    const dot = within(container).getByRole("button", { name: "Go to slide 2" });
+    expect(dot.innerHTML).toContain("bg-[#ededed]");
+    expect(dot.innerHTML).not.toContain("bg-white/50");
+  });
+
+  it("each carousel is named after its own content, so two never share a landmark name", () => {
+    const named = (heading: unknown[], items: typeof pillars) =>
+      within(
+        render(FeatureTrio, {
+          props: { slice: slice(items, heading, { carousel_below: "900", autoplay: null }) },
+        }).container,
+      )
+        .getByRole("region")
+        .getAttribute("aria-label");
+    expect(named([], pillars)).toBe(
+      "Professionally Designed, Gorgeously Grown, Beautifully Maintained",
+    );
+    expect(named([{ type: "heading2", text: "Our Values", spans: [] }], pillars)).toBe(
+      "Our Values",
+    );
+  });
+});
+
+describe("FeatureTrio model", () => {
+  it("carousel_below has no default, so an empty field stays a grid", async () => {
+    const model = (await import("./model.json")).default as {
+      variations: { primary: Record<string, { type: string; config: Record<string, unknown> }> }[];
+    };
+    const field = model.variations[0].primary.carousel_below;
+    expect(field.type).toBe("Select");
+    expect(field.config.options).toEqual(["900", "600"]);
+    expect(field.config.default_value).toBeUndefined();
   });
 });
