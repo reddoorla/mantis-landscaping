@@ -30,6 +30,12 @@
     /** "row" puts the arrows beside the dots; "overlay" floats them over the
      *  slides, vertically centred, on a dark disc so they read on any photo. */
     arrowPlacement?: "row" | "overlay";
+    /** "row" puts the dots in the controls row; "overlay" floats them over the
+     *  bottom of the slides on a dark pill. */
+    dotPlacement?: "row" | "overlay";
+    /** Fill the parent's height. In fade mode the slides stretch to it
+     *  instead of sizing the carousel; slide mode is not stretched. */
+    fill?: boolean;
     /** Tailwind duration/easing utilities for the slide/fade movement. */
     transitionClass?: string;
     navigationClass?: string;
@@ -54,6 +60,8 @@
     showDots = true,
     showArrows = true,
     arrowPlacement = "row",
+    dotPlacement = "row",
+    fill = false,
     transitionClass = "duration-500 ease-in-out",
     navigationClass = "",
     arrowClass = "",
@@ -188,12 +196,46 @@
   const OVERLAY_ARROW =
     "absolute top-1/2 z-10 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors duration-200 flex items-center justify-center aria-disabled:opacity-40 aria-disabled:hover:bg-black/50 aria-disabled:cursor-default focus-visible:shadow-[0_0_0_6px_rgb(0_0_0/0.6)]";
   const dotsShown = $derived(showDots || !arrowsShown);
+  const dotsInRow = $derived(dotsShown && dotPlacement === "row");
+  const rowShown = $derived(
+    autoplayEligible || (arrowsShown && arrowPlacement === "row") || dotsInRow,
+  );
+  const OVERLAY_DOTS =
+    "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 max-w-[calc(100%-1.5rem)] gap-0 rounded-full bg-black/70 px-2";
+  const OVERLAY_DOT = "focus-visible:shadow-[0_0_0_6px_rgb(0_0_0/0.6)]";
   const atStart = $derived(!loop && currentSlide === 0);
   const atEnd = $derived(!loop && currentSlide === maxSlide);
 
   const slideVisible = (i: number) =>
     i >= currentSlide && i < currentSlide + responsiveCardsPerView;
 </script>
+
+{#snippet dots(wrap: string, button: string)}
+  <div class="flex {wrap}">
+    {#each Array(maxSlide + 1) as _, i (i)}
+      <!-- 24px hit target (WCAG 2.5.8); the visual dot is the span. -->
+      <button
+        type="button"
+        bind:this={dotEls[i]}
+        tabindex={currentSlide === i ? 0 : -1}
+        onclick={() => goToSlide(i)}
+        onkeydown={handleKeydown}
+        class="group h-6 min-w-6 flex items-center justify-center {button} {currentSlide === i
+          ? 'cursor-default'
+          : ''}"
+        aria-label="Go to slide {i + 1}"
+        aria-current={currentSlide === i ? "true" : undefined}
+      >
+        <span
+          class="h-3 rounded-full group-active:-translate-y-1 transition-all duration-200 {currentSlide ===
+          i
+            ? `w-8 ${activeDotClass}`
+            : `w-3 ${dotClass}`}"
+        ></span>
+      </button>
+    {/each}
+  </div>
+{/snippet}
 
 <!-- aria-disabled (not disabled) so the bound arrow keeps focus
      instead of dumping the keyboard user back to <body>. -->
@@ -228,7 +270,7 @@
 {/snippet}
 
 <div
-  class="relative w-full {passedClasses}"
+  class="relative w-full {fill ? 'flex h-full flex-col' : ''} {passedClasses}"
   role="region"
   aria-roledescription="carousel"
   aria-label={label}
@@ -237,7 +279,7 @@
   onfocusin={onFocusIn}
 >
   <div
-    class="relative overflow-hidden w-full"
+    class="relative overflow-hidden w-full {fill ? 'min-h-0 flex-1' : ''}"
     {...useSwipe(handleSwipe, () => ({
       timeframe: 300,
       minSwipeDistance: 60,
@@ -266,10 +308,12 @@
         {/each}
       </div>
     {:else}
-      <div class="grid">
+      <div class="grid {fill ? 'h-full grid-rows-[minmax(0,1fr)]' : ''}">
         {#each Array(itemCount) as _, i (i)}
           <div
-            class="col-start-1 row-start-1 transition-opacity {transitionClass} {currentSlide === i
+            class="col-start-1 row-start-1 transition-opacity {fill
+              ? 'h-full'
+              : ''} {transitionClass} {currentSlide === i
               ? 'opacity-100'
               : 'opacity-0 pointer-events-none'}"
             role="group"
@@ -287,6 +331,9 @@
       {@render prevArrow(`${OVERLAY_ARROW} left-3`)}
       {@render nextArrow(`${OVERLAY_ARROW} right-3`)}
     {/if}
+    {#if dotsShown && dotPlacement === "overlay"}
+      {@render dots(OVERLAY_DOTS, OVERLAY_DOT)}
+    {/if}
   </div>
 
   <!-- Announce position to screen readers only when the user is driving;
@@ -300,7 +347,7 @@
     {/if}
   </div>
 
-  {#if maxSlide > 0}
+  {#if maxSlide > 0 && rowShown}
     <div class="flex justify-center items-center gap-4 mt-8 {navigationClass}">
       {#if autoplayEligible}
         <!-- First control in the carousel's tab order (APG). -->
@@ -327,31 +374,8 @@
         {@render prevArrow(ROW_ARROW)}
       {/if}
 
-      {#if dotsShown}
-        <div class="flex gap-2">
-          {#each Array(maxSlide + 1) as _, i (i)}
-            <!-- 24px hit target (WCAG 2.5.8); the visual dot is the span. -->
-            <button
-              type="button"
-              bind:this={dotEls[i]}
-              tabindex={currentSlide === i ? 0 : -1}
-              onclick={() => goToSlide(i)}
-              onkeydown={handleKeydown}
-              class="group h-6 min-w-6 flex items-center justify-center {currentSlide === i
-                ? 'cursor-default'
-                : ''}"
-              aria-label="Go to slide {i + 1}"
-              aria-current={currentSlide === i ? "true" : undefined}
-            >
-              <span
-                class="h-3 rounded-full group-active:-translate-y-1 transition-all duration-200 {currentSlide ===
-                i
-                  ? `w-8 ${activeDotClass}`
-                  : `w-3 ${dotClass}`}"
-              ></span>
-            </button>
-          {/each}
-        </div>
+      {#if dotsShown && dotPlacement === "row"}
+        {@render dots("gap-2", "")}
       {/if}
 
       {#if arrowsShown && arrowPlacement === "row"}

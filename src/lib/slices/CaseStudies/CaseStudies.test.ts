@@ -135,6 +135,19 @@ describe("CaseStudies photos", () => {
     expect(shown()).toBe(0);
   });
 
+  it("the photo column fills the card's height and the dots float over the photo", () => {
+    const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
+    const column = container.querySelector("article > div") as HTMLElement;
+    for (const cls of ["relative", "self-stretch", "w-full", "aspect-[4/3]"])
+      expect(column.classList.contains(cls), cls).toBe(true);
+    const carousel = column.querySelector('[aria-roledescription="carousel"]') as HTMLElement;
+    expect(carousel.classList.contains("absolute!")).toBe(true);
+    expect(carousel.classList.contains("h-full")).toBe(true);
+    const pill = within(container).getByRole("button", { name: "Go to slide 1" }).parentElement!;
+    expect(pill.classList.contains("absolute")).toBe(true);
+    expect(container.querySelector("img")!.className).not.toContain("aspect-");
+  });
+
   it("controls are white on the moss card", () => {
     const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
     const view = within(container);
@@ -146,6 +159,5 @@ describe("CaseStudies photos", () => {
       next.parentElement,
     );
     expect(view.getByRole("button", { name: "Go to slide 2" }).innerHTML).toContain("bg-white/60");
-    expect(view.getByRole("button", { name: "Go to slide 1" }).closest(".\\!mt-0")).not.toBeNull();
   });
 });

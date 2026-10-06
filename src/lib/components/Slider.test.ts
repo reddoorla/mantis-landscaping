@@ -329,6 +329,33 @@ describe("Slider autoplay", () => {
     ).toBeNull();
   });
 
+  it("dotPlacement overlay floats the dots over the slides on a dark pill", () => {
+    const { getByLabelText } = renderSlider({ dotPlacement: "overlay" });
+    const pill = getByLabelText("Go to slide 1").parentElement!;
+    expect(pill.parentElement!.querySelector('[aria-roledescription="slide"]')).not.toBeNull();
+    expect(pill.classList.contains("absolute")).toBe(true);
+    expect(pill.classList.contains("bg-black/70")).toBe(true);
+    expect(pill.classList.contains("gap-0")).toBe(true);
+    expect(pill.className).toContain("max-w-[calc(100%-1.5rem)]");
+    expect(getByLabelText("Go to slide 2").className).toMatch(
+      /focus-visible:shadow-\[0_0_0_\d+px_rgb\(0_0_0\/0\.\d+\)\]/,
+    );
+  });
+
+  it("with arrows and dots both overlaid and no autoplay, no empty controls row renders", () => {
+    const { container } = renderSlider({ arrowPlacement: "overlay", dotPlacement: "overlay" });
+    expect(container.querySelector(".mt-8")).toBeNull();
+  });
+
+  it("fill stretches the carousel and its slides to the parent's height", () => {
+    const { container } = renderSlider({ mode: "fade", fill: true });
+    const root = container.querySelector('[aria-roledescription="carousel"]')!;
+    expect(root.classList.contains("h-full")).toBe(true);
+    const slide = container.querySelector('[aria-roledescription="slide"]')!;
+    expect(slide.classList.contains("h-full")).toBe(true);
+    expect(slide.parentElement!.className).toContain("grid-rows-[minmax(0,1fr)]");
+  });
+
   it("arrowClass reaches both arrows in either placement", () => {
     for (const arrowPlacement of ["row", "overlay"]) {
       const { getByLabelText } = renderSlider({ arrowPlacement, arrowClass: "x-probe" });

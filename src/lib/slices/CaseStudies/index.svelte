@@ -28,7 +28,7 @@
       widths={cappedWidths(field)}
       sizes={SINGLE_PHOTO_SIZES}
       loading="lazy"
-      class="aspect-[4/3] h-full w-full object-cover"
+      class="h-full w-full object-cover"
     />
   {/if}
 {/snippet}
@@ -51,15 +51,17 @@
           aria-labelledby="case-study-{i}"
         >
           {#if study.photos.length > 0}
-            <div class="relative min-w-0 md:col-span-3">
+            <div class="relative aspect-[4/3] w-full min-w-0 self-stretch md:col-span-3">
               {#if study.photos.length > 1}
                 <Slider
                   itemCount={study.photos.length}
                   label="{study.title} photos"
                   mode="fade"
                   transitionClass="duration-500 ease-in-out"
-                  navigationClass="!mt-0 py-2"
                   arrowPlacement="overlay"
+                  dotPlacement="overlay"
+                  fill
+                  class="absolute! inset-0"
                   dotClass="bg-white/60"
                   activeDotClass="bg-white"
                 >
@@ -68,7 +70,7 @@
                   {/snippet}
                 </Slider>
               {:else}
-                <div role="region" aria-label="{study.title} photos">
+                <div role="region" aria-label="{study.title} photos" class="absolute inset-0">
                   {@render photo(study.photos[0]?.photo)}
                 </div>
               {/if}
