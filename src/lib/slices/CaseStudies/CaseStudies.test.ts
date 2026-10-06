@@ -1,5 +1,5 @@
-import { render, within } from "@testing-library/svelte";
-import { SINGLE_PHOTO_SIZES, STRIP_PHOTO_SIZES } from "./sizes";
+import { fireEvent, render, within } from "@testing-library/svelte";
+import { SINGLE_PHOTO_SIZES } from "./sizes";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import type { ProjectDocument } from "../../../prismicio-types";
@@ -51,7 +51,7 @@ describe("CaseStudies slice", () => {
     for (const img of imgs) expect(img.getAttribute("alt")?.trim()).not.toBe("");
   });
 
-  it("titles each study and labels its photo strip for assistive tech", () => {
+  it("titles each study and names its photo carousel for assistive tech", () => {
     const { container } = render(CaseStudies, {
       props: {
         slice,
@@ -60,8 +60,8 @@ describe("CaseStudies slice", () => {
     });
     const { getByRole } = within(container);
     expect(getByRole("heading", { level: 2, name: "Roof Top Oasis" })).toBeTruthy();
-    const strip = getByRole("region", { name: "Roof Top Oasis photos" });
-    expect(strip.getAttribute("tabindex")).toBe("0");
+    const carousel = getByRole("region", { name: "Roof Top Oasis photos" });
+    expect(carousel.getAttribute("aria-roledescription")).toBe("carousel");
   });
 
   it("keeps an alt attribute on a photo whose alt was left blank", () => {
@@ -72,66 +72,66 @@ describe("CaseStudies slice", () => {
     expect(imgs.map((img) => img.getAttribute("alt"))).toEqual(["", "A roof deck"]);
   });
 
-  it("makes the photo strip a tab stop only when it can scroll", () => {
-    const { container } = render(CaseStudies, {
-      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
-    });
-    expect(container.querySelector('[role="region"]')?.hasAttribute("tabindex")).toBe(false);
-  });
-
   it("renders nothing outside a project", () => {
     const { container } = render(CaseStudies, { props: { slice } });
     expect(container.querySelector("section")).toBeNull();
   });
 });
 
-describe("CaseStudies photo strip width", () => {
-  it("lets a single photo fill its column, so the strip cannot scroll", () => {
+const two = () => project([photo(1, "Roof garden"), photo(2, "Fireplace")]);
+
+describe("CaseStudies photos", () => {
+  it("a single photo is a plain image with no carousel controls", () => {
     const { container } = render(CaseStudies, {
       props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
     });
-    const strip = container.querySelector('[role="region"]') as HTMLElement;
-    expect(strip.className).not.toMatch(/overflow-x-(auto|scroll)/);
-    const item = strip.querySelector("li") as HTMLElement;
-    expect(item.className.split(/\s+/)).toContain("w-full");
-    expect(item.className).not.toMatch(/(^|\s)(md:)?w-\[/);
-    expect(item.className).not.toMatch(/(^|\s)shrink-0/);
+    const view = within(container);
+    expect(view.getByRole("region", { name: "Roof Top Oasis photos" })).toBeTruthy();
+    expect(container.querySelector('[aria-roledescription="carousel"]')).toBeNull();
+    expect(view.queryByRole("button")).toBeNull();
+    expect(container.querySelector("img")?.getAttribute("sizes")).toBe(SINGLE_PHOTO_SIZES);
   });
 
-  it("a single photo describes its own slot; a strip photo describes the strip item", () => {
-    const single = render(CaseStudies, {
-      props: { slice, context: { project: project([photo(1, "Roof garden")]) } },
-    });
-    expect(single.container.querySelector("img")?.getAttribute("sizes")).toBe(SINGLE_PHOTO_SIZES);
-    single.unmount();
-    const strip = render(CaseStudies, {
-      props: {
-        slice,
-        context: { project: project([photo(1, "Roof garden"), photo(2, "Fireplace")]) },
-      },
-    });
-    for (const img of strip.container.querySelectorAll("img"))
-      expect(img.getAttribute("sizes")).toBe(STRIP_PHOTO_SIZES);
+  it("several photos are a fade carousel showing one photo at a time, not a scroll strip", () => {
+    const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
+    const carousel = container.querySelector('[aria-roledescription="carousel"]') as HTMLElement;
+    expect(carousel).not.toBeNull();
+    expect(container.innerHTML).not.toMatch(/overflow-x-(auto|scroll)|snap-x/);
+    const slides = [...carousel.querySelectorAll('[aria-roledescription="slide"]')];
+    expect(slides).toHaveLength(2);
+    expect(slides.map((el) => el.getAttribute("aria-hidden"))).toEqual([null, "true"]);
+    expect(slides[0].className).toContain("duration-500");
+    expect(slides[0].className).toContain("transition-opacity");
   });
 
-  it("makes a strip of several photos a named, focusable scroll region", () => {
-    const { container } = render(CaseStudies, {
-      props: {
-        slice,
-        context: { project: project([photo(1, "Roof garden"), photo(2, "Fireplace")]) },
-      },
-    });
-    const strip = within(container).getByRole("region", { name: "Roof Top Oasis photos" });
-    expect(strip.className).toMatch(/overflow-x-auto/);
-    expect(strip.getAttribute("tabindex")).toBe("0");
+  it("every carousel photo describes the full column in sizes", () => {
+    const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
+    const imgs = [...container.querySelectorAll("img")];
+    expect(imgs).toHaveLength(2);
+    for (const img of imgs) expect(img.getAttribute("sizes")).toBe(SINGLE_PHOTO_SIZES);
   });
 
-  it("frames the strip so its focus ring is drawn above the photos", () => {
-    const { container } = render(CaseStudies, {
-      props: { slice, context: { project: project([photo(1, "a"), photo(2, "b")]) } },
-    });
-    const strip = container.querySelector(".scroll-strip") as HTMLElement;
-    expect(strip.parentElement?.classList.contains("scroll-strip-frame")).toBe(true);
-    expect(strip.parentElement?.classList.contains("relative")).toBe(true);
+  it("the arrows and dots change the photo, and nothing autoplays", async () => {
+    const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
+    const view = within(container);
+    expect(view.queryByRole("button", { name: /Pause slides/ })).toBeNull();
+    const shown = () =>
+      [...container.querySelectorAll('[aria-roledescription="slide"]')].findIndex(
+        (el) => el.getAttribute("aria-hidden") === null,
+      );
+    await fireEvent.click(view.getByRole("button", { name: "Next slide" }));
+    expect(shown()).toBe(1);
+    await fireEvent.click(view.getByRole("button", { name: "Go to slide 1" }));
+    expect(shown()).toBe(0);
+  });
+
+  it("controls are white on the moss card", () => {
+    const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
+    const view = within(container);
+    expect(view.getByRole("button", { name: "Next slide" }).className).toContain("text-white");
+    expect(view.getByRole("button", { name: "Go to slide 2" }).innerHTML).toContain("bg-white/60");
+    expect(view.getByRole("button", { name: "Next slide" }).parentElement!.className).toContain(
+      "!mt-0",
+    );
   });
 });
