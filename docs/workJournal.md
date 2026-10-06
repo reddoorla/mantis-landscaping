@@ -851,3 +851,13 @@ The review's useful find was keyboard cost. Every dot was a tab stop, so edible-
 Both were caught by checking `git diff --shortstat` and the baseline before trusting a result.
 
 Still open: the type scale on `/` (style census 105 rows), `/dev/match/home` returning 500 (#27), and a hidden autoplaying `Slider` that keeps rotating (#31).
+
+## 2026-10-06 — Slideshow arrows float over the photo (#34, `f2cb9d3`)
+
+The operator asked for the project slideshows' arrows to float over the images. `Slider` gained an `arrowPlacement` prop: `"row"`, the default, which the home carousels keep, or `"overlay"`. The two arrow buttons became snippets that both placements share, so each button is still written once.
+
+Overlay arrows are 40px white chevrons on a `black/50` disc, vertically centred and 12px in from each edge. The disc is there because a bare white chevron disappears on a bright sky. The review sampled 132 real arrow positions; the lightest pixel under a disc was (255,255,253), which gives 3.95:1. That is the floor, and it passes the 3:1 non-text rule.
+
+The review found what the chevron numbers hid: the focus ring. The site's white outline sits 2px _outside_ the button, directly on the photo, and fell below 3:1 against it at 112 of the 132 positions. Overlay arrows now add a 6px `rgb(0 0 0/0.6)` halo on `:focus-visible`, so the ring always sits on dark, at about 5.7:1 even over white. That was read back as the computed `box-shadow` in Chromium.
+
+A mutation that removed the disc survived the first test. The assertion was a substring check, and `aria-disabled:hover:bg-black/50` satisfied it on its own; it now checks the class token. Another survivor showed that `arrowClass` had lost its only caller and its only test, so a test now covers both placements.
