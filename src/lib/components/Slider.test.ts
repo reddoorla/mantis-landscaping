@@ -309,6 +309,26 @@ describe("Slider autoplay", () => {
     expect(getByLabelText("Go to slide 2").getAttribute("aria-current")).toBe("true");
   });
 
+  it("arrows sit in the dots row by default, and float over the slides with arrowPlacement overlay", () => {
+    const row = renderSlider({});
+    const rowNext = row.getByLabelText("Next slide");
+    expect(rowNext.parentElement!.querySelector('[aria-label="Go to slide 1"]')).not.toBeNull();
+    cleanup();
+    const over = renderSlider({ arrowPlacement: "overlay" });
+    const next = over.getByLabelText("Next slide");
+    const prev = over.getByLabelText("Previous slide");
+    expect(next.parentElement!.querySelector('[aria-roledescription="slide"]')).not.toBeNull();
+    expect(prev.parentElement).toBe(next.parentElement);
+    expect(next.className).toMatch(/(^|\s)absolute(\s|$)/);
+    expect(next.className).toContain("right-3");
+    expect(prev.className).toContain("left-3");
+    expect(
+      over
+        .getByLabelText("Go to slide 1")
+        .parentElement!.querySelector("[aria-label='Next slide']"),
+    ).toBeNull();
+  });
+
   it("the arrow glyphs are hidden from assistive tech inside their labelled buttons", () => {
     const { getByLabelText } = renderSlider({});
     expect(getByLabelText("Next slide").querySelector("svg")?.getAttribute("aria-hidden")).toBe(

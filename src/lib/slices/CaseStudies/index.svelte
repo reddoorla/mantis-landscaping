@@ -59,7 +59,7 @@
                   mode="fade"
                   transitionClass="duration-500 ease-in-out"
                   navigationClass="!mt-0 py-2"
-                  arrowClass="text-white hover:bg-white/10"
+                  arrowPlacement="overlay"
                   dotClass="bg-white/60"
                   activeDotClass="bg-white"
                 >
