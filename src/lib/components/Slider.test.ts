@@ -334,7 +334,12 @@ describe("Slider autoplay", () => {
     const pill = getByLabelText("Go to slide 1").parentElement!;
     expect(pill.parentElement!.querySelector('[aria-roledescription="slide"]')).not.toBeNull();
     expect(pill.classList.contains("absolute")).toBe(true);
-    expect(pill.classList.contains("bg-black/60")).toBe(true);
+    expect(pill.classList.contains("bg-black/70")).toBe(true);
+    expect(pill.classList.contains("gap-0")).toBe(true);
+    expect(pill.className).toContain("max-w-[calc(100%-1.5rem)]");
+    expect(getByLabelText("Go to slide 2").className).toMatch(
+      /focus-visible:shadow-\[0_0_0_\d+px_rgb\(0_0_0\/0\.\d+\)\]/,
+    );
   });
 
   it("with arrows and dots both overlaid and no autoplay, no empty controls row renders", () => {

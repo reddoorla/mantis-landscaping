@@ -33,8 +33,8 @@
     /** "row" puts the dots in the controls row; "overlay" floats them over the
      *  bottom of the slides on a dark pill. */
     dotPlacement?: "row" | "overlay";
-    /** Fill the parent's height: the slides stretch to it instead of sizing
-     *  the carousel. */
+    /** Fill the parent's height. In fade mode the slides stretch to it
+     *  instead of sizing the carousel; slide mode is not stretched. */
     fill?: boolean;
     /** Tailwind duration/easing utilities for the slide/fade movement. */
     transitionClass?: string;
@@ -201,7 +201,8 @@
     autoplayEligible || (arrowsShown && arrowPlacement === "row") || dotsInRow,
   );
   const OVERLAY_DOTS =
-    "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-2";
+    "absolute bottom-3 left-1/2 z-10 -translate-x-1/2 max-w-[calc(100%-1.5rem)] gap-0 rounded-full bg-black/70 px-2";
+  const OVERLAY_DOT = "focus-visible:shadow-[0_0_0_6px_rgb(0_0_0/0.6)]";
   const atStart = $derived(!loop && currentSlide === 0);
   const atEnd = $derived(!loop && currentSlide === maxSlide);
 
@@ -209,8 +210,8 @@
     i >= currentSlide && i < currentSlide + responsiveCardsPerView;
 </script>
 
-{#snippet dots(wrap: string)}
-  <div class="flex gap-2 {wrap}">
+{#snippet dots(wrap: string, button: string)}
+  <div class="flex {wrap}">
     {#each Array(maxSlide + 1) as _, i (i)}
       <!-- 24px hit target (WCAG 2.5.8); the visual dot is the span. -->
       <button
@@ -219,7 +220,7 @@
         tabindex={currentSlide === i ? 0 : -1}
         onclick={() => goToSlide(i)}
         onkeydown={handleKeydown}
-        class="group h-6 min-w-6 flex items-center justify-center {currentSlide === i
+        class="group h-6 min-w-6 flex items-center justify-center {button} {currentSlide === i
           ? 'cursor-default'
           : ''}"
         aria-label="Go to slide {i + 1}"
@@ -331,7 +332,7 @@
       {@render nextArrow(`${OVERLAY_ARROW} right-3`)}
     {/if}
     {#if dotsShown && dotPlacement === "overlay"}
-      {@render dots(OVERLAY_DOTS)}
+      {@render dots(OVERLAY_DOTS, OVERLAY_DOT)}
     {/if}
   </div>
 
@@ -374,7 +375,7 @@
       {/if}
 
       {#if dotsShown && dotPlacement === "row"}
-        {@render dots("")}
+        {@render dots("gap-2", "")}
       {/if}
 
       {#if arrowsShown && arrowPlacement === "row"}
