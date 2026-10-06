@@ -823,3 +823,31 @@ The anchor-offset and gutter bullets above were wrong as written; the review par
 **The second review found that the fix moved the problem.** `main [id]` covers targets inside `main`, but the site's only real in-page anchor is the skip link, and its target is `<main id="main-content">` itself. After the round-1 fix, Enter on the skip link left `scrollY=70` with main's top 70px and its focus ring under the nav, which was worse than round 1. The mid-page anchor test never exercised it. The rule is now `main, main [id]`, with a smoke test that follows the skip link. Under the two-dirty-rounds rule, the PR went to Operator decisions instead of a third review. The three bullets above about `scroll-padding-top` and the gutter are left as they were believed when written; this entry's later paragraphs correct them.
 
 The operator then asked for a third review round (OD 80, answer (b)). It came back clean, with two nits: the skip-link test now also asserts that focus lands on `main`, and this entry points from its bullets to the corrections.
+
+## 2026-10-06 — Home carousels and project galleries on the shared Slider (#30 `1150d1a`, #32 `9569aac`)
+
+The operator asked for the home page's two responsive carousels to be matched, and then for the project pages' side-scrolling photo strips to become carousels "using the prebuilt component for logic". Both now run on `$lib/components/Slider`; nothing was hand-rolled.
+
+**The breakpoint was not a viewport width.** SPEC had read the reference's "below 900px / 600px" as viewport widths. Its `sliderAt` compares the grid's own `offsetWidth` with the configured width (`calcWidth<=self.config.width`). Measured on the live reference, the pillars switch at a viewport of ≤978 and the values at ≤652, where the grid is 900 and 600 wide. The first draft used `max-[899px]:hidden` / `min-[900px]:hidden`. That draft switched on the wrong quantity, and it also showed the grid and the carousel together at exactly 899 and 599, because Tailwind v4's `max-[899px]` means `width < 899`. The build now uses `@container` on the content box with `[@container(width<=900px)]`. Our content box is `vw − 63` against the reference's 92% of vw, so today the candidate switches at ≤963/≤663. That gap closes when the section box is matched, and the LEDGER records it.
+
+**Three review rounds on #30, each finding something real.**
+
+- Round 1: Pause did not pause when the press landed on the button's padding. Focus set `userPaused`, and the click then flipped it back; tabbing onto the button flipped its label as well. The fix makes focus on the rotation button itself not count as a focus-pause.
+- Round 1 also found that both carousels were named "Highlights" (axe `landmark-unique`), and that inactive dots on gold-deep were 2.53:1.
+- Round 2: the colour fix had painted nothing. `bg-footer` is a token that #29 adds, and this branch was based on `main`, which did not have it yet, so Tailwind generated no class and the inactive dots were `rgba(0,0,0,0)`. The unit test only checked the class string, so it passed. The class is now `bg-[#ededed]`, confirmed in the built CSS and as a computed colour.
+- Round 3 (the operator chose a third round over landing) was clean.
+
+The home release (`asQ6NhIAAIoP2_HX`: pillars 900, values 600 with autoplay 2000) is staged and was presented for the operator to publish.
+
+**Project galleries.** The reference gives each case study a slideshow (`columns 1, Fade, speed 500, autoplay 0`). We take its fade and timing, keep our 4:3 photos and put the controls in a row under the photo; we do not copy its square ratio or its overlay controls. On a production build with live content, every study on both project pages is a carousel (13 studies, 2–9 photos each), with CLS 0 and no blank flash. Lazy images in opacity-0 slides load early, which costs data: 5.6 MB against 3.1 MB after a full scroll at 1440. That was accepted.
+
+The review's useful find was keyboard cost. Every dot was a tab stop, so edible-gardens went from 17 tab stops to 63. `Slider` dots now use a roving tabindex, and the arrow keys move focus along the dots. Measured at 1440: 63 → 33 on edible-gardens and 47 → 24 on water-wise-gardens. The home carousels get the same improvement. The `.scroll-strip` focus-ring CSS from #3 is gone along with the strip.
+
+**Instruments that lied.**
+
+- A mutation run whose baseline was already red (the dot test read the button's class, not the inner span's) counted D6 as red for the wrong reason.
+- Twice a mutation silently failed to apply, because prettier had reflowed the text it searched for.
+
+Both were caught by checking `git diff --shortstat` and the baseline before trusting a result.
+
+Still open: the type scale on `/` (style census 105 rows), `/dev/match/home` returning 500 (#27), and a hidden autoplaying `Slider` that keeps rotating (#31).
