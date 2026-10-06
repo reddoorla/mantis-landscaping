@@ -389,27 +389,6 @@ main > section.hero-band:first-child {
     outline-color: var(--color-white);
   }
 
-  :where(.scroll-strip):focus-visible {
-    outline-offset: -4px;
-  }
-
-  :where(.scroll-strip-frame):has(> .scroll-strip:focus-visible)::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: 0.5rem;
-    box-shadow:
-      inset 0 0 0 2px var(--color-white),
-      inset 0 0 0 4px var(--color-dark);
-  }
-
-  @supports selector(:has(*)) {
-    :where(.scroll-strip-frame) > :where(.scroll-strip):focus-visible {
-      outline-color: transparent;
-    }
-  }
-
   a,
   button {
     cursor: pointer;

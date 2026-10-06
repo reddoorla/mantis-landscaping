@@ -1,8 +1,9 @@
 <script lang="ts">
   import { PrismicImage, PrismicRichText } from "@prismicio/svelte";
-  import { isFilled, type Content } from "@prismicio/client";
+  import { isFilled, type Content, type ImageField } from "@prismicio/client";
   import { cappedWidths } from "@reddoorla/maintenance/images";
-  import { SINGLE_PHOTO_SIZES, STRIP_PHOTO_SIZES } from "./sizes";
+  import Slider from "$lib/components/Slider.svelte";
+  import { SINGLE_PHOTO_SIZES } from "./sizes";
   import type { SliceContext } from "$lib/slice-context";
 
   let { slice, context = {} }: { slice: Content.CaseStudiesSlice; context?: SliceContext } =
@@ -13,11 +14,24 @@
       .filter((study) => !!study.title)
       .map((study) => {
         const photos = (study.photos ?? []).filter((entry) => isFilled.image(entry.photo));
-        return { ...study, photos, scrolls: photos.length > 1 };
+        return { ...study, photos };
       }),
   );
   const hasHeading = $derived(isFilled.richText(slice.primary.heading));
 </script>
+
+{#snippet photo(field: ImageField | undefined)}
+  {#if field}
+    <PrismicImage
+      {field}
+      fallbackAlt=""
+      widths={cappedWidths(field)}
+      sizes={SINGLE_PHOTO_SIZES}
+      loading="lazy"
+      class="aspect-[4/3] h-full w-full object-cover"
+    />
+  {/if}
+{/snippet}
 
 {#if studies.length > 0}
   <section
@@ -36,35 +50,35 @@
           class="grid grid-cols-1 overflow-hidden rounded-lg bg-moss text-white md:grid-cols-5"
           aria-labelledby="case-study-{i}"
         >
-          <div class="scroll-strip-frame relative min-w-0 md:col-span-3">
-            <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-            <div
-              class="scroll-strip flex h-full {study.scrolls
-                ? 'snap-x snap-mandatory overflow-x-auto'
-                : ''}"
-              role="region"
-              aria-label="{study.title} photos"
-              tabindex={study.scrolls ? 0 : undefined}
-            >
-              <ul class="flex w-full">
-                {#each study.photos as entry, p (p)}
-                  <li
-                    class={study.scrolls ? "w-[85vw] shrink-0 snap-start md:w-[36rem]" : "w-full"}
-                  >
-                    <PrismicImage
-                      field={entry.photo}
-                      fallbackAlt=""
-                      widths={cappedWidths(entry.photo)}
-                      sizes={study.scrolls ? STRIP_PHOTO_SIZES : SINGLE_PHOTO_SIZES}
-                      loading="lazy"
-                      class="aspect-[4/3] h-full w-full object-cover"
-                    />
-                  </li>
-                {/each}
-              </ul>
+          {#if study.photos.length > 0}
+            <div class="relative min-w-0 md:col-span-3">
+              {#if study.photos.length > 1}
+                <Slider
+                  itemCount={study.photos.length}
+                  label="{study.title} photos"
+                  mode="fade"
+                  transitionClass="duration-500 ease-in-out"
+                  navigationClass="!mt-0 py-2"
+                  arrowClass="text-white hover:bg-white/10"
+                  dotClass="bg-white/60"
+                  activeDotClass="bg-white"
+                >
+                  {#snippet children({ index })}
+                    {@render photo(study.photos[index].photo)}
+                  {/snippet}
+                </Slider>
+              {:else}
+                <div role="region" aria-label="{study.title} photos">
+                  {@render photo(study.photos[0]?.photo)}
+                </div>
+              {/if}
             </div>
-          </div>
-          <div class="flex flex-col gap-4 p-8 md:col-span-2">
+          {/if}
+          <div
+            class="flex flex-col gap-4 p-8 {study.photos.length > 0
+              ? 'md:col-span-2'
+              : 'md:col-span-5'}"
+          >
             {#if study.label}
               <p class="eyebrow">{study.label}</p>
             {/if}
