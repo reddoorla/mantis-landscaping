@@ -883,3 +883,21 @@ A production-build probe then checked every card on both project pages at five w
 With the pill's width cap removed, water-wise at 320 goes red and the other seven cases stay green.
 
 I pushed one commit before reading its `pnpm verify` result. It had failed on a svelte-check ordering error, and the next commit fixed it. Chaining commit after verify with `;` instead of `&&` is how that happened.
+
+## 2026-10-12 — SvelteKit 3 and adapter-netlify 7 on `staging`, and the staging flow (#42, #43; promotion #44)
+
+The second repo of the fleet's kit 3 migration and the feature → staging → main flow (reddoor-maintenance Operator decisions 113 and 116, #545), done after vida-legacy-foundation by the same runbook. `staging` was cut from `main` at `6e87f02`, Netlify builds branch deploys for `main` and `staging` (`staging--mantis-landscaping.netlify.app`), and `main-gate` (#42, byte-identical to vida's) and the migration (#43) landed on `staging`. Only the operator merges the promotion, #44.
+
+**`main` here has no protection at all.** There is no ruleset, and `branches/main` reads `protected: false`; vida's reads `true` as the control. The fleet Renovate preset assumes a required check on every default branch, and its own description says Renovate attempts a merge before CI has started. So a routine group with no held package could reach production unbuilt. The fix is a ruleset, which is the operator's; #44 carries the command.
+
+**The port was nearly the starter's.** `sveltekit.config.js` was generated from this repo's own `svelte.config.js` by the starter's transform. It differs from reddoor-starter#187's only where mantis already did: `slicemachine.config.json` and `inlineStyleThreshold`. robots and sitemap are per request here, so `Seo`'s `siteOrigin` is the only prerendered origin. What the starter's patch could not reach:
+
+- the `contact-us/` action's `$env/dynamic/private` read, and four tests mocking `$env/dynamic/*`;
+- `$app/environment` in three files;
+- the `preview` matcher, which had no test. Under kit 3 a `false` return is a match, so `src/params.test.ts` now runs it through kit's validate path, and the boolean form goes red.
+
+**Review round 1 was clean.** Its two nits, folded in: the remaining `error(404, { message })` calls, and `docs/security.md` and `docs/NEW-SITE.md` pointing CSP edits at a file that no longer exists.
+
+**Smoke on staging matched production.** Run against `staging--…` and, as the control, `mantis-landscaping.netlify.app` (kit 2): 53 passed on each, and the same 2 failed on each. Those 2 load `/dev/a11y-fixtures`, which is never deployed.
+
+**Left behind.** The head branches `claude/staging-flow` and `claude/kit-3` are still on GitHub. This repo does not auto-delete head branches, and the cloud proxy refuses the delete with a 403.
