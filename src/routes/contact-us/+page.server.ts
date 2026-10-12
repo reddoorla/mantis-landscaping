@@ -1,4 +1,4 @@
-import { env } from "$env/dynamic/private";
+import * as env from "$app/env/private";
 import { fail, isHttpError, type RequestEvent } from "@sveltejs/kit";
 import { createIngestAction, type IngestActionData } from "@reddoorla/maintenance/forms";
 import { loadPage } from "$lib/page-load";

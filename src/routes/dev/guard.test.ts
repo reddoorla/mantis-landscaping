@@ -10,7 +10,7 @@ const FLAG = "VITE_REDDOOR_GATE_FIXTURES";
 
 async function loadUnder(dev: boolean): Promise<() => void> {
   vi.resetModules();
-  vi.doMock("$app/environment", () => ({ dev, browser: false, building: false, version: "" }));
+  vi.doMock("$app/env", () => ({ dev, browser: false, building: false, version: "" }));
   const mod = await import("./+layout.server");
   return mod.load as () => void;
 }
@@ -27,7 +27,7 @@ function statusOf(run: () => void): number | "none" {
 describe("/dev guard", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.doUnmock("$app/environment");
+    vi.doUnmock("$app/env");
   });
 
   it("a production build without the flag answers 404", async () => {
@@ -73,7 +73,7 @@ function importConfigUnder(env: { netlify?: boolean; flag?: boolean }) {
   delete child[FLAG];
   if (env.netlify) child.NETLIFY = "true";
   if (env.flag) child[FLAG] = "1";
-  const r = spawnSync(process.execPath, ["-e", `import("./svelte.config.js")`], {
+  const r = spawnSync(process.execPath, ["-e", `import("./sveltekit.config.js")`], {
     cwd: repoRoot,
     env: child,
     encoding: "utf-8",
@@ -81,7 +81,7 @@ function importConfigUnder(env: { netlify?: boolean; flag?: boolean }) {
   return { status: r.status, stderr: r.stderr };
 }
 
-describe("svelte.config.js and the gate's flag", () => {
+describe("sveltekit.config.js and the gate's flag", () => {
   it("loads with the flag off Netlify: the a11y gate's build, in CI or locally", () => {
     const r = importConfigUnder({ flag: true });
     expect(r.stderr).toBe("");

@@ -2,9 +2,11 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vitest/config";
 import { imagetools } from "@zerodevx/svelte-img/vite";
 import tailwindcss from "@tailwindcss/vite";
+import kitConfig, { productionOrigin } from "./sveltekit.config.js";
 
 export default defineConfig({
-  plugins: [sveltekit(), imagetools(), tailwindcss()],
+  plugins: [sveltekit(kitConfig), imagetools(), tailwindcss()],
+  define: { __REDDOOR_SITE_ORIGIN__: JSON.stringify(productionOrigin) },
   server: {
     fs: {
       // Allow access to files from the project root.
