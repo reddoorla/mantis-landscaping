@@ -1,6 +1,6 @@
 // @vitest-environment node
 //
-// Node, not jsdom: this test imports the real svelte.config.js, which pulls in
+// Node, not jsdom: this test imports the real sveltekit.config.js, which pulls in
 // @sveltejs/adapter-netlify and therefore esbuild — and esbuild refuses to load
 // under jsdom ("new TextEncoder().encode('') instanceof Uint8Array is
 // incorrectly false", a cross-realm Uint8Array). Asserting against the actual
@@ -18,13 +18,14 @@ import { SVELTE_EVENT_REPLAY_HASH } from "@reddoorla/maintenance/configs/svelte"
 // pre-hydration load is dropped and one violation is POSTed to /api/csp-report
 // per image, per page view (12 on `/` alone, measured on beachfront-dentistry
 // 2026-08-13), burying real violations under the noise.
+// Kit 3's options are top-level: no `kit` namespace.
 type CspConfig = {
-  kit?: { csp?: { directives?: Record<string, string[]> } };
+  csp?: { directives?: Record<string, string[]> };
 };
-const { default: config } = (await import("../svelte.config.js")) as unknown as {
+const { default: config } = (await import("../sveltekit.config.js")) as unknown as {
   default: CspConfig;
 };
-const scriptSrc = config.kit?.csp?.directives?.["script-src"] ?? [];
+const scriptSrc = config.csp?.directives?.["script-src"] ?? [];
 
 describe("the template's Content-Security-Policy", () => {
   it("allows Svelte's SSR event-replay stub by its exact hash", () => {
@@ -43,7 +44,7 @@ describe("the template's Content-Security-Policy", () => {
   // apart from a stale one, and the stub's text is upstream's to change.
   it("takes the hash from the shared config package, not a local copy", async () => {
     const source = await import("node:fs").then((fs) =>
-      fs.readFileSync(new URL("../svelte.config.js", import.meta.url), "utf-8"),
+      fs.readFileSync(new URL("../sveltekit.config.js", import.meta.url), "utf-8"),
     );
     expect(source).toContain("SVELTE_EVENT_REPLAY_HASH");
     expect(source).not.toContain(SVELTE_EVENT_REPLAY_HASH);
@@ -51,7 +52,7 @@ describe("the template's Content-Security-Policy", () => {
 });
 
 describe("the Prismic toolbar under this site's policy", () => {
-  const directives = config.kit?.csp?.directives ?? {};
+  const directives = config.csp?.directives ?? {};
   const slicemachine = JSON.parse(
     readFileSync(new URL("../slicemachine.config.json", import.meta.url), "utf8"),
   ) as { repositoryName: string };
@@ -87,13 +88,13 @@ describe("the Prismic toolbar under this site's policy", () => {
     const load = async (name: string) => {
       vi.stubEnv("VITE_PRISMIC_ENVIRONMENT", name);
       vi.resetModules();
-      return (await import("../svelte.config.js")).default;
+      return (await import("../sveltekit.config.js")).default;
     };
 
     it("frames that repository, not slicemachine's", async () => {
       const loaded = await load("other-repo");
       expect(
-        (loaded.kit?.csp?.directives?.["frame-src"] ?? []).filter((s: string) =>
+        (loaded.csp?.directives?.["frame-src"] ?? []).filter((s: string) =>
           s.includes("prismic.io"),
         ),
       ).toEqual(["https://other-repo.prismic.io"]);

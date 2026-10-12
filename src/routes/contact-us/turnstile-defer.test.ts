@@ -7,7 +7,7 @@ const appState = vi.hoisted(() => ({
 }));
 vi.mock("$app/state", () => appState);
 vi.mock("$app/forms", () => ({ enhance: () => ({ destroy() {} }) }));
-vi.mock("$env/dynamic/public", () => ({ env: { PUBLIC_TURNSTILE_SITE_KEY: "site-key" } }));
+vi.mock("$app/env/public", () => ({ PUBLIC_TURNSTILE_SITE_KEY: "site-key" }));
 
 const { default: ContactPage } = await import("./+page.svelte");
 

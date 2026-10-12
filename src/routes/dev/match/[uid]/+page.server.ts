@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { dev } from "$app/environment";
+import { dev } from "$app/env";
 import { documents } from "$lib/site-pages.js";
 
 // Local matching surface: renders the assemblies in $lib/site-pages.js — the

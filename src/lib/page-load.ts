@@ -43,7 +43,7 @@ export async function loadPage(client: PageClient, uid: string) {
   try {
     page = await client.getByUID("page", uid);
   } catch (err) {
-    if (isMiss(err)) error(404, { message: "Page not found" });
+    if (isMiss(err)) error(404, "Page not found");
     throw err;
   }
   const listsProjects = page.data.slices.some((slice) => slice.slice_type === "project_list");
@@ -58,7 +58,7 @@ export async function loadProject(client: ProjectClient, uid: string) {
   try {
     project = await client.getByUID("project", uid);
   } catch (err) {
-    if (isMiss(err)) error(404, { message: "Page not found" });
+    if (isMiss(err)) error(404, "Page not found");
     throw err;
   }
   const context: SliceContext = { project };

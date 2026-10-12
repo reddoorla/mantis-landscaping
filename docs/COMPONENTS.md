@@ -64,7 +64,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`prismicio.ts`](../src/lib/prismicio.ts) | `repositoryName`, `isPlaceholderRepo`, `linkResolver`, `createClient` | 5 |  |
 | [`redirects.ts`](../src/lib/redirects.ts) | `PERMANENT_REDIRECTS`, `redirectFor` | 3 |  |
 | [`routes.ts`](../src/lib/routes.ts) | `CONTACT_UID`, `ROUTED_ELSEWHERE` | — |  |
-| [`seo.ts`](../src/lib/seo.ts) | `SITE_NAME`, `SITE_LOCALE`, `DEFAULT_DESCRIPTION`, `DEFAULT_OG_IMAGE`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`, `NOINDEX_PREFIXES`, `isNoindexPath`, `NOINDEX_ENFORCED`, `composeTitle`, `jsonLdScript`, `canonicalUrl`, `resolveOgImage`, `organizationJsonLd` | 24 | Site-wide SEO configuration + helpers |
+| [`seo.ts`](../src/lib/seo.ts) | `SITE_NAME`, `SITE_LOCALE`, `DEFAULT_DESCRIPTION`, `DEFAULT_OG_IMAGE`, `OG_IMAGE_WIDTH`, `OG_IMAGE_HEIGHT`, `NOINDEX_PREFIXES`, `isNoindexPath`, `NOINDEX_ENFORCED`, `composeTitle`, `jsonLdScript`, `PRERENDER_PLACEHOLDER_ORIGIN`, `siteOrigin`, `canonicalUrl`, `resolveOgImage`, `organizationJsonLd` | 27 | Site-wide SEO configuration + helpers |
 | [`page-url.ts`](../src/lib/server/page-url.ts) | `pageUrl` | 2 |  |
 | [`reply-copy.ts`](../src/lib/server/reply-copy.ts) | `replyCopyFor` | — |  |
 | [`site-config.ts`](../src/lib/site-config.ts) | `loadSiteConfig`, `footerColumns` | 5 | Site chrome (navigation + footer) from a checked-in JSON stub |
@@ -82,4 +82,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-61 modules, 393 tests behind them.
+61 modules, 396 tests behind them.

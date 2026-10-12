@@ -5,7 +5,7 @@ import { createClient, isPlaceholderRepo } from "$lib/prismicio";
 
 export async function load({ fetch, cookies }) {
   // An unconfigured template has no content: answer 404 (which the
-  // placeholder-repo prerender rule in svelte.config.js tolerates) instead of
+  // placeholder-repo prerender rule in sveltekit.config.js tolerates) instead of
   // querying a repository that does not exist and failing the build with a 500.
   if (isPlaceholderRepo) error(404, { message: "Page not found" });
 
