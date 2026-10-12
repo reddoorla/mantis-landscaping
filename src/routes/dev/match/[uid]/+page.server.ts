@@ -25,7 +25,7 @@ export async function load({ params }) {
   // FIRST statement: everything below reads fixtures that must not be reachable
   // from a production build. The launch recipe asserts this route 404s on the
   // deployed URL, with /dev/a11y-fixtures as the 200 control.
-  if (!dev) error(404, { message: "Not found" });
+  if (!dev) error(404, "Not found");
 
   const docs = documents(devImg) as Array<{ uid: string; data: { slices?: unknown[] } }>;
   const doc = docs.find((d) => d.uid === params.uid);
@@ -35,9 +35,10 @@ export async function load({ params }) {
   // pass the deployed check forever; the token is what tells the two apart.
   // Reword the prose freely — the token is the contract (#719).
   if (!doc)
-    error(404, {
-      message: `reddoor-match-twin:no-assembly: no assembly for "${params.uid}" (have: ${docs.map((d) => d.uid).join(", ") || "none"})`,
-    });
+    error(
+      404,
+      `reddoor-match-twin:no-assembly: no assembly for "${params.uid}" (have: ${docs.map((d) => d.uid).join(", ") || "none"})`,
+    );
 
   return { uid: params.uid, slices: doc.data.slices ?? [] };
 }
