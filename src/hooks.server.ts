@@ -1,5 +1,5 @@
-import type { Handle } from "@sveltejs/kit";
-import { building } from "$app/environment";
+import type { Handle } from "@sveltejs/kit/hooks";
+import { building } from "$app/env";
 import { redirectFor } from "$lib/redirects";
 import { actionHref } from "$lib/action-url";
 import { CONTACT_UID } from "$lib/routes";

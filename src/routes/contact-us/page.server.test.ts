@@ -15,7 +15,7 @@ vi.mock("$lib/prismicio", () => ({
   },
   createClient: () => ({ getByUID: state.getByUID, getAllByType: state.getAllByType }),
 }));
-vi.mock("$env/dynamic/private", () => ({ env: {} }));
+vi.mock("$app/env/private", () => ({ FORMS_INGEST_URL: undefined, FORMS_INGEST_TOKEN: undefined }));
 vi.mock("$lib/server/reply-copy", () => ({
   replyCopyFor: async (_event: unknown, formType: string) => `${formType} copy from Prismic`,
 }));

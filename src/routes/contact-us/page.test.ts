@@ -11,7 +11,7 @@ vi.mock("$app/forms", () => ({
   enhance: () => ({ destroy() {} }),
 }));
 // No sitekey → TurnstileWidget renders nothing, as in dev and in CI.
-vi.mock("$env/dynamic/public", () => ({ env: {} }));
+vi.mock("$app/env/public", () => ({ PUBLIC_TURNSTILE_SITE_KEY: undefined }));
 
 const { default: ContactPage } = await import("./+page.svelte");
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("$app/environment", () => ({ building: true, browser: false, dev: false }));
+vi.mock("$app/env", () => ({ building: true, browser: false, dev: false }));
 
 const { handle } = await import("./hooks.server");
 
