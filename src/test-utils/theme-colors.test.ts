@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  audit,
   colourOf,
   computed,
   contrast,
@@ -99,8 +100,17 @@ describe("theme-colors", () => {
     const dot = el(
       '<button class="group"><span data-probe class="bg-gray-500 group-hover:bg-gray-700"></span></button>',
     );
-    expect(colourOf(dot, "background-color")).toEqual(themeColour("gray-500"));
+    // The pointer can rest on the button and not the dot: the group's state
+    // is the caller's to give, unless the dot's own hover implies it.
+    expect(() => colourOf(dot, "background-color")).toThrow(/group: \{ hover \}/);
+    expect(colourOf(dot, "background-color", { group: {} })).toEqual(themeColour("gray-500"));
+    expect(colourOf(dot, "background-color", { group: { hover: true } })).toEqual(
+      themeColour("gray-700"),
+    );
     expect(colourOf(dot, "background-color", { hover: true })).toEqual(themeColour("gray-700"));
+    expect(() =>
+      colourOf(dot, "background-color", { hover: true, group: { hover: false } }),
+    ).toThrow(/cannot hold/);
   });
 
   it("refuses to guess a width-dependent value, and answers at a given width", () => {
@@ -328,6 +338,143 @@ describe("theme-colors", () => {
     expect(() => textColour(em, { containerWidth: 400 })).toThrow(/em container query/);
   });
 
+  // Review round 4 of #62: a state on another element never applied, and
+  // effects repainted the text with no colour class; each was a false green.
+  it("models a state on another element (peer, group, in, arbitrary), and throws without it", () => {
+    const dark = themeColour("dark");
+    const white = themeColour("white");
+    const cases = [
+      [
+        '<div class="peer">h</div><a data-probe class="text-white peer-hover:text-dark">x</a>',
+        { peer: { hover: true } },
+        /peer: \{ hover \}/,
+      ],
+      [
+        '<input class="peer" /><a data-probe class="text-white peer-focus:text-dark">x</a>',
+        { peer: { focus: true } },
+        /peer: \{ focus \}/,
+      ],
+      [
+        '<input class="peer" /><a data-probe class="text-white peer-focus-visible:text-dark">x</a>',
+        { peer: { focusVisible: true } },
+        /peer: \{ focusVisible \}/,
+      ],
+      [
+        '<a class="group"><span data-probe class="text-white group-focus-visible:text-dark">x</span></a>',
+        { group: { focusVisible: true } },
+        /group: \{ focusVisible \}/,
+      ],
+      [
+        '<a class="group"><span data-probe class="text-white group-focus:text-dark">x</span></a>',
+        { group: { focus: true } },
+        /group: \{ focus \}/,
+      ],
+      [
+        '<a class="group/card"><span data-probe class="text-white group-hover/card:text-dark">x</span></a>',
+        { group: { hover: true } },
+        /group: \{ hover \}/,
+      ],
+      [
+        '<a><span data-probe class="text-white in-focus:text-dark">x</span></a>',
+        { group: { focus: true } },
+        /group: \{ focus \}/,
+      ],
+      [
+        '<a class="card"><span data-probe class="text-white [.card:focus_&]:text-dark">x</span></a>',
+        { group: { focus: true } },
+        /group: \{ focus \}/,
+      ],
+    ] as const;
+    for (const [html, given, hint] of cases) {
+      document.body.innerHTML = `<div class="bg-dark">${html}</div>`;
+      const p = document.querySelector("[data-probe]")!;
+      expect(() => textColour(p), html).toThrow(hint);
+      expect(textColour(p, given), html).toEqual(dark);
+      const off = Object.fromEntries(Object.keys(given).map((k) => [k, {}]));
+      expect(textColour(p, off), html).toEqual(white);
+    }
+    // A selector that names no other element's state needs nothing passed.
+    expect(
+      textColour(el('<div class="bg-dark"><p data-probe class="text-white">x</p></div>')),
+    ).toEqual(white);
+  });
+
+  it("throws on a pseudo-element that recolours the element's own text", () => {
+    for (const cls of [
+      "first-line:text-dark",
+      "first-letter:text-dark",
+      "selection:text-dark",
+      "details-content:text-dark",
+    ]) {
+      const p = el(`<div class="bg-dark"><p data-probe class="text-white ${cls}">x</p></div>`);
+      expect(() => textColour(p), cls).toThrow(/does not model ::/);
+    }
+    // On an ancestor, it reaches the element's text too.
+    const inner = el(
+      '<div class="bg-dark text-white first-line:text-dark"><span data-probe>x</span></div>',
+    );
+    expect(() => textColour(inner)).toThrow(/::first-line/);
+    // Another box is not this element's text.
+    const before = el(
+      '<div class="bg-dark"><p data-probe class="text-white before:text-dark">x</p></div>',
+    );
+    expect(textColour(before)).toEqual(themeColour("white"));
+  });
+
+  it("throws on an effect that repaints the colour without a colour class", () => {
+    for (const cls of [
+      "brightness-0",
+      "invert",
+      "contrast-200",
+      "grayscale",
+      "drop-shadow-lg",
+      "mix-blend-difference",
+      "bg-blend-multiply",
+      "backdrop-invert",
+      "bg-clip-text",
+      "[-webkit-text-fill-color:#232d1b]",
+      "[-webkit-text-stroke:2px_black]",
+      "mask-[url(/m.svg)]",
+      "animate-pulse",
+      "hover:brightness-0",
+    ]) {
+      const p = el(`<div class="bg-dark"><p data-probe class="text-white ${cls}">x</p></div>`);
+      const state = cls.startsWith("hover:") ? { hover: true } : {};
+      expect(() => textColour(p, state), cls).toThrow(/does not measure through/);
+      expect(() => groundOf(p, { state }), cls).toThrow(/does not measure through/);
+      expect(() => opacityOf(p, state), cls).toThrow(/does not measure through/);
+      expect(() => everyColour(p, "color"), cls).toThrow(/does not measure through/);
+    }
+    // On an ancestor too.
+    const deep = el('<div class="bg-dark invert"><p data-probe class="text-white">x</p></div>');
+    expect(() => textColour(deep)).toThrow(/filter/);
+    // Neutral values are read as what they are.
+    for (const cls of [
+      "filter-none",
+      "filter",
+      "mix-blend-normal",
+      "animate-spin",
+      "hover:invert",
+    ]) {
+      const p = el(`<div class="bg-dark"><p data-probe class="text-white ${cls}">x</p></div>`);
+      expect(textColour(p), cls).toEqual(themeColour("white"));
+    }
+  });
+
+  it("reads (hover: hover) only for a rule that needs :hover, and never on a device that cannot", () => {
+    const p = el(
+      '<div class="bg-dark"><p data-probe class="text-dark [@media(hover:hover)]:[&:not(:hover)]:text-white">x</p></div>',
+    );
+    expect(() => textColour(p)).toThrow(/canHover/);
+    expect(textColour(p, { canHover: false })).toEqual(themeColour("dark"));
+    expect(textColour(p, { canHover: true })).toEqual(themeColour("white"));
+    const h = el(
+      '<div class="bg-dark"><p data-probe class="text-white hover:text-dark">x</p></div>',
+    );
+    expect(() => textColour(h, { hover: true, canHover: false })).toThrow(/cannot hover/);
+    expect(textColour(h, { hover: true, canHover: true })).toEqual(themeColour("dark"));
+  });
+
   // The allowlist is exactly what the site uses: every class in its own
   // components and routes compiles to rules this file models.
   it("models every rule the site's own classes compile to", async () => {
@@ -345,14 +492,42 @@ describe("theme-colors", () => {
       }
     };
     walk(join(process.cwd(), "src"));
-    const classes = new Set<string>();
-    for (const f of files)
-      for (const t of readFileSync(f, "utf8").split(/[\s"'`{}<>]+/)) if (t) classes.add(t);
-    expect(classes.size).toBeGreaterThan(500);
+    const tokens = (f: string) =>
+      readFileSync(f, "utf8")
+        .split(/[\s"'`{}<>]+/)
+        .filter(Boolean);
+    // The audit is not vacuous: it read every slice that exists (from the
+    // file glob, not a count), and each one that writes a class attribute
+    // gives tokens that compile to real rules (FeatureTrio only delegates).
+    const slices = Object.keys(import.meta.glob("/src/lib/slices/*/index.svelte"));
+    expect(slices.length).toBeGreaterThan(0);
+    const scanned = new Set(files.map((f) => "/" + relative(process.cwd(), f)));
+    let styled = 0;
+    for (const slice of slices) {
+      expect(scanned.has(slice), slice).toBe(true);
+      const path = join(process.cwd(), slice);
+      if (!/\bclass="/.test(readFileSync(path, "utf8"))) continue;
+      styled++;
+      const { rules } = await audit(tokens(path));
+      expect(rules, `${slice} compiles to no rule`).toBeGreaterThan(0);
+    }
+    expect(styled).toBeGreaterThan(0);
+    const classes = new Set(files.flatMap(tokens));
+    const site = await audit([...classes]);
+    expect(site.rules).toBeGreaterThan(0);
     // The sheet those classes give holds the forms the allowlist was cut to.
-    expect(await unmodelled([...classes])).toEqual([]);
-    // And the audit itself is live: a form outside the allowlist is reported.
-    expect(await unmodelled(["invalid:text-dark", "supports-[foo:bar]:text-dark"])).toHaveLength(2);
+    expect(site.unmodelled).toEqual([]);
+    // And the audit itself is live: a form outside the allowlist is reported,
+    // and junk compiles to nothing.
+    expect(
+      await unmodelled([
+        "invalid:text-dark",
+        "supports-[foo:bar]:text-dark",
+        "first-line:text-dark",
+        "user-invalid:brightness-0",
+      ]),
+    ).toHaveLength(4);
+    expect((await audit(["not-a-class", "<div", "{x}"])).rules).toBe(0);
   });
 
   it("throws on a colour it cannot read rather than skipping it", () => {
