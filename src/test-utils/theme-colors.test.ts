@@ -174,6 +174,50 @@ describe("theme-colors", () => {
     expect(groundOf(photo, { under: "white" }).a).toBe(1);
   });
 
+  // vida-legacy-foundation#127 round 3: a hand-written query reader answered
+  // "does not hold" for queries it could not parse, and each was a false green.
+  it("evaluates negated, ranged, listed and nested queries, or throws; it never guesses", () => {
+    const at = (cls: string, width?: number) => {
+      const h = el(`<div class="bg-dark"><p data-probe class="text-white ${cls}">x</p></div>`);
+      return textColour(h, width === undefined ? {} : { width });
+    };
+    const gold = themeColour("gold");
+    const white = themeColour("white");
+    // not-lg: is `not (width >= 64rem)`; not-max-lg: is `not (width < 64rem)`.
+    expect(() => at("not-lg:text-gold")).toThrow(/viewport width/);
+    expect(at("not-lg:text-gold", 800)).toEqual(gold);
+    expect(at("not-lg:text-gold", 1280)).toEqual(white);
+    expect(at("not-max-lg:text-gold", 800)).toEqual(white);
+    expect(at("not-max-lg:text-gold", 1280)).toEqual(gold);
+    // `screen and`, and the legacy min-width form.
+    expect(at("[@media_screen_and_(min-width:40rem)]:text-gold", 800)).toEqual(gold);
+    expect(at("[@media_screen_and_(min-width:40rem)]:text-gold", 375)).toEqual(white);
+    // A comma list holds when any member does.
+    expect(at("[@media(width>=40rem),print]:text-gold", 800)).toEqual(gold);
+    expect(at("[@media(width>=40rem),print]:text-gold", 375)).toEqual(white);
+    // Nested media: both must hold.
+    expect(at("md:max-lg:text-gold", 800)).toEqual(gold);
+    expect(at("md:max-lg:text-gold", 1280)).toEqual(white);
+    expect(at("md:max-lg:text-gold", 375)).toEqual(white);
+    // Reversed and two-sided ranges are not parsed, so they throw at any width.
+    expect(() => at("[@media(64rem<=width)]:text-gold", 1280)).toThrow(/cannot evaluate/);
+    expect(() => at("[@media(40rem<=width<64rem)]:text-gold", 800)).toThrow(/cannot evaluate/);
+    expect(() => at("[@media_only_screen]:text-gold", 800)).toThrow(/cannot evaluate/);
+    // Container queries take the same reader: not-@md: is `not (width >= 28rem)`.
+    const c = el(
+      '<div class="@container bg-dark"><p data-probe class="text-white not-@md:text-gold">x</p></div>',
+    );
+    expect(textColour(c, { containerWidth: 300 })).toEqual(gold);
+    expect(textColour(c, { containerWidth: 640 })).toEqual(white);
+  });
+
+  it("lets a conditional block nested in a rule beat that rule's own base declaration", () => {
+    // bg-linear-to-b sets --tw-gradient-position, then overrides it inside a
+    // nested @supports, which (taken as supported) must win.
+    const g = el('<div data-probe class="bg-linear-to-b"></div>');
+    expect(computed(g, "--tw-gradient-position")).toBe("to bottom in oklab");
+  });
+
   it("throws on a rule under an at-rule it has no model for", () => {
     const p = el('<p data-probe class="text-white [@scope(main)]:text-dark">x</p>');
     expect(() => textColour(p)).toThrow(/cannot evaluate/);

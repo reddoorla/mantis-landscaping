@@ -357,8 +357,9 @@ function withState<T>(el: Element, state: State, fn: () => T): T {
   }
 }
 
-/** True, false, or the reason the query cannot be decided for this state. */
-function mediaHolds(query: string, state: State): boolean | string {
+/** True or false; throws with the reason when the query cannot be decided
+ *  for this state, or is not fully parsed. Never a guess. */
+function mediaHolds(query: string, state: State): boolean {
   return query.split(/\s*,\s*/).some((q) => {
     const r = featureHolds(q.trim(), state);
     if (typeof r === "string") throw new Error(r);
@@ -419,7 +420,7 @@ function mediaHolds(query: string, state: State): boolean | string {
 function containerHolds(prelude: string, state: State): boolean {
   // A named query (`@container sidebar (...)`) asks a particular ancestor,
   // which one size cannot stand for.
-  if (!prelude.startsWith("("))
+  if (!/^(not\s+)?\(/.test(prelude))
     throw new Error(
       `theme-colors cannot evaluate the named container query "@container ${prelude}"`,
     );
