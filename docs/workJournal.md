@@ -902,7 +902,7 @@ The second repo of the fleet's kit 3 migration and the feature → staging → m
 
 **Left behind.** The head branches `claude/staging-flow` and `claude/kit-3` are still on GitHub. This repo does not auto-delete head branches, and the cloud proxy refuses the delete with a 403.
 
-## 2026-10-27 — The fleet test audit's rewrite: design pins out, every real catch kept and proved (#TBD)
+## 2026-10-27 — The fleet test audit's rewrite: design pins out, every real catch kept and proved (#62)
 
 Why: the fleet test audit (reddoorla/reddoor-workspace `audits/2026-10-26-fleet-test-audit/report.md`, batch B, picked by the operator on 2026-10-27) found unit tests here that pin class names, pixel sizes and durations, so a designer's one-line change turns them red without a bug. This PR applies the audit's rewrite of 20 unit test files and 4 Playwright specs, minus every place where the rewrite would have let a real bug through.
 
