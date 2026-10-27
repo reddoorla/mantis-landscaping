@@ -59,8 +59,8 @@ describe("CtaBanner slice", () => {
     expect(ground("dark")).not.toEqual(ground("light"));
   });
 
-  // Measured on every ground the editor can pick, at rest and under the
-  // pointer: the headline at 4.5:1, the CTA's label at 4.5:1 on its own fill,
+  // Measured on every ground the editor can pick, at rest, under the pointer
+  // and under keyboard focus: the headline at 4.5:1, the CTA's label at 4.5:1 on its own fill,
   // and its outline at 3:1 against the band (WCAG 1.4.11). A "dark" band that
   // paints white leaves the inverse button white on white, and this fails.
   it.each(backgrounds)("the headline and the CTA read on the %s ground", (background) => {
@@ -69,7 +69,7 @@ describe("CtaBanner slice", () => {
     expect(contrast(textColour(h2), groundOf(h2)), "headline").toBeGreaterThanOrEqual(4.5);
     const cta = container.querySelector("a")!;
     const band = groundOf(cta.parentElement!);
-    for (const state of [{}, { hover: true }]) {
+    for (const state of [{}, { hover: true }, { focusVisible: true }]) {
       const label = contrast(textColour(cta, state), groundOf(cta, { state }));
       expect(label, `CTA label ${JSON.stringify(state)}`).toBeGreaterThanOrEqual(4.5);
       const border = colourOf(cta, "border-color", state);

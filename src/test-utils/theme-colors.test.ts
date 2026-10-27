@@ -7,6 +7,7 @@ import {
   groundOf,
   opacityOf,
   shownText,
+  containerWidths,
   textColour,
   themeColour,
   viewportWidths,
@@ -123,6 +124,59 @@ describe("theme-colors", () => {
     const input = el('<input data-probe class="focus:outline-hidden" />');
     expect(computed(input, "outline-style", { focus: true })).toBe("none");
     expect(computed(input, "outline", { focus: true, forcedColors: true })).toMatch(/solid/);
+  });
+
+  // Review round 2 of #62: each of these was dropped without an error, and
+  // the helper measured a colour the visitor is not shown.
+  it("refuses to guess a container query, and answers at a given container size", () => {
+    const h = el(
+      '<div class="@container bg-gold-deep"><h1 data-probe class="text-white @md:text-gold">x</h1></div>',
+    );
+    expect(() => textColour(h)).toThrow(/container query/);
+    expect(() => textColour(h, { width: 1280 })).toThrow(/container query/);
+    const sizes = containerWidths();
+    expect(sizes.some((w) => w < 448) && sizes.some((w) => w >= 448)).toBe(true);
+    expect(textColour(h, { containerWidth: 300 })).toEqual(themeColour("white"));
+    expect(textColour(h, { containerWidth: 640 })).toEqual(themeColour("gold"));
+    const arbitrary = el(
+      '<div class="@container bg-dark"><p data-probe class="text-white [@container(min-width:20rem)]:text-dark">x</p></div>',
+    );
+    expect(() => textColour(arbitrary)).toThrow(/container query/);
+    expect(textColour(arbitrary, { containerWidth: 400 })).toEqual(themeColour("dark"));
+  });
+
+  it("refuses to guess the colour scheme when dark: decides the value", () => {
+    const band = el('<div data-probe class="bg-dark dark:bg-white text-white"></div>');
+    expect(() => groundOf(band)).toThrow(/prefers-color-scheme/);
+    expect(groundOf(band, { state: { dark: false } })).toEqual(themeColour("dark"));
+    expect(groundOf(band, { state: { dark: true } })).toEqual(themeColour("white"));
+    // A scheme query that does not touch the property asked for is no reason to throw.
+    expect(textColour(band)).toEqual(themeColour("white"));
+  });
+
+  it("refuses to measure a ground painted by a gradient, an image or the background shorthand", () => {
+    for (const paint of [
+      "bg-linear-to-b from-white to-light",
+      "bg-[url(/photo.jpg)]",
+      "bg-[linear-gradient(white,white)]",
+      "[background:url(/photo.jpg)_white]",
+    ]) {
+      const p = el(`<div class="bg-dark ${paint}"><p data-probe class="text-white">x</p></div>`);
+      expect(() => groundOf(p), paint).toThrow(/paints over|background shorthand/);
+    }
+    // A bare colour in the shorthand is read, and a caller who names the
+    // ground under a photo may still measure over it.
+    const plain = el('<div class="[background:white]"><p data-probe>x</p></div>');
+    expect(groundOf(plain)).toEqual(themeColour("white"));
+    const photo = el(
+      '<div class="bg-[url(/photo.jpg)]"><span data-probe class="bg-black/70"></span></div>',
+    );
+    expect(groundOf(photo, { under: "white" }).a).toBe(1);
+  });
+
+  it("throws on a rule under an at-rule it has no model for", () => {
+    const p = el('<p data-probe class="text-white [@scope(main)]:text-dark">x</p>');
+    expect(() => textColour(p)).toThrow(/cannot evaluate/);
   });
 
   it("throws on a colour it cannot read rather than skipping it", () => {

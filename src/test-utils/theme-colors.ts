@@ -29,14 +29,22 @@ import { compile } from "tailwindcss";
  * It fails closed. A class Tailwind does not know produces no CSS, exactly as
  * in the browser. But a colour value this file cannot read throws; a rule
  * that names the element's class through a selector jsdom cannot evaluate
- * throws when it sets the property asked for; and a width-dependent rule
- * throws unless the caller passed `width`. An earlier version read class
- * names against the `@theme` block and silently skipped Tailwind's palette,
- * alpha, arbitrary values and every variant (review round 1 of #62).
+ * throws when it sets the property asked for; a rule that decides the value
+ * through a viewport width, a container size (`@md:`, `@[...]:`), the colour
+ * scheme (`dark:`) or `prefers-contrast` throws unless the caller passed that
+ * state (`width`, `containerWidth`, `dark`, `contrast`); a rule under any
+ * at-rule this file has no model for throws; and `groundOf` throws when a
+ * gradient, an image or an unreadable `background` shorthand paints the
+ * ground. An earlier version read class names against the `@theme` block and
+ * silently skipped Tailwind's palette, alpha, arbitrary values and every
+ * variant (review round 1 of #62); the next dropped container queries,
+ * `dark:` and background images without an error (review round 2).
  *
  * What it does not model: Svelte's scoped component styles (vitest does not
- * load them), pseudo-elements, and `@supports` (taken as supported, except the
- * `properties` layer, which only browsers without `@property` use). Out-of-
+ * load them), pseudo-elements, `@starting-style` (a transition's first frame,
+ * never the resting value), and `@supports` (taken as supported, except the
+ * `properties` layer, which only browsers without `@property` use). Forced
+ * colours and reduced motion are off unless passed (see `State`). Out-of-
  * gamut oklch is clipped to sRGB.
  */
 
@@ -136,7 +144,17 @@ function parse(css: string): Node[] {
 const LAYERS = ["theme", "base", "components", "utilities"];
 const UNLAYERED = LAYERS.length;
 
-interface Rule {
+/** The conditional blocks a rule sits inside. */
+interface Ctx {
+  media: string[];
+  /** `@container` preludes: a size query on the nearest container. */
+  container: string[];
+  /** At-rules this file has no model for; a rule under one throws when it
+   *  matches the element and sets the property asked for. */
+  unknown: string[];
+}
+
+interface Rule extends Ctx {
   /** The selector as written, and as handed to `matches` (state pseudo-classes
    *  rewritten to marker attributes). Null `test` when jsdom cannot parse it. */
   selector: string;
@@ -144,8 +162,25 @@ interface Rule {
   specificity: number;
   layer: number;
   order: number;
-  media: string[];
   decls: Decl[];
+}
+
+// At-rules whose blocks never style an element on screen: keyframe steps,
+// font and property registrations, and `@starting-style` (the first frame of
+// a transition, never the resting value). `@media print` is a media query.
+const INERT_AT =
+  /^@(keyframes|-webkit-keyframes|font-face|property|starting-style|charset|import|namespace|page)\b/;
+
+/** Descend into an at-rule's block: the context its rules apply under, or
+ *  null for a block that styles nothing on screen. */
+function atContext(prelude: string, ctx: Ctx): Ctx | null {
+  if (prelude.startsWith("@media"))
+    return { ...ctx, media: [...ctx.media, prelude.slice(6).trim()] };
+  if (prelude.startsWith("@supports")) return ctx;
+  if (prelude.startsWith("@container"))
+    return { ...ctx, container: [...ctx.container, prelude.slice(10).trim()] };
+  if (INERT_AT.test(prelude)) return null;
+  return { ...ctx, unknown: [...ctx.unknown, prelude] };
 }
 
 const STATE_PSEUDO = /:(hover|focus-visible|focus-within|focus|active)(?![\w-])/g;
@@ -186,30 +221,28 @@ function specificity(sel: string): number {
   return ids * 100 + classes * 10 + tags;
 }
 
-function collect(nodes: Node[], layer: number, media: string[], out: Rule[]) {
+function collect(nodes: Node[], layer: number, ctx: Ctx, out: Rule[]) {
   for (const n of nodes) {
     const layerAt = /^@layer\s+([\w-]+)$/.exec(n.prelude);
     if (layerAt) {
       if (layerAt[1] === "properties") continue;
-      collect(n.children, LAYERS.indexOf(layerAt[1]), media, out);
+      collect(n.children, LAYERS.indexOf(layerAt[1]), ctx, out);
       continue;
     }
-    if (n.prelude.startsWith("@media")) {
-      collect(n.children, layer, [...media, n.prelude.slice(6).trim()], out);
+    // `@layer a, b;` declares an order and holds no rules.
+    if (/^@layer\b/.test(n.prelude)) continue;
+    if (n.prelude.startsWith("@")) {
+      const inner = atContext(n.prelude, ctx);
+      if (inner) collect(n.children, layer, inner, out);
       continue;
     }
-    if (n.prelude.startsWith("@supports")) {
-      collect(n.children, layer, media, out);
-      continue;
-    }
-    if (n.prelude.startsWith("@")) continue;
-    styleRule(splitList(n.prelude), n, layer, media, out);
+    styleRule(splitList(n.prelude), n, layer, ctx, out);
   }
 }
 
 /** A style rule, and the conditional blocks nested in it (`&:hover`, a
  *  forced-colors fallback), each under its parent's selectors. */
-function styleRule(sels: string[], n: Node, layer: number, media: string[], out: Rule[]) {
+function styleRule(sels: string[], n: Node, layer: number, ctx: Ctx, out: Rule[]) {
   for (const sel of sels) {
     if (sel.includes("::")) continue; // a pseudo-element is another box
     const rewritten = sel.replace(STATE_PSEUDO, (_, s: string) => `[${marker(s)}]`);
@@ -225,28 +258,28 @@ function styleRule(sels: string[], n: Node, layer: number, media: string[], out:
       specificity: specificity(sel),
       layer: layer < 0 ? UNLAYERED : layer,
       order: out.length,
-      media,
+      ...ctx,
       decls: n.decls,
     });
   }
   for (const c of n.children) {
-    if (c.prelude.startsWith("@media"))
-      styleRule(sels, c, layer, [...media, c.prelude.slice(6).trim()], out);
-    else if (c.prelude.startsWith("@supports")) styleRule(sels, c, layer, media, out);
-    else if (c.prelude.startsWith("&"))
+    if (c.prelude.startsWith("@")) {
+      const inner = atContext(c.prelude, ctx);
+      if (inner) styleRule(sels, c, layer, inner, out);
+    } else if (c.prelude.startsWith("&"))
       styleRule(
         sels.flatMap((p) => splitList(c.prelude).map((x) => x.replace(/&/g, p))),
         c,
         layer,
-        media,
+        ctx,
         out,
       );
-    else if (!c.prelude.startsWith("@"))
+    else
       styleRule(
         sels.flatMap((p) => splitList(c.prelude).map((x) => `${p} ${x}`)),
         c,
         layer,
-        media,
+        ctx,
         out,
       );
   }
@@ -261,7 +294,12 @@ function sheet(): Rule[] {
   }
   if (cached && cached.size === seen.size) return cached.rules;
   const rules: Rule[] = [];
-  collect(parse(compiler.build([...seen])), UNLAYERED, [], rules);
+  collect(
+    parse(compiler.build([...seen])),
+    UNLAYERED,
+    { media: [], container: [], unknown: [] },
+    rules,
+  );
   cached = { size: seen.size, rules };
   return rules;
 }
@@ -277,8 +315,20 @@ export interface State {
   active?: boolean;
   /** Viewport width in CSS px. Required when a width query decides the value. */
   width?: number;
+  /** Inline size in CSS px of the element's nearest `@container`. Required
+   *  when a container query (`@md:`, `@[...]:`) decides the value. */
+  containerWidth?: number;
+  /** Windows forced colours. Off unless passed: in forced colours the browser
+   *  replaces author colours with the system's, so author contrast is moot;
+   *  a test passes it to check what survives (an outline's presence). */
   forcedColors?: boolean;
+  /** `prefers-color-scheme: dark`. Required when a scheme query decides the
+   *  value: Tailwind's `dark:` follows the OS, so both schemes are real. */
   dark?: boolean;
+  /** `prefers-contrast`. Required when a contrast query decides the value. */
+  contrast?: "more" | "less" | "no-preference";
+  /** `prefers-reduced-motion: reduce`. Off unless passed: the default visitor,
+   *  and the one every `no-preference` reveal rule targets. */
   reducedMotion?: boolean;
 }
 
@@ -330,13 +380,17 @@ function mediaHolds(query: string, state: State): boolean | string {
     }
     if (q === "screen" || q === "all") return true;
     if (q === "print") return false;
-    const width = /^\(width\s*(>=|<=|<|>)\s*([\d.]+)(rem|px|em)\)$/.exec(q);
+    const width = /^\((?:(min|max)-)?width\s*(>=|<=|<|>|:)\s*([\d.]+)(rem|px|em)\)$/.exec(q);
     if (width) {
       if (s.width === undefined)
         return `the value depends on a viewport width query "${q}"; pass { width } (see viewportWidths())`;
-      const px = Number(width[2]) * (width[3] === "px" ? 1 : 16);
+      const px = Number(width[3]) * (width[4] === "px" ? 1 : 16);
+      const op =
+        width[2] === ":" ? (width[1] === "min" ? ">=" : width[1] === "max" ? "<=" : "") : width[2];
+      if (!op || (width[1] && width[2] !== ":"))
+        return `theme-colors cannot evaluate the media query "${q}"`;
       return { ">=": s.width >= px, "<=": s.width <= px, "<": s.width < px, ">": s.width > px }[
-        width[1]
+        op
       ]!;
     }
     const feature = /^\(([\w-]+)\s*:\s*([\w-]+)\)$/.exec(q);
@@ -345,23 +399,59 @@ function mediaHolds(query: string, state: State): boolean | string {
       if (name === "hover" || name === "any-hover") return value === "hover";
       if (name === "pointer" || name === "any-pointer") return value === "fine";
       if (name === "forced-colors") return (value === "active") === !!s.forcedColors;
-      if (name === "prefers-color-scheme") return (value === "dark") === !!s.dark;
+      if (name === "prefers-color-scheme") {
+        if (s.dark === undefined)
+          return `the value depends on "${q}" (Tailwind's dark: follows the OS); pass { dark: false } and { dark: true }`;
+        return (value === "dark") === s.dark;
+      }
       if (name === "prefers-reduced-motion") return (value === "reduce") === !!s.reducedMotion;
-      if (name === "prefers-contrast") return value === "no-preference";
+      if (name === "prefers-contrast") {
+        if (s.contrast === undefined) return `the value depends on "${q}"; pass { contrast }`;
+        return value === s.contrast || (value === "custom" && s.contrast !== "no-preference");
+      }
     }
     return `theme-colors cannot evaluate the media query "${q}"`;
   }
 }
 
-/** One width in every range the compiled sheet's width queries distinguish. */
-export function viewportWidths(): number[] {
+/** True or false for a container query, given the nearest container's
+ *  inline size; throws when that size is needed and not passed. */
+function containerHolds(prelude: string, state: State): boolean {
+  // A named query (`@container sidebar (...)`) asks a particular ancestor,
+  // which one size cannot stand for.
+  if (!prelude.startsWith("("))
+    throw new Error(
+      `theme-colors cannot evaluate the named container query "@container ${prelude}"`,
+    );
+  if (state.containerWidth === undefined)
+    throw new Error(
+      `the value depends on a container query "@container ${prelude}"; pass { containerWidth } (see containerWidths())`,
+    );
+  try {
+    return mediaHolds(prelude, { width: state.containerWidth });
+  } catch {
+    throw new Error(`theme-colors cannot evaluate the container query "@container ${prelude}"`);
+  }
+}
+
+function edgesOf(queries: string[]): number[] {
   const edges = new Set<number>();
-  for (const r of sheet())
-    for (const m of r.media)
-      for (const [, n, unit] of m.matchAll(/width\s*(?:>=|<=|<|>)\s*([\d.]+)(rem|px|em)/g))
-        edges.add(Number(n) * (unit === "px" ? 1 : 16));
+  for (const m of queries)
+    for (const [, n, unit] of m.matchAll(/width\s*(?:>=|<=|<|>|:)\s*([\d.]+)(rem|px|em)/g))
+      edges.add(Number(n) * (unit === "px" ? 1 : 16));
   const sorted = [...edges].sort((a, b) => a - b);
   return [...sorted.map((e) => e - 1), (sorted.at(-1) ?? 1279) + 1].filter((w) => w > 0);
+}
+
+/** One width in every range the compiled sheet's width queries distinguish. */
+export function viewportWidths(): number[] {
+  return edgesOf(sheet().flatMap((r) => r.media));
+}
+
+/** One container size in every range the compiled sheet's container queries
+ *  distinguish. */
+export function containerWidths(): number[] {
+  return edgesOf(sheet().flatMap((r) => r.container));
 }
 
 // ---------------------------------------------------------------- cascade
@@ -402,7 +492,12 @@ function winner(el: Element, prop: string, state: State): Win | undefined {
       continue;
     }
     if (!el.matches(r.test)) continue;
+    if (r.unknown.length)
+      throw new Error(
+        `"${r.selector}" sets ${prop} on this element under ${r.unknown.join(" ")}, which theme-colors cannot evaluate`,
+      );
     if (!r.media.every((m) => mediaHolds(m, state) === true)) continue;
+    if (!r.container.every((c) => containerHolds(c, state))) continue;
     for (const d of decls) {
       const layer = d.important ? UNLAYERED - r.layer : r.layer;
       consider(d.value, [d.important ? 1 : 0, 0, layer, r.specificity, r.order]);
@@ -619,8 +714,24 @@ export function groundOf(
   opts: { within?: Element; under?: Rgba | string; state?: State } = {},
 ): Rgba {
   const layers: Rgba[] = [];
+  const state = opts.state ?? {};
   for (let n: Element | null = el; n; n = n.parentElement) {
-    const bg = colourOf(n, "background-color", opts.state);
+    // A gradient or an image paints over the colour, and its pixels are not
+    // a colour this file can measure. Only a caller who says what lies
+    // under the element (`under`, for a control over a photo) may pass one.
+    const image = cascadeWinner(n, ["background-image", "background"], state);
+    if (image && opts.under === undefined) {
+      const painted =
+        image.prop === "background-image"
+          ? !/^(none|initial|unset|revert)$/.test(image.value)
+          : /\b(url|gradient|image|image-set|element)\(/.test(image.value);
+      if (painted)
+        throw new Error(
+          `${image.prop} "${image.value}" paints over the ground of <${n.tagName.toLowerCase()} class="${n.getAttribute("class") ?? ""}">; theme-colors cannot measure an image (pass \`under\` for a control over a photo)`,
+        );
+    }
+    const fill = cascadeWinner(n, ["background-color", "background"], state);
+    const bg = fill && readBackground(fill, n, state);
     if (bg && bg.a > 0) layers.push(bg);
     if (bg?.a === 1 || n === opts.within) break;
   }
@@ -633,6 +744,20 @@ export function groundOf(
     throw new Error("no opaque ground found; pass `under`");
   }
   return layers.reduceRight((acc, layer) => over(layer, acc), base);
+}
+
+/** The colour a `background-color` or `background` declaration paints. The
+ *  shorthand is read only when it is a bare colour; anything else throws. */
+function readBackground(w: { prop: string; value: string }, el: Element, state: State): Rgba {
+  if (w.prop === "background" && /^(none|initial|unset|revert)$/.test(w.value))
+    return NAMED.transparent;
+  try {
+    return parseColour(w.value, el, state);
+  } catch (e) {
+    if (w.prop === "background")
+      throw new Error(`theme-colors cannot read the background shorthand "${w.value}"`);
+    throw e;
+  }
 }
 
 function luminance({ r, g, b }: Rgba): number {
