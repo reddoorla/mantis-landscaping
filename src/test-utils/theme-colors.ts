@@ -18,33 +18,45 @@ import { compile } from "tailwindcss";
  * the page. The approach is vida-legacy-foundation's `src/test/theme-contrast.ts`,
  * extended to states.
  *
- * States. `hover`, `focus`, `focusVisible` and `active` are passed in, because
- * jsdom cannot hover: the selector's pseudo-class is rewritten to a marker
- * attribute this helper sets for the call. `disabled`, `aria-*` and every
- * other attribute state come from the DOM itself, so a test puts the element
- * in that state (`button.disabled = true`) and measures. The viewport is
+ * States. `hover`, `focus`, `focusVisible`, `active`, `visited` and `target`
+ * are passed in, because jsdom cannot hover and never matches `:visited` or
+ * `:target`: the selector's pseudo-class is rewritten to a marker attribute
+ * this helper sets for the call. `disabled`, `aria-*` and every other
+ * attribute state come from the DOM itself, so a test puts the element in
+ * that state (`button.disabled = true`) and measures. The viewport is
  * `width`; `viewportWidths()` gives one width in every range the compiled
  * sheet's media queries distinguish.
  *
- * It fails closed. A class Tailwind does not know produces no CSS, exactly as
- * in the browser. But a colour value this file cannot read throws; a rule
- * that names the element's class through a selector jsdom cannot evaluate
- * throws when it sets the property asked for; a rule that decides the value
- * through a viewport width, a container size (`@md:`, `@[...]:`), the colour
- * scheme (`dark:`) or `prefers-contrast` throws unless the caller passed that
- * state (`width`, `containerWidth`, `dark`, `contrast`); a rule under any
- * at-rule this file has no model for throws; and `groundOf` throws when a
- * gradient, an image or an unreadable `background` shorthand paints the
- * ground. An earlier version read class names against the `@theme` block and
- * silently skipped Tailwind's palette, alpha, arbitrary values and every
- * variant (review round 1 of #62); the next dropped container queries,
- * `dark:` and background images without an error (review round 2).
+ * It is an allowlist, and it never guesses (review rounds 1 to 3 of #62 each
+ * found a form it decided silently). It models exactly the forms the site's
+ * own classes compile to today, and `unmodelled()` proves that against every
+ * class in `src/`:
+ *   - at-rules: `@layer` theme/base/components/utilities (properties is
+ *     skipped), `@media`, `@container`, the `@supports` conditions in
+ *     `SUPPORTED` and their `not`, and the inert `@keyframes`, `@font-face`,
+ *     `@property` and `@starting-style`;
+ *   - media: width ranges (`width >= N`, `min-width: N`), `screen`, `all`,
+ *     `print`, `not`, `and`, comma lists, and the features `hover`,
+ *     `pointer`, `forced-colors`, `prefers-color-scheme`, `prefers-contrast`
+ *     and `prefers-reduced-motion`, each of which throws unless its state is
+ *     passed (`canHover`, `pointer`, `forcedColors`, `dark`, `contrast`,
+ *     `reducedMotion`; `width` and `containerWidth` likewise), except
+ *     `(hover: hover)` inside a rule that also needs `:hover`;
+ *   - container queries only under an ancestor that sets `container-type`,
+ *     and never in `em`;
+ *   - pseudo-classes: the states above, `:-moz-focusring` (as
+ *     `:focus-visible`), the structural and form ones in `FROM_DOM`, `:host`
+ *     (never, no shadow roots), `:open` (the `open` attribute) and
+ *     `:popover-open` (never, or a throw on a popover).
+ * Anything else throws when it could decide the value asked for, naming the
+ * rule: a colour value it cannot read, a pseudo-class or at-rule outside the
+ * list, a selector jsdom cannot parse, and, in `groundOf`, a gradient, an
+ * image or an unreadable `background` shorthand. The sheet parser honours
+ * escapes and quoted strings (`font-['Nunito']`) and throws if it ends out of
+ * step.
  *
  * What it does not model: Svelte's scoped component styles (vitest does not
- * load them), pseudo-elements, `@starting-style` (a transition's first frame,
- * never the resting value), and `@supports` (taken as supported, except the
- * `properties` layer, which only browsers without `@property` use). Forced
- * colours and reduced motion are off unless passed (see `State`). Out-of-
+ * load them) and pseudo-elements (`::placeholder` is another box). Out-of-
  * gamut oklch is clipped to sRGB.
  */
 
@@ -64,13 +76,17 @@ const sourceVars = new Map([
   ...themeVars(appCss),
 ]);
 
-const compiler = await compile(appCss, {
-  base: resolve(root, "src"),
-  loadStylesheet: async (id: string, base: string) => {
-    const path = id === "tailwindcss" ? resolve(twDir, "index.css") : resolve(base, id);
-    return { path, base: dirname(path), content: readFileSync(path, "utf8") };
-  },
-});
+// A compiler remembers every candidate it has built, so the shared one's sheet
+// only grows; `unmodelled` takes a fresh one to see exactly its classes.
+const newCompiler = () =>
+  compile(appCss, {
+    base: resolve(root, "src"),
+    loadStylesheet: async (id: string, base: string) => {
+      const path = id === "tailwindcss" ? resolve(twDir, "index.css") : resolve(base, id);
+      return { path, base: dirname(path), content: readFileSync(path, "utf8") };
+    },
+  });
+const compiler = await newCompiler();
 
 // ---------------------------------------------------------------- the sheet
 
@@ -88,17 +104,22 @@ interface Node {
 function parse(css: string): Node[] {
   const src = css.replace(/\/\*[\s\S]*?\*\//g, "");
   let i = 0;
-  function block(): { decls: Decl[]; children: Node[] } {
+  function block(nested = false): { decls: Decl[]; children: Node[] } {
     const decls: Decl[] = [];
     const children: Node[] = [];
     let buf = "";
     let quote = "";
     let depth = 0;
+    let closed = false;
     while (i < src.length) {
       const ch = src[i++];
-      if (quote) {
+      if (ch === "\\") {
+        // An escape (`\'` in `.font-\[\'Nunito\'\]`): the next character is
+        // literal, in a string or out of one.
+        buf += ch + (src[i++] ?? "");
+      } else if (quote) {
         buf += ch;
-        if (ch === quote && src[i - 2] !== "\\") quote = "";
+        if (ch === quote) quote = "";
       } else if (ch === '"' || ch === "'") {
         quote = ch;
         buf += ch;
@@ -111,8 +132,9 @@ function parse(css: string): Node[] {
       } else if (ch === "{" && depth === 0) {
         const prelude = buf.trim();
         buf = "";
-        children.push({ prelude, ...block() });
+        children.push({ prelude, ...block(true) });
       } else if (ch === "}" && depth === 0) {
+        closed = true;
         break;
       } else if (ch === ";" && depth === 0) {
         pushDecl(buf, decls, children);
@@ -121,6 +143,10 @@ function parse(css: string): Node[] {
         buf += ch;
       }
     }
+    if (quote || depth !== 0 || (nested && !closed))
+      throw new Error(
+        `theme-colors cannot parse the compiled sheet near "${src.slice(Math.max(0, i - 80), i)}"`,
+      );
     pushDecl(buf, decls, children);
     return { decls, children };
   }
@@ -138,7 +164,10 @@ function parse(css: string): Node[] {
     if (important) value = value.replace(/\s*!important$/, "");
     decls.push({ prop: t.slice(0, colon).trim(), value, important });
   }
-  return block().children;
+  const top = block();
+  if (i < src.length)
+    throw new Error(`theme-colors cannot parse the compiled sheet: an unmatched "}" at ${i}`);
+  return top.children;
 }
 
 const LAYERS = ["theme", "base", "components", "utilities"];
@@ -159,6 +188,12 @@ interface Rule extends Ctx {
    *  rewritten to marker attributes). Null `test` when jsdom cannot parse it. */
   selector: string;
   test: string | null;
+  /** When `test` is null: the selector with every pseudo-class this file
+   *  does not model removed (assumed to hold), or null if even that does not
+   *  parse. A rule whose loose form matches throws rather than drop. */
+  loose: string | null;
+  /** Why `test` is null, for the error. */
+  why: string;
   specificity: number;
   layer: number;
   order: number;
@@ -171,30 +206,153 @@ interface Rule extends Ctx {
 const INERT_AT =
   /^@(keyframes|-webkit-keyframes|font-face|property|starting-style|charset|import|namespace|page)\b/;
 
+// The `@supports` conditions the compiled sheet holds today, each true in
+// every browser the site targets: Tailwind's colour-mix and in-lab gradient
+// upgrades, and preflight's placeholder-colour guard (whose `::placeholder`
+// rule is a pseudo-element, skipped anyway). Compared with all whitespace
+// removed. `not` of one of these is false. Anything else is not modelled.
+const SUPPORTED = new Set(
+  [
+    "(color: color-mix(in lab, red, red))",
+    "(background-image: linear-gradient(in lab, red, red))",
+    "(not (-webkit-appearance: -apple-pay-button)) or (contain-intrinsic-size: 1px)",
+    "(not ((-webkit-appearance:-apple-pay-button))) or (contain-intrinsic-size:1px)",
+  ].map((c) => c.replace(/\s+/g, "")),
+);
+
+/** True or false for an `@supports` condition this file models, else null. */
+function supportsHolds(cond: string): boolean | null {
+  const c = cond.replace(/\s+/g, "");
+  if (SUPPORTED.has(c)) return true;
+  const not = /^not(.*)$/.exec(c);
+  if (not && SUPPORTED.has(not[1])) return false;
+  if (not && /^\((.*)\)$/.test(not[1]) && SUPPORTED.has(not[1].slice(1, -1))) return false;
+  return null;
+}
+
 /** Descend into an at-rule's block: the context its rules apply under, or
- *  null for a block that styles nothing on screen. */
+ *  null for a block that styles nothing on screen. An at-rule this file does
+ *  not model gives a context that throws when one of its rules decides a
+ *  value. */
 function atContext(prelude: string, ctx: Ctx): Ctx | null {
-  if (prelude.startsWith("@media"))
+  if (prelude.startsWith("@media "))
     return { ...ctx, media: [...ctx.media, prelude.slice(6).trim()] };
-  if (prelude.startsWith("@supports")) return ctx;
-  if (prelude.startsWith("@container"))
+  if (prelude.startsWith("@supports ")) {
+    const holds = supportsHolds(prelude.slice(9).trim());
+    if (holds === true) return ctx;
+    if (holds === false) return null;
+  } else if (prelude.startsWith("@container "))
     return { ...ctx, container: [...ctx.container, prelude.slice(10).trim()] };
-  if (INERT_AT.test(prelude)) return null;
+  else if (INERT_AT.test(prelude)) return null;
   return { ...ctx, unknown: [...ctx.unknown, prelude] };
 }
 
-const STATE_PSEUDO = /:(hover|focus-visible|focus-within|focus|active)(?![\w-])/g;
 const marker = (state: string) => `data-tc-${state}`;
+
+// The pseudo-classes this file models, and how. Every other one makes the
+// selector unevaluable (see `Rule.loose`).
+//   - States a visitor brings, rewritten to a marker attribute set from
+//     `State` (jsdom cannot hover, and never matches :visited or :target).
+//     Firefox's :-moz-focusring is its :focus-visible.
+//   - Structure and form state jsdom reads from the DOM faithfully.
+//   - :host never matches: no test renders into a shadow root.
+//   - :open is the `open` attribute on the <dialog> and <details> that use
+//     it here; :popover-open never matches an element without `popover`
+//     (one with it throws, in `winner`).
+const MARKED: Record<string, string> = {
+  hover: "hover",
+  focus: "focus",
+  "focus-visible": "focus-visible",
+  "focus-within": "focus-within",
+  active: "active",
+  visited: "visited",
+  target: "target",
+  "-moz-focusring": "focus-visible",
+};
+const FROM_DOM = new Set([
+  "is",
+  "where",
+  "not",
+  "first-child",
+  "last-child",
+  "only-child",
+  "nth-child",
+  "nth-last-child",
+  "first-of-type",
+  "last-of-type",
+  "nth-of-type",
+  "empty",
+  "disabled",
+  "enabled",
+  "checked",
+  "root",
+]);
+const REWRITTEN: Record<string, string> = {
+  host: ":not(*)",
+  open: "[open]",
+  "popover-open": "[data-tc-popover-open]",
+};
+
+/** Mask escapes (`\:` in `.hover\:bg-dark`) so a scan sees real syntax, at
+ *  the same offsets. */
+const masked = (sel: string) => sel.replace(/\\./g, "__");
+
+/** Rewrite `sel`'s pseudo-classes for jsdom: markers and rewrites in, and
+ *  every unmodelled one either kept (`drop: false`) or removed. Returns the
+ *  selector and the names it did not model. */
+function rewritePseudo(sel: string, drop: boolean): { sel: string; unmodelled: string[] } {
+  const m = masked(sel);
+  const unmodelled: string[] = [];
+  let out = "";
+  let at = 0;
+  for (const hit of m.matchAll(/(?<!:):([\w-]+)(\()?/g)) {
+    const start = hit.index!;
+    const name = hit[1];
+    let end = start + hit[0].length;
+    if (hit[2]) {
+      // Find the matching paren of a functional pseudo-class.
+      let depth = 1;
+      while (end < m.length && depth) {
+        if (m[end] === "(") depth++;
+        else if (m[end] === ")") depth--;
+        end++;
+      }
+    }
+    if (start < at) continue; // inside a span already replaced
+    out += sel.slice(at, start);
+    if (MARKED[name] && !hit[2]) out += `[${marker(MARKED[name])}]`;
+    else if (REWRITTEN[name] && !hit[2]) out += REWRITTEN[name];
+    else if (FROM_DOM.has(name)) {
+      out += sel.slice(start, start + hit[0].length);
+      end = start + hit[0].length; // its argument is scanned in turn
+    } else {
+      unmodelled.push(`:${name}`);
+      if (!drop) out += sel.slice(start, end);
+    }
+    at = end;
+  }
+  out += sel.slice(at);
+  return { sel: out, unmodelled };
+}
 
 /** Split on top-level commas (not inside parens or brackets). */
 function splitList(s: string): string[] {
   const out: string[] = [];
   let depth = 0;
   let cur = "";
-  for (const ch of s) {
-    if (ch === "(" || ch === "[") depth++;
-    if (ch === ")" || ch === "]") depth--;
-    if (ch === "," && depth === 0) {
+  let quote = "";
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "\\") {
+      cur += ch + (s[++i] ?? "");
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) quote = "";
+    } else if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === "(" || ch === "[") depth++;
+    else if (ch === ")" || ch === "]") depth--;
+    if (ch === "," && depth === 0 && !quote) {
       out.push(cur.trim());
       cur = "";
     } else cur += ch;
@@ -205,7 +363,8 @@ function splitList(s: string): string[] {
 
 function specificity(sel: string): number {
   // `:where()` weighs nothing; `:is()`/`:not()`/`:has()` weigh their argument.
-  let s = sel;
+  // Escaped characters (`\:` in a variant class) are part of a name.
+  let s = masked(sel);
   for (let prev = ""; prev !== s;) {
     prev = s;
     s = s.replace(/:where\((?:[^()]|\([^()]*\))*\)/g, "");
@@ -224,13 +383,13 @@ function specificity(sel: string): number {
 function collect(nodes: Node[], layer: number, ctx: Ctx, out: Rule[]) {
   for (const n of nodes) {
     const layerAt = /^@layer\s+([\w-]+)$/.exec(n.prelude);
-    if (layerAt) {
+    if (layerAt && (LAYERS.includes(layerAt[1]) || layerAt[1] === "properties")) {
       if (layerAt[1] === "properties") continue;
       collect(n.children, LAYERS.indexOf(layerAt[1]), ctx, out);
       continue;
     }
     // `@layer a, b;` declares an order and holds no rules.
-    if (/^@layer\b/.test(n.prelude)) continue;
+    if (/^@layer\s+[\w-]+(\s*,\s*[\w-]+)*$/.test(n.prelude) && !n.children.length) continue;
     if (n.prelude.startsWith("@")) {
       const inner = atContext(n.prelude, ctx);
       if (inner) collect(n.children, layer, inner, out);
@@ -244,17 +403,32 @@ function collect(nodes: Node[], layer: number, ctx: Ctx, out: Rule[]) {
  *  forced-colors fallback), each under its parent's selectors. */
 function styleRule(sels: string[], n: Node, layer: number, ctx: Ctx, out: Rule[]) {
   for (const sel of sels) {
-    if (sel.includes("::")) continue; // a pseudo-element is another box
-    const rewritten = sel.replace(STATE_PSEUDO, (_, s: string) => `[${marker(s)}]`);
-    let test: string | null = rewritten;
-    try {
-      document.documentElement.matches(rewritten);
-    } catch {
+    if (masked(sel).includes("::")) continue; // a pseudo-element is another box
+    const parses = (x: string) => {
+      try {
+        document.documentElement.matches(x);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const exact = rewritePseudo(sel, false);
+    let test: string | null = exact.sel;
+    let loose: string | null = null;
+    let why = "";
+    if (exact.unmodelled.length || !parses(exact.sel)) {
       test = null;
+      why = exact.unmodelled.length
+        ? `theme-colors does not model ${exact.unmodelled.join(", ")}`
+        : "jsdom cannot parse it";
+      const dropped = rewritePseudo(sel, true).sel.trim() || "*";
+      loose = parses(dropped) ? dropped : null;
     }
     out.push({
       selector: sel,
       test,
+      loose,
+      why,
       specificity: specificity(sel),
       layer: layer < 0 ? UNLAYERED : layer,
       order: out.length,
@@ -304,6 +478,55 @@ function sheet(): Rule[] {
   return rules;
 }
 
+/**
+ * The parts of the sheet `classes` compile to that this file cannot evaluate:
+ * a rule with an unmodelled selector or at-rule that sets a property the
+ * helper reads, or a media or container query that throws even when every
+ * state is given. Empty means every rule those classes produce is modelled.
+ */
+export async function unmodelled(classes: string[]): Promise<string[]> {
+  const rules: Rule[] = [];
+  collect(
+    parse((await newCompiler()).build(classes)),
+    UNLAYERED,
+    { media: [], container: [], unknown: [] },
+    rules,
+  );
+  const read =
+    /^(color|opacity|background(-color|-image)?|border(-(top|right|bottom|left|inline|block)(-(start|end))?)?(-color)?|outline(-color|-style|-width)?|container-type|--.*)$/;
+  const full: State = {
+    width: 1024,
+    containerWidth: 512,
+    dark: false,
+    contrast: "no-preference",
+    reducedMotion: false,
+    forcedColors: false,
+    pointer: "fine",
+    canHover: true,
+  };
+  const out = new Set<string>();
+  for (const r of rules) {
+    const sets = r.decls.some((d) => read.test(d.prop));
+    if (sets && r.test === null) out.add(`${r.selector}: ${r.why}`);
+    if (sets && r.unknown.length) out.add(`${r.selector}: under ${r.unknown.join(" ")}`);
+    for (const m of r.media)
+      try {
+        mediaHolds(m, full);
+      } catch (e) {
+        out.add(`@media ${m}: ${(e as Error).message}`);
+      }
+    for (const c of r.container)
+      if (/[\d.]em\b/.test(c) || !/^(not\s+)?\(/.test(c)) out.add(`@container ${c}`);
+      else
+        try {
+          mediaHolds(c, { width: 512 });
+        } catch (e) {
+          out.add(`@container ${c}: ${(e as Error).message}`);
+        }
+  }
+  return [...out];
+}
+
 const escapeClass = (c: string) => c.replace(/[^\w-]/g, (ch) => `\\${ch}`);
 
 // ---------------------------------------------------------------- state
@@ -313,22 +536,33 @@ export interface State {
   focus?: boolean;
   focusVisible?: boolean;
   active?: boolean;
+  /** `:visited`: a link the visitor has followed. */
+  visited?: boolean;
+  /** `:target`: the element an anchor link arrived on. */
+  target?: boolean;
+  /** `(pointer: ...)` and `(any-pointer: ...)`: a mouse is `fine`, a finger
+   *  `coarse`. Required when a pointer query decides the value. */
+  pointer?: "fine" | "coarse" | "none";
+  /** `(hover: hover)`, `(any-hover: hover)`: the device can hover. Required
+   *  when a hover-capability query decides the value, except inside a rule
+   *  that also needs `:hover`, which only `hover: true` reaches (Tailwind's
+   *  own `hover:` compiles to exactly that). */
+  canHover?: boolean;
   /** Viewport width in CSS px. Required when a width query decides the value. */
   width?: number;
   /** Inline size in CSS px of the element's nearest `@container`. Required
    *  when a container query (`@md:`, `@[...]:`) decides the value. */
   containerWidth?: number;
-  /** Windows forced colours. Off unless passed: in forced colours the browser
-   *  replaces author colours with the system's, so author contrast is moot;
-   *  a test passes it to check what survives (an outline's presence). */
+  /** Windows forced colours. Required when a forced-colors query decides the
+   *  value. */
   forcedColors?: boolean;
   /** `prefers-color-scheme: dark`. Required when a scheme query decides the
    *  value: Tailwind's `dark:` follows the OS, so both schemes are real. */
   dark?: boolean;
   /** `prefers-contrast`. Required when a contrast query decides the value. */
   contrast?: "more" | "less" | "no-preference";
-  /** `prefers-reduced-motion: reduce`. Off unless passed: the default visitor,
-   *  and the one every `no-preference` reveal rule targets. */
+  /** `prefers-reduced-motion: reduce`. Required when a motion query decides
+   *  the value: reduced motion is an OS setting, so both visitors are real. */
   reducedMotion?: boolean;
 }
 
@@ -349,6 +583,8 @@ function withState<T>(el: Element, state: State, fn: () => T): T {
   }
   if (state.focus || state.focusVisible) mark(el, "focus");
   if (state.focusVisible) mark(el, "focus-visible");
+  if (state.visited) mark(el, "visited");
+  if (state.target) mark(el, "target");
   if (state.focus || state.focusVisible) mark(el, "focus-within");
   try {
     return fn();
@@ -359,7 +595,7 @@ function withState<T>(el: Element, state: State, fn: () => T): T {
 
 /** True or false; throws with the reason when the query cannot be decided
  *  for this state, or is not fully parsed. Never a guess. */
-function mediaHolds(query: string, state: State): boolean {
+function mediaHolds(query: string, state: State, needsHover = false): boolean {
   return query.split(/\s*,\s*/).some((q) => {
     const r = featureHolds(q.trim(), state);
     if (typeof r === "string") throw new Error(r);
@@ -397,16 +633,36 @@ function mediaHolds(query: string, state: State): boolean {
     const feature = /^\(([\w-]+)\s*:\s*([\w-]+)\)$/.exec(q);
     if (feature) {
       const [, name, value] = feature;
-      if (name === "hover" || name === "any-hover") return value === "hover";
-      if (name === "pointer" || name === "any-pointer") return value === "fine";
-      if (name === "forced-colors") return (value === "active") === !!s.forcedColors;
-      if (name === "prefers-color-scheme") {
+      const need = (key: string, why = "") => `the value depends on "${q}"${why}; pass { ${key} }`;
+      if ((name === "hover" || name === "any-hover") && (value === "hover" || value === "none")) {
+        if (value === "hover" && needsHover) return true;
+        if (s.canHover === undefined) return need("canHover", " (phones cannot hover)");
+        return (value === "hover") === s.canHover;
+      }
+      if (
+        (name === "pointer" || name === "any-pointer") &&
+        ["fine", "coarse", "none"].includes(value)
+      ) {
+        if (s.pointer === undefined) return need("pointer", " (phones are coarse)");
+        return value === s.pointer;
+      }
+      if (name === "forced-colors" && (value === "active" || value === "none")) {
+        if (s.forcedColors === undefined) return need("forcedColors");
+        return (value === "active") === s.forcedColors;
+      }
+      if (name === "prefers-color-scheme" && (value === "dark" || value === "light")) {
         if (s.dark === undefined)
           return `the value depends on "${q}" (Tailwind's dark: follows the OS); pass { dark: false } and { dark: true }`;
         return (value === "dark") === s.dark;
       }
-      if (name === "prefers-reduced-motion") return (value === "reduce") === !!s.reducedMotion;
-      if (name === "prefers-contrast") {
+      if (name === "prefers-reduced-motion" && (value === "reduce" || value === "no-preference")) {
+        if (s.reducedMotion === undefined) return need("reducedMotion");
+        return (value === "reduce") === s.reducedMotion;
+      }
+      if (
+        name === "prefers-contrast" &&
+        ["more", "less", "no-preference", "custom"].includes(value)
+      ) {
         if (s.contrast === undefined) return `the value depends on "${q}"; pass { contrast }`;
         return value === s.contrast || (value === "custom" && s.contrast !== "no-preference");
       }
@@ -417,13 +673,23 @@ function mediaHolds(query: string, state: State): boolean {
 
 /** True or false for a container query, given the nearest container's
  *  inline size; throws when that size is needed and not passed. */
-function containerHolds(prelude: string, state: State): boolean {
+function containerHolds(prelude: string, el: Element, state: State): boolean {
   // A named query (`@container sidebar (...)`) asks a particular ancestor,
   // which one size cannot stand for.
   if (!/^(not\s+)?\(/.test(prelude))
     throw new Error(
       `theme-colors cannot evaluate the named container query "@container ${prelude}"`,
     );
+  // An `em` in a container query is the container's font size, not 16px.
+  if (/[\d.]em\b/.test(prelude))
+    throw new Error(`theme-colors cannot evaluate the em container query "@container ${prelude}"`);
+  // With no container ancestor the query matches nothing, as in the browser.
+  let container: Element | null = null;
+  for (let n = el.parentElement; n && !container; n = n.parentElement) {
+    const type = winner(n, "container-type", state)?.value;
+    if (type !== undefined && type !== "normal") container = n;
+  }
+  if (!container) return false;
   if (state.containerWidth === undefined)
     throw new Error(
       `the value depends on a container query "@container ${prelude}"; pass { containerWidth } (see containerWidths())`,
@@ -486,19 +752,22 @@ function winner(el: Element, prop: string, state: State): Win | undefined {
     const decls = r.decls.filter((d) => d.prop === prop);
     if (!decls.length) continue;
     if (r.test === null) {
-      if (namesClassOf(r, el))
+      if (namesClassOf(r, el) || (r.loose !== null && el.matches(r.loose)))
         throw new Error(
-          `"${r.selector}" sets ${prop} on a class of this element, and theme-colors cannot evaluate that selector`,
+          `"${r.selector}" may set ${prop} on <${el.tagName.toLowerCase()} class="${el.getAttribute("class") ?? ""}">, and ${r.why}`,
         );
       continue;
     }
     if (!el.matches(r.test)) continue;
     if (r.unknown.length)
       throw new Error(
-        `"${r.selector}" sets ${prop} on this element under ${r.unknown.join(" ")}, which theme-colors cannot evaluate`,
+        `"${r.selector}" sets ${prop} on this element under ${r.unknown.join(" ")}, which theme-colors does not model`,
       );
-    if (!r.media.every((m) => mediaHolds(m, state) === true)) continue;
-    if (!r.container.every((c) => containerHolds(c, state))) continue;
+    if (el.hasAttribute("popover") && masked(r.selector).includes(":popover-open"))
+      throw new Error(`"${r.selector}" depends on whether this popover is open`);
+    const needsHover = masked(r.selector).includes(":hover");
+    if (!r.media.every((m) => mediaHolds(m, state, needsHover))) continue;
+    if (!r.container.every((c) => containerHolds(c, el, state))) continue;
     for (const d of decls) {
       const layer = d.important ? UNLAYERED - r.layer : r.layer;
       consider(d.value, [d.important ? 1 : 0, 0, layer, r.specificity, r.order]);
@@ -556,10 +825,21 @@ export function cascadeWinner(
  * counts too.
  */
 export function declaredAnywhere(el: Element, prop: string): string[] {
-  const all: State = { hover: true, focusVisible: true, active: true };
+  const all: State = {
+    hover: true,
+    focusVisible: true,
+    active: true,
+    visited: true,
+    target: true,
+  };
   return withState(el, all, () =>
     sheet()
-      .filter((r) => namesClassOf(r, el) || (r.test !== null && el.matches(r.test)))
+      .filter(
+        (r) =>
+          namesClassOf(r, el) ||
+          (r.test !== null && el.matches(r.test)) ||
+          (r.loose !== null && el.matches(r.loose)),
+      )
       .flatMap((r) => r.decls.filter((d) => d.prop === prop).map((d) => d.value)),
   );
 }

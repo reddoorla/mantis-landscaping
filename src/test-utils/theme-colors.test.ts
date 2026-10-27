@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   colourOf,
@@ -10,6 +12,7 @@ import {
   containerWidths,
   textColour,
   themeColour,
+  unmodelled,
   viewportWidths,
 } from "./theme-colors";
 
@@ -223,7 +226,133 @@ describe("theme-colors", () => {
 
   it("throws on a rule under an at-rule it has no model for", () => {
     const p = el('<p data-probe class="text-white [@scope(main)]:text-dark">x</p>');
-    expect(() => textColour(p)).toThrow(/cannot evaluate/);
+    expect(() => textColour(p)).toThrow(/does not model/);
+  });
+
+  // Review round 3 of #62: each of these was a silent guess.
+  it("parses a sheet holding quoted arbitrary values without losing step", () => {
+    const alone = el(
+      '<div class="bg-white"><p data-probe class="text-stone-300 hover:text-dark">x</p></div>',
+    );
+    const ratio = contrast(textColour(alone), groundOf(alone));
+    expect(ratio).toBeLessThan(2);
+    for (const neighbour of [
+      "font-['Nunito']",
+      "bg-[url('/a.jpg')]",
+      "content-['x']",
+      'content-["a}b"]',
+    ]) {
+      document.body.innerHTML = `<span class="${neighbour.replace(/"/g, "&quot;")}"></span><div class="bg-white"><p data-probe class="text-stone-300 hover:text-dark">x</p></div>`;
+      const p = document.querySelector("[data-probe]")!;
+      expect(contrast(textColour(p), groundOf(p)), neighbour).toBeCloseTo(ratio, 5);
+      expect(textColour(p, { hover: true }), neighbour).toEqual(themeColour("dark"));
+    }
+  });
+
+  it("refuses to guess pointer, hover capability, reduced motion or forced colours", () => {
+    const probe = (cls: string) =>
+      el(`<div class="bg-dark"><p data-probe class="text-white ${cls}">x</p></div>`);
+    const dark = themeColour("dark");
+    const white = themeColour("white");
+    for (const [cls, given, shown] of [
+      ["pointer-coarse:text-dark", { pointer: "coarse" }, dark],
+      ["pointer-coarse:text-dark", { pointer: "fine" }, white],
+      ["any-pointer-coarse:text-dark", { pointer: "coarse" }, dark],
+      ["pointer-none:text-dark", { pointer: "none" }, dark],
+      ["[@media(hover:none)]:text-dark", { canHover: false }, dark],
+      ["[@media(hover:none)]:text-dark", { canHover: true }, white],
+      ["motion-reduce:text-dark", { reducedMotion: true }, dark],
+      ["motion-safe:text-dark", { reducedMotion: true }, white],
+      ["forced-colors:text-dark", { forcedColors: true }, dark],
+    ] as const) {
+      const p = probe(cls);
+      expect(() => textColour(p), cls).toThrow(/depends on/);
+      expect(textColour(p, given), `${cls} ${JSON.stringify(given)}`).toEqual(shown);
+    }
+    // Tailwind's own hover: is `:hover` inside `(hover: hover)`; hovering
+    // implies a device that can, so it needs no canHover.
+    expect(textColour(probe("hover:text-dark"), { hover: true })).toEqual(dark);
+    expect(textColour(probe("hover:text-dark"))).toEqual(white);
+  });
+
+  it("evaluates the @supports conditions it models and throws on any other", () => {
+    const probe = (cls: string) =>
+      el(`<div class="bg-dark"><p data-probe class="text-white ${cls}">x</p></div>`);
+    expect(() => textColour(probe("not-supports-[display:grid]:text-dark"))).toThrow(
+      /does not model/,
+    );
+    expect(() => textColour(probe("supports-[foo:bar]:text-dark"))).toThrow(/does not model/);
+    // Tailwind's colour-mix upgrade is modelled: its negation never applies.
+    expect(textColour(probe("not-supports-[color:color-mix(in_lab,red,red)]:text-dark"))).toEqual(
+      themeColour("white"),
+    );
+    expect(textColour(probe("supports-[color:color-mix(in_lab,red,red)]:text-dark"))).toEqual(
+      themeColour("dark"),
+    );
+  });
+
+  it("models :visited and :target as states, and lists them among every colour", () => {
+    for (const [cls, state] of [
+      ["visited:text-dark", { visited: true }],
+      ["target:text-dark", { target: true }],
+    ] as const) {
+      const a = el(
+        `<div class="bg-dark"><a data-probe href="#x" class="text-white ${cls}">x</a></div>`,
+      );
+      expect(textColour(a), cls).toEqual(themeColour("white"));
+      expect(textColour(a, state), cls).toEqual(themeColour("dark"));
+    }
+    const input = el(
+      '<input data-probe class="border-dark visited:border-light target:border-gold" />',
+    );
+    const all = everyColour(input, "border-color");
+    expect(all).toContainEqual(themeColour("light"));
+    expect(all).toContainEqual(themeColour("gold"));
+  });
+
+  it("throws on a pseudo-class it does not model that could match", () => {
+    const p = el('<input data-probe class="text-white invalid:text-dark" />');
+    expect(() => textColour(p)).toThrow(/does not model :invalid/);
+    const lang = el('<p data-probe class="text-white [&:lang(en)]:text-dark">x</p>');
+    expect(() => textColour(lang)).toThrow(/does not model :lang/);
+  });
+
+  it("applies a container query only under a container, and refuses em", () => {
+    const bare = el(
+      '<div class="bg-dark"><p data-probe class="text-white @md:text-dark">x</p></div>',
+    );
+    expect(textColour(bare, { containerWidth: 640 })).toEqual(themeColour("white"));
+    const em = el(
+      '<div class="@container bg-dark text-[10px]"><p data-probe class="text-white @min-[30em]:text-dark">x</p></div>',
+    );
+    expect(() => textColour(em, { containerWidth: 400 })).toThrow(/em container query/);
+  });
+
+  // The allowlist is exactly what the site uses: every class in its own
+  // components and routes compiles to rules this file models.
+  it("models every rule the site's own classes compile to", async () => {
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const f of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, f.name);
+        if (f.isDirectory()) walk(path);
+        else if (
+          /\.(svelte|ts|js|html)$/.test(f.name) &&
+          !/\.test\.ts$/.test(f.name) &&
+          !path.includes("test-utils")
+        )
+          files.push(path);
+      }
+    };
+    walk(join(process.cwd(), "src"));
+    const classes = new Set<string>();
+    for (const f of files)
+      for (const t of readFileSync(f, "utf8").split(/[\s"'`{}<>]+/)) if (t) classes.add(t);
+    expect(classes.size).toBeGreaterThan(500);
+    // The sheet those classes give holds the forms the allowlist was cut to.
+    expect(await unmodelled([...classes])).toEqual([]);
+    // And the audit itself is live: a form outside the allowlist is reported.
+    expect(await unmodelled(["invalid:text-dark", "supports-[foo:bar]:text-dark"])).toHaveLength(2);
   });
 
   it("throws on a colour it cannot read rather than skipping it", () => {
