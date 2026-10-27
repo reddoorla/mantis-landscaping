@@ -755,7 +755,9 @@ function readBackground(w: { prop: string; value: string }, el: Element, state: 
     return parseColour(w.value, el, state);
   } catch (e) {
     if (w.prop === "background")
-      throw new Error(`theme-colors cannot read the background shorthand "${w.value}"`);
+      throw new Error(`theme-colors cannot read the background shorthand "${w.value}"`, {
+        cause: e,
+      });
     throw e;
   }
 }
