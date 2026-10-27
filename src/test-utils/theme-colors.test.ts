@@ -203,6 +203,9 @@ describe("theme-colors", () => {
     expect(() => at("[@media(64rem<=width)]:text-gold", 1280)).toThrow(/cannot evaluate/);
     expect(() => at("[@media(40rem<=width<64rem)]:text-gold", 800)).toThrow(/cannot evaluate/);
     expect(() => at("[@media_only_screen]:text-gold", 800)).toThrow(/cannot evaluate/);
+    // An exact width, and a prefix mixed with a range operator, are not read either.
+    expect(() => at("[@media(width:640px)]:text-gold", 640)).toThrow(/cannot evaluate/);
+    expect(() => at("[@media(min-width>=40rem)]:text-gold", 800)).toThrow(/cannot evaluate/);
     // Container queries take the same reader: not-@md: is `not (width >= 28rem)`.
     const c = el(
       '<div class="@container bg-dark"><p data-probe class="text-white not-@md:text-gold">x</p></div>',
