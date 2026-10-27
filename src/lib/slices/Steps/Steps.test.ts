@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import Steps from "./index.svelte";
 import model from "./model.json";
-import { contrast, textAndGround } from "../../../test-utils/theme-colors";
+import { contrast, groundOf, textColour } from "../../../test-utils/theme-colors";
 
 const steps = [
   {
@@ -61,10 +61,8 @@ describe("Steps slice", () => {
   it("keeps the bright Blux gold only under dark type", () => {
     const { container } = render(Steps, { props: { slice: slice(howItWorks, "gold") } });
     const section = container.querySelector("section")!;
-    const { text, ground } = textAndGround(section);
-    expect(text, "the band's text-* token").not.toBeNull();
-    expect(ground, "the band's bg-* token").not.toBeNull();
-    expect(contrast(text!, ground!), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
+    for (const h of section.querySelectorAll("h2, h3"))
+      expect(contrast(textColour(h), groundOf(h)), h.textContent!).toBeGreaterThanOrEqual(4.5);
     expect(section.className).not.toContain("text-white");
   });
 
@@ -78,11 +76,10 @@ describe("Steps slice", () => {
       const { container, unmount } = render(Steps, {
         props: { slice: slice(howItWorks, background) },
       });
-      const { ground } = textAndGround(container.querySelector("section")!);
+      const ground = groundOf(container.querySelector("section")!);
       unmount();
-      return ground;
+      return JSON.stringify(ground);
     });
-    expect(grounds.every(Boolean), `every option has a bg-* token: ${grounds}`).toBe(true);
     expect(new Set(grounds).size, `${options} -> ${grounds}`).toBe(options.length);
   });
 });

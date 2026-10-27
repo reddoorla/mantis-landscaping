@@ -2,7 +2,7 @@ import { render, within } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import SplitHero from "./index.svelte";
-import { contrast, textAndGround } from "../../../test-utils/theme-colors";
+import { contrast, groundOf, textColour, viewportWidths } from "../../../test-utils/theme-colors";
 
 const slice = (tone: string) =>
   ({
@@ -45,24 +45,28 @@ describe("SplitHero slice", () => {
 
   it("puts white type on the darkened gold, never the Blux gold", () => {
     const { container } = render(SplitHero, { props: { slice: slice("gold-deep") } });
-    const { text, ground } = textAndGround(container.querySelector("h1")!);
-    expect(text, "the heading's text-* token").not.toBeNull();
-    expect(ground, "the panel's bg-* token").not.toBeNull();
-    expect(contrast(text!, ground!), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
+    const h1 = container.querySelector("h1")!;
+    // At every width the stylesheet distinguishes, since a breakpoint variant
+    // can recolour the heading on a phone or a desktop alone.
+    for (const width of viewportWidths()) {
+      const state = { width };
+      expect(
+        contrast(textColour(h1, state), groundOf(h1, { state })),
+        `heading at ${width}px`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
     expect(container.querySelector(".bg-gold")).toBeNull();
   });
 
   it("honours the editor's tone: gold-deep and dark paint different panels", () => {
     // Distinctness, no colour pinned: a CMS choice that renders the same as the
     // default silently does nothing.
-    const groundOf = (tone: string) => {
+    const panel = (tone: string) => {
       const { container, unmount } = render(SplitHero, { props: { slice: slice(tone) } });
-      const { ground } = textAndGround(container.querySelector("h1")!);
+      const ground = groundOf(container.querySelector("h1")!);
       unmount();
       return ground;
     };
-    const dark = groundOf("dark");
-    expect(dark, "the dark panel's bg-* token").not.toBeNull();
-    expect(groundOf("gold-deep")).not.toBe(dark);
+    expect(panel("gold-deep")).not.toEqual(panel("dark"));
   });
 });

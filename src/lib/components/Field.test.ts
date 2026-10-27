@@ -1,7 +1,13 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/svelte";
 import Field from "./Field.svelte";
-import { colourClasses, contrast, tokenOf } from "../../test-utils/theme-colors";
+import {
+  cascadeWinner,
+  colourOf,
+  contrast,
+  everyColour,
+  groundOf,
+} from "../../test-utils/theme-colors";
 
 afterEach(() => cleanup());
 
@@ -87,13 +93,19 @@ describe("Field styling", () => {
     ({ type, label }) => {
       // A hover border of --color-light measured 1.09:1 on white: the box
       // vanished under the pointer. Every state's border is a control boundary.
+      // Read from the compiled stylesheet: Tailwind's own palette, alpha,
+      // arbitrary values and every variant (hover, focus, aria-invalid,
+      // breakpoints) count, and a colour the helper cannot read throws.
       const { getByLabelText } = render(Field, { name: "a", label, type });
-      const borders = colourClasses(getByLabelText(label).getAttribute("class") ?? "", "border");
-      expect(borders.length, "the control carries border-<theme token> classes").toBeGreaterThan(0);
-      for (const { variant, token } of borders)
-        expect(contrast(token, "background"), `${variant}border-${token}`).toBeGreaterThanOrEqual(
-          3,
-        );
+      const control = getByLabelText(label);
+      const page = groundOf(control.parentElement!);
+      const borders = everyColour(control, "border-color");
+      expect(borders.length, "the control draws a border").toBeGreaterThan(0);
+      for (const border of borders)
+        expect(
+          contrast(border, page),
+          `border rgb(${border.r} ${border.g} ${border.b})`,
+        ).toBeGreaterThanOrEqual(3);
     },
   );
 
@@ -104,9 +116,10 @@ describe("Field styling", () => {
       // fields read as invisible boxes and a visitor has to hunt for where to
       // type. WCAG 1.4.11 wants 3:1 for a control's boundary.
       const { getByLabelText } = render(Field, { name: "a", label, type });
-      const border = tokenOf(getByLabelText(label).getAttribute("class") ?? "", "border");
-      expect(border, "the control carries a border-<theme token>").not.toBeNull();
-      expect(contrast(border!, "white")).toBeGreaterThanOrEqual(3);
+      const control = getByLabelText(label);
+      const border = colourOf(control, "border-color");
+      expect(border, "the control draws a border").toBeDefined();
+      expect(contrast(border!, groundOf(control.parentElement!))).toBeGreaterThanOrEqual(3);
     },
   );
 
@@ -116,11 +129,20 @@ describe("Field styling", () => {
       // In Tailwind v4 `outline-none` resolves to `outline-style: none` and takes
       // the forced-colors fallback with it. Under forced colours the ring is
       // dropped by the engine, so that outline is the only focus affordance left.
+      // Measured through the cascade, so `focus:outline-none`, `outline-0`
+      // and an arbitrary `focus:[outline:none]` all fail alike.
       const { getByLabelText } = render(Field, { name: "a", label, type });
-      const cls = getByLabelText(label).getAttribute("class") ?? "";
-      expect(cls).not.toContain("focus:outline-none");
-      // `outline-0` keeps the style but zeroes the width: the same loss.
-      expect(cls).not.toMatch(/(^|\s)focus(-visible)?:outline-0(\s|$)/);
+      const control = getByLabelText(label);
+      for (const state of [
+        { focus: true, forcedColors: true },
+        { focusVisible: true, forcedColors: true },
+      ]) {
+        const style = cascadeWinner(control, ["outline", "outline-style"], state);
+        const width = cascadeWinner(control, ["outline", "outline-width"], state);
+        expect(style, "an outline is set under forced colours").toBeDefined();
+        expect(style!.value, "outline style").not.toMatch(/(^|\s)(none|hidden)(\s|$)/);
+        expect(width!.value, "outline width").not.toMatch(/(^|\s)0(px)?(\s|$)/);
+      }
     },
   );
 });

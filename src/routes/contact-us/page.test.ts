@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/svelte";
 import { tick } from "svelte";
-import { contrast, over, restingColour, textAndGround } from "../../test-utils/theme-colors";
+import { contrast, shownText } from "../../test-utils/theme-colors";
 
 // `use:enhance` needs no behaviour here — these cases are about what the page
 // renders and where focus lands, not about submission.
@@ -51,26 +51,15 @@ describe("the contact page's submit button", () => {
     enhanced.get(form)!();
     await tick();
     expect(button.disabled, "the button is disabled while sending").toBe(true);
-    const cls = button.className;
-    const text = restingColour(cls, "text");
-    const bg = restingColour(cls, "bg");
-    expect(text, "the label's text-* token").not.toBeNull();
-    expect(bg, "the button's bg-* token").not.toBeNull();
-    const opacity = Math.min(
-      1,
-      ...cls
-        .split(/\s+/)
-        .map((c) => /^((?:disabled|aria-busy):)?opacity-(\d+)$/.exec(c))
-        .filter((m) => m !== null)
-        .map((m) => Number(m![2]) / 100),
-    );
-    const page = textAndGround(button.parentElement!).ground ?? "background";
-    // The button paints its label on its fill, then the whole of it is faded
-    // onto the page.
-    const fill = over(bg!.token, bg!.alpha, page);
-    const shownBg = over(fill, opacity, page);
-    const shownText = over(over(text!.token, text!.alpha, fill), opacity, page);
-    expect(contrast(shownText, shownBg)).toBeGreaterThanOrEqual(4.5);
+    // Measured in the state the DOM is now in (disabled, aria-busy), through
+    // the compiled stylesheet, so a `disabled:` or `aria-busy:` colour or
+    // opacity counts, and the faded button is composited onto the page.
+    for (const state of [{}, { hover: true }]) {
+      const { ink, ground } = shownText(button, state);
+      expect(contrast(ink, ground), `Sending… ${JSON.stringify(state)}`).toBeGreaterThanOrEqual(
+        4.5,
+      );
+    }
   });
 });
 

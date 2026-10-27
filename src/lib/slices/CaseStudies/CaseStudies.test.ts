@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import type { ProjectDocument } from "../../../prismicio-types";
 import CaseStudies from "./index.svelte";
-import { contrast, over, restingColour, type Rgb } from "../../../test-utils/theme-colors";
+import { contrast, groundOf, themeColour } from "../../../test-utils/theme-colors";
 
 const slice = {
   slice_type: "case_studies",
@@ -142,18 +142,17 @@ describe("CaseStudies photos", () => {
     const { container } = render(CaseStudies, { props: { slice, context: { project: two() } } });
     const view = within(container);
     const pill = view.getByRole("button", { name: "Go to slide 1" }).parentElement!;
-    const pillFill = restingColour(pill.className, "bg");
     const dot = view.getByRole("button", { name: "Go to slide 2" }).querySelector("span")!;
-    const dotFill = restingColour(dot.className, "bg");
-    expect(dotFill, "the inactive dot carries a bg-<theme token>").not.toBeNull();
-    const photos: Rgb[] = [
-      [255, 255, 255],
-      [0, 0, 0],
-    ];
-    for (const photo of photos) {
-      const ground = pillFill ? over(pillFill.token, pillFill.alpha, photo) : photo;
-      const shown = over(dotFill!.token, dotFill!.alpha, ground);
-      expect(contrast(shown, ground), `dot on pill over rgb(${photo})`).toBeGreaterThanOrEqual(3);
+    for (const photo of ["white", "black"]) {
+      for (const state of [{}, { hover: true }]) {
+        const under = themeColour(photo);
+        const ground = groundOf(pill, { within: pill, under, state });
+        const shown = groundOf(dot, { within: pill, under, state });
+        expect(
+          contrast(shown, ground),
+          `dot on pill over ${photo} ${JSON.stringify(state)}`,
+        ).toBeGreaterThanOrEqual(3);
+      }
     }
   });
 });

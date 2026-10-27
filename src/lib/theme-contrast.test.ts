@@ -175,7 +175,7 @@ describe("theme contrast", () => {
   );
 
   /**
-   * The 13 none-hued Tailwind tokens app.css overrides with a 0 hue (#152) are
+   * The none-hued Tailwind tokens app.css overrides with a 0 hue (#152) are
    * in this @theme block, so a `text-neutral-*` in src is classified here
    * like any other token, and this guard has to be able to measure it. These
    * are Tailwind's own sRGB values for the same greys.

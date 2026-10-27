@@ -3,11 +3,14 @@ import { render, fireEvent, cleanup } from "@testing-library/svelte";
 import { createRawSnippet, tick } from "svelte";
 import Slider from "./Slider.svelte";
 import {
-  colourClasses,
+  colourOf,
+  computed,
   contrast,
-  over as composite,
-  restingColour,
-  type Rgb,
+  groundOf,
+  over,
+  readColour,
+  themeColour,
+  type Rgba,
 } from "../../test-utils/theme-colors";
 
 type MediaListener = (e: { matches: boolean }) => void;
@@ -68,21 +71,29 @@ const anchors = (el: HTMLElement) =>
       .filter(Boolean),
   );
 
-const WHITE: Rgb = [255, 255, 255];
-const BLACK: Rgb = [0, 0, 0];
+const WHITE = themeColour("white");
+const BLACK = themeColour("black");
 
-/** The colours of an element's `focus-visible:` indicators: an arbitrary
- *  `shadow-[... rgb(r_g_b/a)]` halo or a theme `ring-`/`outline-` token, each
- *  composited over `photo`. */
-const focusColours = (el: HTMLElement, photo: Rgb): Rgb[] => {
-  const out: Rgb[] = [];
-  for (const c of el.className.split(/\s+/)) {
-    const m = /^focus-visible:shadow-\[.*rgb\((\d+)_(\d+)_(\d+)(?:\/([\d.]+))?\)\]$/.exec(c);
-    if (m) out.push(composite([+m[1], +m[2], +m[3]], m[4] ? +m[4] : 1, photo));
+/** The colours of an element's keyboard-focus indicators, read through the
+ *  compiled stylesheet in the focus-visible state: its outline, its ring, and
+ *  the colour of a box-shadow halo, each composited over `photo`. */
+const focusColours = (el: HTMLElement, photo: Rgba): Rgba[] => {
+  const state = { focusVisible: true };
+  const out: Rgba[] = [];
+  const outline = colourOf(el, "outline-color", state);
+  const style = computed(el, "outline-style", state);
+  if (outline && style !== "none") out.push(over(outline, photo));
+  // A ring or a halo paints its colour variable, else its fallback.
+  for (const [shadow, colour] of [
+    ["--tw-ring-shadow", "--tw-ring-color"],
+    ["--tw-shadow", "--tw-shadow-color"],
+  ]) {
+    const value = computed(el, shadow, state);
+    if (!value) continue;
+    const fallback = new RegExp(`var\\(${colour},\\s*(.+)\\)\\s*$`).exec(value)?.[1];
+    const paint = computed(el, colour, state) ?? fallback ?? "currentColor";
+    out.push(over(readColour(paint, el, state), photo));
   }
-  for (const u of ["ring", "outline"] as const)
-    for (const k of colourClasses(el.className, u))
-      if (k.variant.includes("focus")) out.push(composite(k.token, k.alpha, photo));
   return out;
 };
 
@@ -398,15 +409,13 @@ describe("Slider autoplay", () => {
     });
     const pill = getByLabelText("Go to slide 1").parentElement!;
     expect(outOfFlow(pill), "the pill floats over the slides").toBe(true);
-    const pillFill = restingColour(pill.className, "bg");
     const dot = getByLabelText("Go to slide 2").querySelector("span")!;
-    const dotFill = restingColour(dot.className, "bg")!;
     for (const photo of [WHITE, BLACK]) {
-      const ground = pillFill ? composite(pillFill.token, pillFill.alpha, photo) : photo;
-      const shown = composite(dotFill.token, dotFill.alpha, ground);
+      const ground = groundOf(pill, { within: pill, under: photo });
+      const shown = groundOf(dot, { within: pill, under: photo });
       expect(
         contrast(shown, ground),
-        `inactive dot on a ${photo[0] ? "light" : "dark"} photo`,
+        `inactive dot on a ${photo.r ? "light" : "dark"} photo`,
       ).toBeGreaterThanOrEqual(3);
     }
   });
