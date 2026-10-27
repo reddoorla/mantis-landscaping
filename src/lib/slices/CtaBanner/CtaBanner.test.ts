@@ -1,6 +1,8 @@
 import { describe, expect, it, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/svelte";
 import CtaBanner from "./index.svelte";
+import { buttonSkinClasses, buttonSkinInverseClasses } from "$lib/components/DefaultButton.svelte";
+import { contrast, textAndGround } from "../../../test-utils/theme-colors";
 
 afterEach(() => cleanup());
 
@@ -40,14 +42,22 @@ describe("CtaBanner slice", () => {
   });
 
   it("paints the selected ground and inverts the button on the dark one", () => {
+    const light = render(CtaBanner, { props: { slice: makeSlice({ background: "light" }) } });
+    const lightGround = textAndGround(light.container.querySelector("h2")!).ground;
+    cleanup();
+
     const { container } = render(CtaBanner, {
       props: { slice: makeSlice({ background: "dark" }) },
     });
-    const section = container.querySelector("section");
-    expect(section?.className).toContain("bg-dark");
-    expect(section?.className).toContain("text-white");
+    // The editor's "dark" choice is honoured, and the headline reads on it.
+    const { text, ground } = textAndGround(container.querySelector("h2")!);
+    expect(ground, "the band's bg-* token").not.toBeNull();
+    expect(ground).not.toBe(lightGround);
+    expect(text, "the headline's text-* token").not.toBeNull();
+    expect(contrast(text!, ground!), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
     const cta = container.querySelector("a");
-    expect(cta?.className).toContain("border-white");
+    expect(cta?.className).toContain(buttonSkinInverseClasses);
+    expect(cta?.className).not.toContain(buttonSkinClasses);
     expect(cta?.className).not.toContain("border-dark");
   });
 

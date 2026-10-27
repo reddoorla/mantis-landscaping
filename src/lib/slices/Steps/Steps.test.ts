@@ -2,6 +2,8 @@ import { render, within } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import Steps from "./index.svelte";
+import model from "./model.json";
+import { contrast, textAndGround } from "../../../test-utils/theme-colors";
 
 const steps = [
   {
@@ -58,10 +60,30 @@ describe("Steps slice", () => {
 
   it("keeps the bright Blux gold only under dark type", () => {
     const { container } = render(Steps, { props: { slice: slice(howItWorks, "gold") } });
-    const section = container.querySelector("section");
-    expect(section?.className).toContain("bg-gold");
-    expect(section?.className).toContain("text-primary");
-    expect(section?.className).not.toContain("text-white");
+    const section = container.querySelector("section")!;
+    const { text, ground } = textAndGround(section);
+    expect(text, "the band's text-* token").not.toBeNull();
+    expect(ground, "the band's bg-* token").not.toBeNull();
+    expect(contrast(text!, ground!), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
+    expect(section.className).not.toContain("text-white");
+  });
+
+  it("every background the editor can pick paints a distinct ground", () => {
+    const options = (
+      model as unknown as {
+        variations: { primary: { background: { config: { options: string[] } } } }[];
+      }
+    ).variations[0].primary.background.config.options;
+    const grounds = options.map((background) => {
+      const { container, unmount } = render(Steps, {
+        props: { slice: slice(howItWorks, background) },
+      });
+      const { ground } = textAndGround(container.querySelector("section")!);
+      unmount();
+      return ground;
+    });
+    expect(grounds.every(Boolean), `every option has a bg-* token: ${grounds}`).toBe(true);
+    expect(new Set(grounds).size, `${options} -> ${grounds}`).toBe(options.length);
   });
 });
 

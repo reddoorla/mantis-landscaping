@@ -2,6 +2,7 @@ import { render, within } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import SplitHero from "./index.svelte";
+import { contrast, textAndGround } from "../../../test-utils/theme-colors";
 
 const slice = (tone: string) =>
   ({
@@ -44,9 +45,24 @@ describe("SplitHero slice", () => {
 
   it("puts white type on the darkened gold, never the Blux gold", () => {
     const { container } = render(SplitHero, { props: { slice: slice("gold-deep") } });
-    const panel = container.querySelector(".bg-gold-deep");
-    expect(panel).not.toBeNull();
-    expect(panel?.className).toContain("text-white");
+    const { text, ground } = textAndGround(container.querySelector("h1")!);
+    expect(text, "the heading's text-* token").not.toBeNull();
+    expect(ground, "the panel's bg-* token").not.toBeNull();
+    expect(contrast(text!, ground!), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
     expect(container.querySelector(".bg-gold")).toBeNull();
+  });
+
+  it("honours the editor's tone: gold-deep and dark paint different panels", () => {
+    // Distinctness, no colour pinned: a CMS choice that renders the same as the
+    // default silently does nothing.
+    const groundOf = (tone: string) => {
+      const { container, unmount } = render(SplitHero, { props: { slice: slice(tone) } });
+      const { ground } = textAndGround(container.querySelector("h1")!);
+      unmount();
+      return ground;
+    };
+    const dark = groundOf("dark");
+    expect(dark, "the dark panel's bg-* token").not.toBeNull();
+    expect(groundOf("gold-deep")).not.toBe(dark);
   });
 });

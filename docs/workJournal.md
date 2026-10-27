@@ -901,3 +901,21 @@ The second repo of the fleet's kit 3 migration and the feature → staging → m
 **Smoke on staging matched production.** Run against `staging--…` and, as the control, `mantis-landscaping.netlify.app` (kit 2): 53 passed on each, and the same 2 failed on each. Those 2 load `/dev/a11y-fixtures`, which is never deployed.
 
 **Left behind.** The head branches `claude/staging-flow` and `claude/kit-3` are still on GitHub. This repo does not auto-delete head branches, and the cloud proxy refuses the delete with a 403.
+
+## 2026-10-27 — The fleet test audit's rewrite: design pins out, every real catch kept and proved (#TBD)
+
+Why: the fleet test audit (reddoorla/reddoor-workspace `audits/2026-10-26-fleet-test-audit/report.md`, batch B, picked by the operator on 2026-10-27) found unit tests here that pin class names, pixel sizes and durations, so a designer's one-line change turns them red without a bug. This PR applies the audit's rewrite of 20 unit test files and 4 Playwright specs, minus every place where the rewrite would have let a real bug through.
+
+The audit sorted the 40 removed or weakened assertions. 9 were design values (the slider's fade grid rows, the dot pill's gap, the inverse button's border, the display title's size, the footer's column split, the wait cursor, and three more). 13 guarded code no visitor reaches: Modal and ScreenWidthMedia mount only on `/dev` routes here, and the rest were restatements of the source. Those 22 went. The other 18 were real catches, and each is back as an assertion that measures a relation instead of naming a class. Each was then proved by the audit reviewer's own mutant, which re-creates the bug in the component: 18 of 18 went red (`mutate.mjs --in-place`).
+
+The keeps, briefly:
+
+- **Contrast is computed from the `@theme` tokens**, with alpha composited, for the dark CTA band's headline (>= 4.5) and the overlay and CaseStudies dots on their pill over both a white and a black photo (>= 3). Every border colour a Field can take, `hover:` and `focus:` included, is checked against the page at 3:1. The sending Send button's label is checked at 4.5 after any opacity that applies while it is disabled.
+- **Prismic options are checked for distinctness**: SplitHero's gold-deep tone, every Steps background, and TextBlock's gold-deep must paint a ground different from the default's. TextBlock's `image` option shares dark's ground under its photo on purpose, so only gold-deep is compared.
+- **Relations stand in for values.** The overlay arrows float over the slides, Previous on the left edge and Next on the right. FeatureTrio's grid and carousel queries use complementary comparators and sit inside a `@container`. MediaText's imageLeft media sorts before the copy. A photo-less case study's text spans the card's whole column count. An overlay arrow's focus indicator, composited on white, clears 3:1.
+
+**Belief corrected:** the audit's losses file proposed Playwright for seven of the keeps (trial clicks, forced colours). The reviewer's mutants run only under vitest, so a Playwright keep could not be proved red here. Every keep is a unit assertion instead, and "positioned out of flow" is read as `absolute` or `fixed` on the element, the closest jsdom gets to a layout fact.
+
+Two of the Playwright reviewer's notes were cheap enough to fold in. The nav sticking after scroll is back, as a poll on `top == 0` with no height pin. The logo spec again requires a logo in both the nav and the footer, not just "more than zero". `src/lib/actions/animateIn.test.ts` is untouched, because it is an inherited starter copy handled separately (batch C). `docs/COMPONENTS.md` is regenerated, since its test counts moved.
+
+**Checks.** The full vitest suite passes. prettier and eslint are clean. svelte-check reports 28 errors, all `./$types` or implicit-any; a clean worktree of `main` with the same linked `node_modules` gives the same 28, so they come from the worktree setup, not this change. The Playwright specs ran against a production build (`REDDOOR_GATE_SERVER=preview`): case-study-slideshow, chrome-geometry and logo, 43 passed. `modal-centring` loads `/dev/a11y-fixtures`, which a production build does not serve, so it ran on the dev server: 3 passed.

@@ -4,6 +4,7 @@ import { render, within } from "@testing-library/svelte";
 import { describe, it, expect } from "vitest";
 import type { Content } from "@prismicio/client";
 import TextBlock from "./index.svelte";
+import { textAndGround } from "../../../test-utils/theme-colors";
 
 const slice = (primary: Record<string, unknown>, buttons: unknown[] = []) =>
   ({
@@ -74,7 +75,22 @@ describe("TextBlock slice", () => {
     });
     expect(within(container).getByRole("heading", { level: 2 }).textContent).toBe("Contact Us");
     expect(container.querySelector("h1")).toBeNull();
-    expect(container.querySelector("section")?.className).toContain("bg-gold-deep");
+  });
+
+  it("honours a gold-deep band: its ground differs from the dark default's", () => {
+    // Distinctness, no colour pinned. (The image option shares dark's ground
+    // under its photo on purpose, so only gold-deep is compared.)
+    const groundOf = (background: string) => {
+      const { container, unmount } = render(TextBlock, {
+        props: { slice: slice({ background }) },
+      });
+      const { ground } = textAndGround(container.querySelector("h2")!);
+      unmount();
+      return ground;
+    };
+    const dark = groundOf("dark");
+    expect(dark, "the dark band's bg-* token").not.toBeNull();
+    expect(groundOf("gold-deep")).not.toBe(dark);
   });
 
   it("the heading offers no h1", () => {
