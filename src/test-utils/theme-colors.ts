@@ -102,9 +102,11 @@ import { compile } from "tailwindcss";
  * proved clear of the text. A pseudo is proved clear only when it is plain and
  * sits short of the content on one axis. Plain means: absolutely positioned in
  * a positioned element; no outer box-shadow layer; no outline that paints; no
- * filter or backdrop-filter; every margin zero; `aspect-ratio` auto; no logical
- * or min size; `translate`, `scale`, `rotate` and `transform` all none; and not
- * overconstrained (a size with both insets on its axis set, which CSS drops).
+ * filter or backdrop-filter that paints (a neutral chain such as `blur-none`
+ * does not); every margin zero; `aspect-ratio` auto; no logical or min size;
+ * `translate`, `scale`, `rotate` and `transform` all none; `zoom` 1 or normal,
+ * `offset-path` none and `border-image-outset` 0; and not overconstrained (a
+ * size with both insets on its axis set, which CSS drops).
  * The sitting-short proof is an offset and a size in px, measured from the
  * padding edge, that stop short of where the content starts (an underline below
  * the element, a bullet in its padding). A percentage size, an auto size on a
@@ -112,7 +114,7 @@ import { compile } from "tailwindcss";
  * positioned is read and refused if it paints. Every refusal names the property
  * that defeats the proof. An inset fill, a half-width fill and a 101% sliding
  * fill are all refused. Two decorations that paint clear of the label are
- * refused by name rather than measured (review round 9): a grow-in underline
+ * refused by name rather than measured (review round 9, #67): a grow-in underline
  * below it (`scale-x`) and a centred bullet (`-translate-y-1/2`). An
  * `after:bottom-0` underline on a link with no bottom padding is a correct
  * refusal: its box overlaps the descender zone. The glyph
@@ -1923,11 +1925,21 @@ function whyUnderText(n: Element, box: "before" | "after", state: State): string
         shadowPaints(layer, n, state, `::${box} box-shadow layer "${layer}"`)
       )
         return `box-shadow "${layer.trim()}" is an outer shadow, which paints past the box`;
-  const outline = edgePainted(n, "outline", [""], state, box);
+  // Named, so a forced-colours demand from a transparent outline says which pseudo asked for it.
+  const outline = naming(n, `::${box} outline`, () => edgePainted(n, "outline", [""], state, box));
   if (outline) return `outline "${outline.value}" paints past the box`;
+  // Read raw, as `pseudoPaint` reads them: Tailwind's `blur-none` expands to an empty chain, which
+  // `neutral` accepts and an expanded-value test refused.
   for (const prop of ["filter", "backdrop-filter"]) {
-    const w = val([prop]);
-    if (w && !UNSET.test(w.value)) return `${prop} "${w.value}" can paint past the box`;
+    const w = winnerOf(n, [prop], state, box);
+    if (
+      w &&
+      !neutral(prop, w.value, (name) => {
+        const v = varOf(n, name, state, box);
+        return v === undefined ? [] : [v];
+      })
+    )
+      return `${prop} "${expandVars(w.value, n, state, 0, box).trim()}" can paint past the box`;
   }
   // Placement the proof does not read: a margin moves the box.
   for (const side of SIDES) {
@@ -1969,6 +1981,18 @@ function whyUnderText(n: Element, box: "before" | "after", state: State): string
     const w = val([prop]);
     if (w && !UNSET.test(w.value)) return `${prop} "${w.value}" moves or scales the box`;
   }
+  // Three more that move or paint past the box: `zoom` scales every length in it, `offset-path`
+  // moves it along a path, and `border-image-outset` lets a border image reach past the border box.
+  // Each is read on its own and must be its neutral value; the initial values are the keywords.
+  const zoom = val(["zoom"]);
+  if (zoom && !/^(1|normal|initial|unset|revert|revert-layer)$/i.test(zoom.value))
+    return `zoom "${zoom.value}" scales the box`;
+  const offsetPath = val(["offset-path"]);
+  if (offsetPath && !UNSET.test(offsetPath.value))
+    return `offset-path "${offsetPath.value}" moves the box`;
+  const outset = val(["border-image-outset"]);
+  if (outset && !/^(0|0px|initial|unset|revert|revert-layer)$/i.test(outset.value))
+    return `border-image-outset "${outset.value}" paints past the border box`;
   // Overconstrained: a size with both insets on its axis set. CSS drops the far one.
   for (const [sizes, near, far] of [
     [["height", "block-size"], "top", "bottom"],

@@ -724,6 +724,55 @@ describe("theme-colors", () => {
       );
     expect(groundOf(shadowAt(6))).toEqual(themeColour("dark"));
     expect(() => groundOf(shadowAt(7))).toThrow(/inset/);
+    // Review round 9 check, major 1. The plain underline with a neutral Tailwind filter chain
+    // (`blur-none` and `drop-shadow-none` expand to an empty chain) paints nothing under the label,
+    // so it is read as clear; a real blur is refused, and the throw names the filter.
+    const underline =
+      "relative px-10 py-4 text-white after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:bg-white";
+    for (const extra of [
+      "after:blur-none",
+      "after:drop-shadow-none",
+      "after:blur-sm hover:after:blur-none",
+      "after:[zoom:1] after:[offset-path:none] after:[border-image-outset:0]",
+      "after:[zoom:normal]",
+    ]) {
+      const p = el(`<div class="bg-dark"><a data-probe class="${underline} ${extra}">x</a></div>`);
+      expect(groundOf(p, { state: { hover: true } }), extra).toEqual(themeColour("dark"));
+    }
+    const blurred = el(
+      `<div class="bg-dark"><a data-probe class="${underline} after:blur-[40px]">x</a></div>`,
+    );
+    expect(() => groundOf(blurred, { state: { hover: true } })).toThrow(
+      /filter ".*" can paint past the box/,
+    );
+    // Review round 9 check, major 5. A `zoom` other than 1, a motion path and a border-image outset
+    // each move or grow a box that the proof does not read, so each is refused by name. The dot is
+    // in the padding, and the underline has a border image that paints 40px past its border box.
+    const dot =
+      "relative px-10 py-4 text-white before:absolute before:left-0 before:top-0 before:size-2 before:bg-white";
+    const outsetLine =
+      "relative px-10 py-4 text-white after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:border-b-2 after:border-solid after:border-white";
+    const moved: [string, RegExp][] = [
+      [`${dot} before:[zoom:10]`, /zoom "10" scales the box/],
+      [
+        `${dot} before:[offset-path:ray(90deg)] before:[offset-distance:80px]`,
+        /offset-path "ray\(90deg\)" moves the box/,
+      ],
+      [
+        `${outsetLine} after:[border-image:linear-gradient(white,white)_1] after:[border-image-outset:40px]`,
+        /border-image-outset "40px" paints past the border box/,
+      ],
+    ];
+    for (const [cls, why] of moved) {
+      const p = el(`<div class="bg-dark"><a data-probe class="${cls}">x</a></div>`);
+      expect(() => groundOf(p, { state: { hover: true } }), cls).toThrow(why);
+    }
+    // Review round 9 check, finding 4. A transparent outline on a plain pseudo is read for its
+    // forced-colours demand, and the demand names the pseudo and its element.
+    const hidden = el(
+      `<div class="bg-dark"><a data-probe class="${underline} after:outline-hidden">x</a></div>`,
+    );
+    expect(() => groundOf(hidden, { state: { hover: true } })).toThrow(/::after outline on <a/);
   });
 
   it("reads a fill that paints nothing as unpainted, whatever spelling gives it", () => {
