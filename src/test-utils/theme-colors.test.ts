@@ -554,7 +554,7 @@ describe("theme-colors", () => {
     expect(groundOf(ring, { state: { focusVisible: true } })).toEqual(themeColour("dark"));
     // A decorative underline below the button, drawn by a border, is not under the label.
     const underline = el(
-      '<div class="bg-dark"><a data-probe class="relative border-white text-white hover:bg-white hover:text-dark after:absolute after:inset-x-0 after:-bottom-2 after:border-b-2 after:border-white">x</a></div>',
+      '<div class="bg-dark"><a data-probe class="relative border-white text-white hover:bg-white hover:text-dark after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:border-b-2 after:border-white">x</a></div>',
     );
     // The link's own hover fill is the ground here (white); the underline is not part of it.
     expect(groundOf(underline, { state: { hover: true } })).toEqual(themeColour("white"));
@@ -571,6 +571,60 @@ describe("theme-colors", () => {
       const p = el(`<div class="bg-dark"><a data-probe class="${cls}">x</a></div>`);
       expect(groundOf(p), cls).toEqual(themeColour("dark"));
     }
+  });
+
+  it("refuses a ::before or ::after that may lie under the text, and reads one proved away from it (review round 8)", () => {
+    // Known-bad. Hovered over the white label, each paints white where the label is, and the
+    // helper cannot prove the box clear of the text: an inset or a 101% width covers it on one
+    // axis, a half-height box and a 100% height are not sized in px, and a fixed box is the
+    // viewport's. The controls (inset-0, inset-[-0.5rem], size-full, left-0 w-1/2) stay refused.
+    const bad = [
+      "relative isolate border-white text-white before:absolute before:inset-1 before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:absolute before:inset-px before:-z-10 hover:before:bg-white",
+      "relative isolate overflow-hidden border-white text-white before:absolute before:top-0 before:left-0 before:h-full before:w-0 before:-z-10 before:bg-white hover:before:w-[101%]",
+      "relative isolate border-white text-white after:absolute after:inset-x-0 after:bottom-0 after:h-1/2 after:-z-10 hover:after:bg-white",
+      "relative isolate border-white text-white before:absolute before:inset-x-1 before:inset-y-0 before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:absolute before:inset-0 before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:absolute before:inset-[-0.5rem] before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:absolute before:left-0 before:top-0 before:size-full before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:absolute before:left-0 before:w-1/2 before:h-full before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:fixed before:inset-0 before:-z-10 hover:before:bg-white",
+      "relative isolate border-white text-white before:absolute before:inset-0 before:-z-10 hover:before:scale-y-[20] hover:before:bg-white",
+      // A pseudo's box is sized from its containing block's padding edge, so a 3px box at the top
+      // edge of a 4px border with no padding reaches the label.
+      "relative border-[4px] border-white p-0 text-white before:absolute before:top-0 before:h-[3px] before:content-[''] hover:before:bg-white",
+    ];
+    for (const cls of bad) {
+      const p = el(`<div class="bg-dark"><a data-probe class="${cls}">x</a></div>`);
+      expect(() => groundOf(p, { state: { hover: true } }), cls).toThrow(/::(before|after)/);
+    }
+    // Known-good. Proved away from the label, or no fill at all, so the ground is the band's. An
+    // underline below the link, a bullet in the padding, and a box clear of the label at the
+    // padding edge are read as away; the arrow and the required-field asterisk set text properties
+    // on the pseudo (colour, weight, size), which paint no box.
+    const good = [
+      "relative text-white before:absolute before:-bottom-2 before:h-0.5 before:bg-gold",
+      "relative pl-4 text-white before:absolute before:left-0 before:top-2 before:size-2 before:rounded-full before:bg-gold",
+      "relative pt-[4px] text-white before:absolute before:top-0 before:h-[3px] before:content-[''] hover:before:bg-white",
+      "relative text-white after:ml-2 after:inline-block after:font-bold after:content-['→']",
+      "relative text-white after:ml-2 after:text-sm after:content-['→']",
+      "relative text-white after:ml-0.5 after:text-red-500 after:content-['*']",
+    ];
+    for (const cls of good) {
+      const p = el(`<div class="bg-dark"><a data-probe class="${cls}">x</a></div>`);
+      expect(groundOf(p, { state: { hover: true } }), cls).toEqual(themeColour("dark"));
+    }
+    // A positive outline offset in em: the ring sits outside the box, so it is not read at all.
+    const focus = el(
+      '<div class="bg-dark"><a data-probe class="border-white text-white focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-[0.25em]">x</a></div>',
+    );
+    expect(groundOf(focus, { state: { focusVisible: true } })).toEqual(themeColour("dark"));
+    // An inset shadow starts inside the padding edge: 23px of inset spread on a 24px border with
+    // no padding reaches the content.
+    const shadow = el(
+      '<div class="bg-dark"><a data-probe class="border-[24px] border-transparent p-0 text-white hover:shadow-[inset_0_0_0_23px_white]">x</a></div>',
+    );
+    expect(() => groundOf(shadow, { state: { hover: true } })).toThrow(/inset/);
   });
 
   it("reads a fill that paints nothing as unpainted, whatever spelling gives it", () => {
