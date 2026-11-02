@@ -99,14 +99,23 @@ import { compile } from "tailwindcss";
  * `::marker`, `::placeholder`, `::file-selector-button` and `::backdrop` are
  * skipped, so their colours are not checked. A `::before` or `::after` that
  * paints a box under the text is refused by `groundOf` (above), unless it is
- * proved clear of the text on one axis: absolutely positioned in a positioned
- * element, with an offset and a size in px that stop short of where the
- * content starts (an underline below the element, a bullet in its padding).
- * A percentage size, an auto size on a box with text or with a far inset (an
- * empty box with its far inset auto is its own border and padding tall), a
- * transform, a min size, `position: fixed`, or a host that is not positioned
- * is read, and refused if it paints; an inset
- * fill, a half-width fill and a 101% sliding fill are all refused. The glyph
+ * proved clear of the text. A pseudo is proved clear only when it is plain and
+ * sits short of the content on one axis. Plain means: absolutely positioned in
+ * a positioned element; no outer box-shadow layer; no outline that paints; no
+ * filter or backdrop-filter; every margin zero; `aspect-ratio` auto; no logical
+ * or min size; `translate`, `scale`, `rotate` and `transform` all none; and not
+ * overconstrained (a size with both insets on its axis set, which CSS drops).
+ * The sitting-short proof is an offset and a size in px, measured from the
+ * padding edge, that stop short of where the content starts (an underline below
+ * the element, a bullet in its padding). A percentage size, an auto size on a
+ * box with text or with a far inset, `position: fixed`, or a host that is not
+ * positioned is read and refused if it paints. Every refusal names the property
+ * that defeats the proof. An inset fill, a half-width fill and a 101% sliding
+ * fill are all refused. Two decorations that paint clear of the label are
+ * refused by name rather than measured (review round 9): a grow-in underline
+ * below it (`scale-x`) and a centred bullet (`-translate-y-1/2`). An
+ * `after:bottom-0` underline on a link with no bottom padding is a correct
+ * refusal: its box overlaps the descender zone. The glyph
  * of a pseudo (its colour, weight, size) is not a fill and is not measured.
  * A length this file cannot size (`%`, `em`, viewport units, `min()`, `max()`,
  * `clamp()`) throws where a fill or an inward outline depends on it. A
@@ -1834,14 +1843,14 @@ const LOGICAL_INSET = [
   "inset-inline-end",
 ];
 
-/** The offset of `side` of a box's `box` pseudo-element, in px; undefined when it is `auto` or
- *  not set. Throws on a logical inset or a value this file cannot size. Call inside `withState`. */
-function insetPx(
+/** The value of `side` of a box's `box` pseudo-element's inset, the shorthand's share picked;
+ *  undefined when it is `auto` or not set. Throws on a logical inset. Call inside `withState`. */
+function insetText(
   n: Element,
   box: "before" | "after",
   side: Side,
   state: State,
-): number | undefined {
+): string | undefined {
   if (winnerOf(n, LOGICAL_INSET, state, box))
     throw new Error(
       `a logical inset on ::${box} of <${n.tagName.toLowerCase()} class="${n.getAttribute("class") ?? ""}"> cannot be read`,
@@ -1852,40 +1861,126 @@ function insetPx(
   const value = expandVars(w.value, n, state, 0, box).trim();
   // The initial value of an inset is auto, not flush: a box whose offset is auto is placed by
   // the flow, so it is not known to clear the content.
-  if (/^(auto|initial|unset|revert|revert-layer)$/i.test(value)) return undefined;
+  if (AUTO_OR_UNSET.test(value)) return undefined;
   const words = topWords(value);
-  const pick =
-    w.prop === "inset" ? pickSide(words, side) : w.prop === axis ? pickAxis(words, side) : words[0];
-  return naming(n, `::${box} ${side} inset`, () => pxOf(pick));
+  return w.prop === "inset"
+    ? pickSide(words, side)
+    : w.prop === axis
+      ? pickAxis(words, side)
+      : words[0];
+}
+
+/** The offset of `side` of a box's `box` pseudo-element, in px; undefined when it is `auto` or
+ *  not set. Throws on a logical inset or a value this file cannot size. Call inside `withState`. */
+function insetPx(
+  n: Element,
+  box: "before" | "after",
+  side: Side,
+  state: State,
+): number | undefined {
+  const text = insetText(n, box, side, state);
+  return text === undefined ? undefined : naming(n, `::${box} ${side} inset`, () => pxOf(text));
 }
 
 /** A transform value that moves nothing. */
 const UNSET = /^(none|initial|unset|revert|revert-layer)$/i;
 /** A min size that adds nothing to a box's size. */
 const NO_MIN = /^(0|0px|auto|none|initial|unset|revert|revert-layer)$/i;
+/** A logical size that is not set, or sets nothing. */
+const NO_SIZE = /^(auto|0|0px|initial|unset|revert|revert-layer)$/i;
+/** A size or an inset that is not set. */
+const AUTO_OR_UNSET = /^(auto|initial|unset|revert|revert-layer)$/i;
+/** A margin, or any amount a box is moved by, that is zero or unset. */
+const zeroOrUnset = (v: string) => isZeroLength(v) || UNSET.test(v);
 
-/** Whether a `::before` or `::after` can lie under the text of `n`. It cannot only when it is
- *  proved clear of the content on one axis: absolutely positioned in a positioned `n`, with an
- *  offset from `n`'s padding edge and a size in px, so that its far edge (its own border and
- *  padding counted on both sides, box-sizing not read, which only over-counts) stops short of
- *  where the content starts. An underline below the element and a bullet in its padding are
- *  proved this way. Everything else is read: a box in the flow; `position: fixed` (its box is the
- *  viewport's); a host that is not positioned (the box's containing block is another element);
- *  a transform or a min size, which moves or grows the box by an amount not sized here; a
- *  percentage size; and an auto size that is not an empty box whose far inset is auto (an
- *  empty box shrinks to its own border and padding, and anything with text does not). Call
- *  inside `withState`. */
-function mayLieUnderText(n: Element, box: "before" | "after", state: State): boolean {
-  if (winnerOf(n, ["position"], state, box)?.value.trim().toLowerCase() !== "absolute") return true;
+/** Why a `::before` or `::after` of `n` cannot be proved clear of the text, naming the property
+ *  that defeats the proof; undefined when it is proved clear. The proof is trusted only for a
+ *  plain pseudo: one with no ink past its box (an outer shadow, a painting outline, a filter or
+ *  backdrop filter), no margin, no logical or min size, no `aspect-ratio`, no transform on any of
+ *  `transform`, `translate`, `scale` or `rotate`, and no size with both insets on its axis set,
+ *  whose far inset CSS drops. A plain pseudo is then proved clear on one axis: an offset from its
+ *  containing block's padding edge and a size in px (its own border and padding counted on both
+ *  sides, box-sizing not read, which only over-counts) that stop short of where the content
+ *  starts. Anything else is read as lying under the text. An underline below the element and a
+ *  bullet in its padding are proved this way. Call inside `withState`. */
+function whyUnderText(n: Element, box: "before" | "after", state: State): string | undefined {
+  const position = winnerOf(n, ["position"], state, box)?.value.trim().toLowerCase();
+  if (position !== "absolute") return `position "${position ?? "static"}" is not absolute`;
   const host = winnerOf(n, ["position"], state)?.value.trim().toLowerCase() ?? "";
-  if (!/^(relative|absolute|fixed|sticky)$/.test(host)) return true;
-  const moved = winnerOf(n, ["transform", "translate", "scale", "rotate"], state, box);
-  if (moved && !UNSET.test(expandVars(moved.value, n, state, 0, box).trim())) return true;
-  for (const prop of ["min-width", "min-height"]) {
-    const w = winnerOf(n, [prop], state, box);
-    if (w && !NO_MIN.test(expandVars(w.value, n, state, 0, box).trim())) return true;
+  if (!/^(relative|absolute|fixed|sticky)$/.test(host))
+    return `the element's position "${host || "static"}" leaves its containing block to another element`;
+  const val = (props: string[]) => {
+    const w = winnerOf(n, props, state, box);
+    return w ? { prop: w.prop, value: expandVars(w.value, n, state, 0, box).trim() } : undefined;
+  };
+  // Ink past the box: an outer shadow, a painting outline, a filter.
+  const shadow = val(["box-shadow"]);
+  if (shadow && !UNSET.test(shadow.value))
+    for (const layer of splitList(shadow.value))
+      // Tailwind's empty `--tw-inset-shadow` chain resolves to a zero layer, which paints nothing.
+      if (
+        !topWords(layer).some((w) => w.toLowerCase() === "inset") &&
+        shadowPaints(layer, n, state, `::${box} box-shadow layer "${layer}"`)
+      )
+        return `box-shadow "${layer.trim()}" is an outer shadow, which paints past the box`;
+  const outline = edgePainted(n, "outline", [""], state, box);
+  if (outline) return `outline "${outline.value}" paints past the box`;
+  for (const prop of ["filter", "backdrop-filter"]) {
+    const w = val([prop]);
+    if (w && !UNSET.test(w.value)) return `${prop} "${w.value}" can paint past the box`;
   }
-  // A size in px, `"auto"` when the rules give none (or `auto`), or undefined when it is a
+  // Placement the proof does not read: a margin moves the box.
+  for (const side of SIDES) {
+    const axis = side === "top" || side === "bottom" ? "block" : "inline";
+    const w = winnerOf(n, ["margin", `margin-${side}`, `margin-${axis}`], state, box);
+    if (!w) continue;
+    const words = topWords(expandVars(w.value, n, state, 0, box).trim());
+    const pick =
+      w.prop === "margin"
+        ? pickSide(words, side)
+        : w.prop === `margin-${axis}`
+          ? pickAxis(words, side)
+          : words[0];
+    if (!zeroOrUnset(pick)) return `margin-${side} "${pick}" moves the box`;
+  }
+  for (const prop of [
+    "margin-block-start",
+    "margin-block-end",
+    "margin-inline-start",
+    "margin-inline-end",
+  ]) {
+    const w = val([prop]);
+    if (w && !zeroOrUnset(w.value)) return `${prop} "${w.value}" moves the box`;
+  }
+  const aspect = val(["aspect-ratio"]);
+  if (aspect && !AUTO_OR_UNSET.test(aspect.value))
+    return `aspect-ratio "${aspect.value}" sizes the box from its width`;
+  // Sizes this file does not read: a min size, a logical size.
+  for (const prop of ["min-width", "min-height", "min-block-size", "min-inline-size"]) {
+    const w = val([prop]);
+    if (w && !NO_MIN.test(w.value)) return `${prop} "${w.value}" grows the box`;
+  }
+  for (const prop of ["block-size", "inline-size"]) {
+    const w = val([prop]);
+    if (w && !NO_SIZE.test(w.value)) return `${prop} "${w.value}" sizes the box`;
+  }
+  // Each transform property is read on its own: `transform: none` does not stand for `translate`.
+  for (const prop of ["transform", "translate", "scale", "rotate"]) {
+    const w = val([prop]);
+    if (w && !UNSET.test(w.value)) return `${prop} "${w.value}" moves or scales the box`;
+  }
+  // Overconstrained: a size with both insets on its axis set. CSS drops the far one.
+  for (const [sizes, near, far] of [
+    [["height", "block-size"], "top", "bottom"],
+    [["width", "inline-size"], "left", "right"],
+  ] as [string[], Side, Side][]) {
+    const size = val(sizes);
+    if (!size || AUTO_OR_UNSET.test(size.value)) continue;
+    if (insetText(n, box, near, state) !== undefined && insetText(n, box, far, state) !== undefined)
+      return `${size.prop} "${size.value}" is set with both ${near} and ${far} set, which overconstrains the box`;
+  }
+  // The placement proof: an offset from the padding edge and a size that stop short of the content.
+  // A size is in px, `"auto"` when the rules give none (or `auto`), or undefined when it is a
   // percentage or a keyword this file cannot size.
   const sizePx = (prop: "width" | "height"): number | "auto" | undefined => {
     const w = winnerOf(n, [prop], state, box);
@@ -1923,12 +2018,14 @@ function mayLieUnderText(n: Element, box: "before" | "after", state: State): boo
   };
   const block: [Side, Side] = ["top", "bottom"];
   const inline: [Side, Side] = ["left", "right"];
-  const away =
+  if (
     clear("top", "height", block) ||
     clear("bottom", "height", block) ||
     clear("left", "width", inline) ||
-    clear("right", "width", inline);
-  return !away;
+    clear("right", "width", inline)
+  )
+    return undefined;
+  return "it is not proved to stop short of the padding on any side";
 }
 
 /** The paint of `prop`-`box`'s `content`: a box exists unless the winning content is none or
@@ -1948,12 +2045,14 @@ function pseudoPaints(
   n: Element,
   box: "before" | "after",
   state: State,
-): { prop: string; value: string; from: string } | undefined {
+): { prop: string; value: string; from: string; why: string } | undefined {
   if (!generatesBox(n, box, state)) return undefined;
   // The paint is read first, so a box is sized (and a length it cannot size throws) only when
   // it paints at all.
   const hit = pseudoPaint(n, box, state);
-  return hit && mayLieUnderText(n, box, state) ? hit : undefined;
+  if (!hit) return undefined;
+  const why = whyUnderText(n, box, state);
+  return why === undefined ? undefined : { ...hit, why };
 }
 
 /** The first property that paints `box` of `n` in `state`, whether or not the box lies under
@@ -2078,6 +2177,17 @@ function clearancePx(n: Element, state: State): number {
   );
 }
 
+/** The `outline-offset` of `n` as text, with `inherit` followed to the parent (and the parent's
+ *  own `inherit` to its parent), so an inherited negative offset is read. Undefined when none is
+ *  set, which is the initial zero. Call inside `withState`. */
+function outlineOffsetOf(n: Element, state: State): { text: string } | undefined {
+  const w = winnerOf(n, ["outline-offset"], state);
+  if (!w) return undefined;
+  const text = expandVars(w.value, n, state).trim();
+  if (!/^inherit$/i.test(text)) return { text };
+  return n.parentElement ? outlineOffsetOf(n.parentElement, state) : undefined;
+}
+
 /** Throw when `n` paints a fill that `groundOf` does not measure, in `state`: an inset
  *  box-shadow layer that reaches the content, or an outline with a negative offset that reaches
  *  it (both on `n`), or, on `n`'s `::before` or `::after`, a fill that paints a box under the
@@ -2097,29 +2207,34 @@ function refuseFills(n: Element, state: State) {
         // so the content is reached once the reach is past the padding.
         const [x = 0, y = 0, blur = 0, spread = 0] = topWords(layer)
           .filter((w) => w.toLowerCase() !== "inset" && isLength(w))
-          .map((w) => Math.abs(naming(n, `box-shadow "${layer}"`, () => pxOf(w))));
-        const reach = x + y + blur + spread;
+          .map((w) => naming(n, `box-shadow "${layer}"`, () => pxOf(w)));
+        // The ink reaches inward by the blur and the offsets, and by the spread when it is positive.
+        // A negative spread pulls the edge in, so the reach is floored at blur plus offsets rather
+        // than counting the spread's magnitude as extra reach.
+        const reach = Math.abs(x) + Math.abs(y) + Math.abs(blur) + Math.max(spread, 0);
         const padding = Math.min(...SIDES.map((side) => paddingPx(n, side, state)));
-        if (reach >= padding)
+        if (reach > padding)
           throw new Error(
             `box-shadow "${layer.trim()}" paints an inset fill that reaches the content of <${tag} class="${cls}">; theme-colors does not measure through an inset box-shadow`,
           );
       }
-    const offset = winnerOf(n, ["outline-offset"], state)?.value;
+    const offset = outlineOffsetOf(n, state);
     if (offset !== undefined) {
       const outline = edgePainted(n, "outline", [""], state);
       // The sign comes before the size: a literal with no leading minus is outward, or zero, and
       // needs no size, so an `em` focus offset is not read as a length. Only a value that could
       // be inward (`-`, or a math function whose sign needs sizing) is sized.
-      const text = expandVars(offset, n, state).trim();
+      const text = offset.text;
       if (outline && (text.startsWith("-") || MATH.test(text))) {
-        const off = naming(n, `outline-offset "${offset.trim()}"`, () => pxOf(text));
+        const off = naming(n, `outline-offset "${text}"`, () => pxOf(text));
         if (off < 0) {
-          const width = edgePart(n, "outline", "", "width", state);
-          const reach = -off + lineWidthPx(width?.value ?? "medium", n, state);
-          if (reach >= clearancePx(n, state))
+          // An outline is drawn outward from its offset edge, so its deepest point is the offset
+          // itself. The ring reaches the content once that depth is past the clearance; its width
+          // lies outward of the offset and does not add to the reach.
+          const reach = -off;
+          if (reach > clearancePx(n, state))
             throw new Error(
-              `outline "${outline.value}" with outline-offset "${offset.trim()}" paints over the content of <${tag} class="${cls}">; theme-colors does not measure an inward outline`,
+              `outline "${outline.value}" with outline-offset "${text}" paints over the content of <${tag} class="${cls}">; theme-colors does not measure an inward outline`,
             );
         }
       }
@@ -2128,7 +2243,7 @@ function refuseFills(n: Element, state: State) {
       const hit = pseudoPaints(n, box, state);
       if (hit)
         throw new Error(
-          `${hit.prop} "${hit.value}" on ::${box} of <${tag} class="${cls}"> paints a fill that theme-colors does not measure (from "${hit.from}")`,
+          `${hit.prop} "${hit.value}" on ::${box} of <${tag} class="${cls}"> paints a fill that theme-colors does not measure (from "${hit.from}"), and cannot be proved clear of the text because ${hit.why}`,
         );
     }
   });

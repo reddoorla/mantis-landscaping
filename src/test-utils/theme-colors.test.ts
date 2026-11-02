@@ -630,6 +630,102 @@ describe("theme-colors", () => {
     expect(() => groundOf(shadow, { state: { hover: true } })).toThrow(/inset/);
   });
 
+  it("refuses a positioned pseudo that is not plain, naming the property that defeats the proof (review round 9)", () => {
+    // Known-bad. The review's six mutants on the CtaBanner's inverse skin, hovered over the white
+    // label. Each paints white where the label is, and each names the property that makes its box
+    // unprovable: an outer shadow, a painting outline, a margin, an overconstrained inset, an
+    // aspect ratio, and a translate beside `transform: none`.
+    const bad: [string, RegExp][] = [
+      [
+        "relative isolate border-white text-white after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:-z-10 hover:after:shadow-[0_0_0_24px_white]",
+        /box-shadow "0 0 0 24px white" is an outer shadow/,
+      ],
+      [
+        "relative isolate border-white text-white after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:-z-10 hover:after:outline-[24px] hover:after:outline-solid hover:after:outline-white",
+        /outline "24px solid white" paints past the box/,
+      ],
+      [
+        "relative isolate border-white text-white before:absolute before:inset-x-0 before:top-0 before:h-3 before:mt-4 before:-z-10 hover:before:bg-white",
+        /margin-top "[^"]*" moves the box/,
+      ],
+      [
+        "relative isolate border-white text-white before:absolute before:inset-x-0 before:top-4 before:bottom-0 before:h-3 before:-z-10 hover:before:bg-white",
+        /height "[^"]*" is set with both top and bottom set/,
+      ],
+      [
+        "relative isolate border-white text-white before:absolute before:top-0 before:left-0 before:w-full before:aspect-[2/1] before:-z-10 hover:before:bg-white",
+        /aspect-ratio "2\/1" sizes the box/,
+      ],
+      [
+        "relative isolate border-white text-white before:absolute before:inset-x-0 before:-top-3 before:h-2 before:translate-y-7 before:transform-none before:-z-10 hover:before:bg-white",
+        /translate "/,
+      ],
+    ];
+    for (const [cls, why] of bad) {
+      const p = el(`<div class="bg-dark"><a data-probe class="${cls}">x</a></div>`);
+      expect(() => groundOf(p, { state: { hover: true } }), cls).toThrow(why);
+      expect(() => groundOf(p, { state: { hover: true } }), cls).toThrow(`class="${cls}"`);
+    }
+    // Known-bad, named refusals (review round 9, major 2). A grow-in underline below the label and a
+    // centred bullet in the padding both paint clear of the text, and both are refused by name
+    // rather than measured: the transform that moves each is read, and the throw says so.
+    const named: [string, RegExp][] = [
+      [
+        "relative border-white text-white hover:bg-white hover:text-dark after:absolute after:-bottom-2 after:left-0 after:h-0.5 after:w-full after:origin-left after:scale-x-0 after:bg-current after:transition-transform hover:after:scale-x-100",
+        /scale "/,
+      ],
+      [
+        "relative border-white text-white hover:bg-white hover:text-dark before:absolute before:left-4 before:top-1/2 before:-translate-y-1/2 before:size-2 before:rounded-full before:bg-current",
+        /translate "/,
+      ],
+    ];
+    for (const [cls, why] of named) {
+      const p = el(`<div class="bg-dark"><a data-probe class="${cls}">x</a></div>`);
+      expect(() => groundOf(p, { state: { hover: true } }), cls).toThrow(why);
+    }
+    // Known-bad, nits (review round 9). An inherited outline offset is read from the parent: a
+    // ring whose parent sets -20rem reaches the label.
+    const inherited = el(
+      '<div class="bg-dark"><span class="-outline-offset-[20rem]"><a data-probe class="text-white [outline-offset:inherit] focus-visible:outline-2 focus-visible:outline-white">x</a></span></div>',
+    );
+    expect(() => groundOf(inherited, { state: { focusVisible: true } })).toThrow(/outline/);
+    // Known-good, nits. The same inherited offset, shallow, is read and clears the padding; and a
+    // negative spread pulls the shadow's edge in, so it reaches nothing its blur and offsets do not.
+    const shallow = el(
+      '<div class="bg-dark"><span class="-outline-offset-[2px]"><a data-probe class="px-10 py-4 text-white [outline-offset:inherit] focus-visible:outline-2 focus-visible:outline-white">x</a></span></div>',
+    );
+    expect(groundOf(shallow, { state: { focusVisible: true } })).toEqual(themeColour("dark"));
+    const spread = el(
+      '<div class="bg-dark"><a data-probe class="border-white px-3 py-1.5 text-white shadow-[inset_0_0_0_-30px_white]">x</a></div>',
+    );
+    expect(groundOf(spread)).toEqual(themeColour("dark"));
+    // Known-good, review round 9 major 3. A chip's stock inset focus ring stops 2px short of its
+    // 4px padding, and Tailwind's stock inset input shadow (6px reach) stops at a 6px padding.
+    const chip = el(
+      '<div class="bg-dark"><a data-probe class="px-3 py-1 text-white focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2">x</a></div>',
+    );
+    expect(groundOf(chip, { state: { focusVisible: true } })).toEqual(themeColour("dark"));
+    const input = el(
+      '<div class="bg-dark"><input data-probe class="border border-white px-3 py-1.5 text-white inset-shadow-sm"></div>',
+    );
+    expect(groundOf(input)).toEqual(themeColour("dark"));
+    // The boundary, review round 9 major 3, at a 16px clearance and a 6px padding. An outline whose
+    // deepest point sits at the clearance is read as clear (`>`); one 1px deeper reaches the label.
+    const ringAt = (px: number) =>
+      el(
+        `<div class="bg-dark"><a data-probe class="px-10 py-4 text-white focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-[${px}px]">x</a></div>`,
+      );
+    expect(groundOf(ringAt(16), { state: { focusVisible: true } })).toEqual(themeColour("dark"));
+    expect(() => groundOf(ringAt(17), { state: { focusVisible: true } })).toThrow(/outline/);
+    // The same for an inset shadow against a 6px padding: its spread reaching 6px is clear, 7px is not.
+    const shadowAt = (px: number) =>
+      el(
+        `<div class="bg-dark"><a data-probe class="border-white px-3 py-1.5 text-white shadow-[inset_0_0_0_${px}px_white]">x</a></div>`,
+      );
+    expect(groundOf(shadowAt(6))).toEqual(themeColour("dark"));
+    expect(() => groundOf(shadowAt(7))).toThrow(/inset/);
+  });
+
   it("reads a fill that paints nothing as unpainted, whatever spelling gives it", () => {
     // Each is a known-good for the fill check: transparent, zero-alpha, zero-width or
     // not-a-box-shadow forms of "no fill" that a designer writes instead of `transparent`.
