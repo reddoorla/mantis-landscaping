@@ -1250,7 +1250,7 @@ function winner(
   // A pseudo-element has no style attribute of its own.
   const style = box ? undefined : (el as HTMLElement).style;
   const inline = style?.getPropertyValue(prop);
-  if (inline) {
+  if (style && inline) {
     const important = style.getPropertyPriority(prop) === "important";
     consider(inline, [important ? 1 : 0, 1, 0, 0, 0], "the style attribute");
   }
