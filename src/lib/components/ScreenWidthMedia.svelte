@@ -1,3 +1,7 @@
+<script lang="ts" module>
+  export const VIDEO_REVEAL_HARD_CAP_MS = 6000; // the poster's longest wait for the video
+</script>
+
 <script lang="ts">
   import { PrismicImage } from "@prismicio/svelte";
   import { cappedWidths } from "@reddoorla/maintenance/images";
@@ -81,7 +85,7 @@
     const reveal = () => {
       videoReady = true;
     };
-    const hardCap = setTimeout(reveal, 6000);
+    const hardCap = setTimeout(reveal, VIDEO_REVEAL_HARD_CAP_MS);
     timers.push(hardCap);
 
     const initPlayer = () => {
