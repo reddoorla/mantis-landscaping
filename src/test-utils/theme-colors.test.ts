@@ -554,7 +554,7 @@ describe("theme-colors", () => {
     expect(groundOf(ring, { state: { focusVisible: true } })).toEqual(themeColour("dark"));
     // A decorative underline below the button, drawn by a border, is not under the label.
     const underline = el(
-      '<div class="bg-dark"><a data-probe class="relative border-white text-white hover:bg-white hover:text-dark after:absolute after:inset-x-0 after:-bottom-2 after:h-0.5 after:border-b-2 after:border-white">x</a></div>',
+      '<div class="bg-dark"><a data-probe class="relative border-white text-white hover:bg-white hover:text-dark after:absolute after:inset-x-0 after:-bottom-2 after:border-b-2 after:border-white">x</a></div>',
     );
     // The link's own hover fill is the ground here (white); the underline is not part of it.
     expect(groundOf(underline, { state: { hover: true } })).toEqual(themeColour("white"));
@@ -590,6 +590,9 @@ describe("theme-colors", () => {
       "relative isolate border-white text-white before:absolute before:left-0 before:w-1/2 before:h-full before:-z-10 hover:before:bg-white",
       "relative isolate border-white text-white before:fixed before:inset-0 before:-z-10 hover:before:bg-white",
       "relative isolate border-white text-white before:absolute before:inset-0 before:-z-10 hover:before:scale-y-[20] hover:before:bg-white",
+      // An auto height is its text's line when the content is text, which this file does not size,
+      // so a filled box with text content hanging up into the label is refused.
+      "relative pl-4 text-white before:absolute before:-bottom-2 before:content-['x'] before:bg-white hover:before:bg-white",
       // A pseudo's box is sized from its containing block's padding edge, so a 3px box at the top
       // edge of a 4px border with no padding reaches the label.
       "relative border-[4px] border-white p-0 text-white before:absolute before:top-0 before:h-[3px] before:content-[''] hover:before:bg-white",

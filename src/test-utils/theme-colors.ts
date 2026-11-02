@@ -102,8 +102,10 @@ import { compile } from "tailwindcss";
  * proved clear of the text on one axis: absolutely positioned in a positioned
  * element, with an offset and a size in px that stop short of where the
  * content starts (an underline below the element, a bullet in its padding).
- * An auto or percentage size, a transform, a min size, `position: fixed`, or a
- * host that is not positioned is read, and refused if it paints; an inset
+ * A percentage size, an auto size on a box with text or with a far inset (an
+ * empty box with its far inset auto is its own border and padding tall), a
+ * transform, a min size, `position: fixed`, or a host that is not positioned
+ * is read, and refused if it paints; an inset
  * fill, a half-width fill and a 101% sliding fill are all refused. The glyph
  * of a pseudo (its colour, weight, size) is not a fill and is not measured.
  * A length this file cannot size (`%`, `em`, viewport units, `min()`, `max()`,
@@ -1869,8 +1871,10 @@ const NO_MIN = /^(0|0px|auto|none|initial|unset|revert|revert-layer)$/i;
  *  where the content starts. An underline below the element and a bullet in its padding are
  *  proved this way. Everything else is read: a box in the flow; `position: fixed` (its box is the
  *  viewport's); a host that is not positioned (the box's containing block is another element);
- *  a transform or a min size, which moves or grows the box by an amount not sized here; and an
- *  auto or percentage size. Call inside `withState`. */
+ *  a transform or a min size, which moves or grows the box by an amount not sized here; a
+ *  percentage size; and an auto size that is not an empty box whose far inset is auto (an
+ *  empty box shrinks to its own border and padding, and anything with text does not). Call
+ *  inside `withState`. */
 function mayLieUnderText(n: Element, box: "before" | "after", state: State): boolean {
   if (winnerOf(n, ["position"], state, box)?.value.trim().toLowerCase() !== "absolute") return true;
   const host = winnerOf(n, ["position"], state)?.value.trim().toLowerCase() ?? "";
@@ -1881,13 +1885,20 @@ function mayLieUnderText(n: Element, box: "before" | "after", state: State): boo
     const w = winnerOf(n, [prop], state, box);
     if (w && !NO_MIN.test(expandVars(w.value, n, state, 0, box).trim())) return true;
   }
-  const sizePx = (prop: "width" | "height"): number | undefined => {
+  // A size in px, `"auto"` when the rules give none (or `auto`), or undefined when it is a
+  // percentage or a keyword this file cannot size.
+  const sizePx = (prop: "width" | "height"): number | "auto" | undefined => {
     const w = winnerOf(n, [prop], state, box);
-    if (!w) return undefined;
+    if (!w) return "auto";
     const value = expandVars(w.value, n, state, 0, box).trim();
-    if (UNSET.test(value) || /^auto$/i.test(value) || value.includes("%")) return undefined;
+    if (/^auto$/i.test(value)) return "auto";
+    if (UNSET.test(value) || value.includes("%")) return undefined;
     return naming(n, `::${box} ${prop}`, () => pxOf(value));
   };
+  // The pseudo's content is empty (`""`, which the `before:` and `after:` variants set by default).
+  const content = winnerOf(n, ["content"], state, box);
+  const emptyContent =
+    content !== undefined && /^(""|'')$/.test(expandVars(content.value, n, state, 0, box).trim());
   const ownPx = (sides: Side[]) =>
     sides.reduce(
       (sum, side) => sum + borderPx(n, `-${side}`, state, box) + paddingPx(n, side, state, box),
@@ -1895,7 +1906,17 @@ function mayLieUnderText(n: Element, box: "before" | "after", state: State): boo
     );
   const clear = (near: Side, size: "width" | "height", axis: [Side, Side]) => {
     const off = insetPx(n, box, near, state);
-    const len = sizePx(size);
+    const far = axis[0] === near ? axis[1] : axis[0];
+    // An auto size whose far inset is also auto is shrunk to its content. An empty box has none,
+    // so it is its own border and padding alone. Any other auto size is placed by the containing
+    // block, which this file does not size.
+    const sized = sizePx(size);
+    const len =
+      sized === "auto"
+        ? emptyContent && insetPx(n, box, far, state) === undefined
+          ? 0
+          : undefined
+        : sized;
     return (
       off !== undefined && len !== undefined && off + len + ownPx(axis) <= paddingPx(n, near, state)
     );
