@@ -6,7 +6,7 @@ test.describe.configure({ timeout: HYDRATION_TEST_TIMEOUT_MS });
 for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
   for (const width of [1440, 834, 390, 320]) {
     test(
-      `${path}: each case-study photo stays clear of the text, its controls are not clipped, and no line of its text is cut sideways at ${width}px`,
+      `${path}: each case-study photo stays clear of the text, its controls are not clipped, and no line of its text is cut off sideways or clamped at ${width}px`,
       { tag: "@smoke" },
       async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
@@ -15,9 +15,10 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
         // overflow its onMount makes is not on screen until the client has run.
         await hydrated(page);
         const cards = await page.evaluate(() => {
-          // A control is clipped when an ancestor that clips its overflow (up to
-          // the card) does not wholly contain it.
-          const clipped = (el: Element, card: Element) => {
+          // An element is clipped when an ancestor that clips its overflow does
+          // not wholly contain it. A control stops at its card; text walks on to
+          // the page (card null), so a card the page clips is caught too.
+          const clipped = (el: Element, card: Element | null) => {
             const r = el.getBoundingClientRect();
             for (let p = el.parentElement; p; p = p.parentElement) {
               const s = getComputedStyle(p);
@@ -55,23 +56,28 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
               clippedControls: controls
                 .filter((c) => clipped(c, a))
                 .map((c) => c.getAttribute("aria-label")),
-              // Text the card cuts sideways. An element that holds its own text
-              // is flagged when its content is wider than its box (a line that
-              // does not wrap, with or without an ellipsis), or when its box
-              // leaves a clipping ancestor. Inline elements have no box to
-              // measure for overflow, so only their rect is checked.
+              // Text the page cuts off. An element that holds its own text is
+              // flagged when its content is wider than its box (a line that does
+              // not wrap, with or without an ellipsis), when its content is taller
+              // than its box by more than 4px (a title clamped to fewer lines;
+              // descenders alone add about 1px), or when its box leaves a clipping
+              // ancestor up to the page. Inline elements have no box to measure
+              // for overflow, so only their rect is checked.
               clippedText: [a.lastElementChild!, ...a.lastElementChild!.querySelectorAll("*")]
                 .filter((el) =>
                   [...el.childNodes].some(
                     (n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim() !== "",
                   ),
                 )
-                .filter(
-                  (el) =>
-                    (getComputedStyle(el).display !== "inline" &&
-                      el.scrollWidth > el.clientWidth + 0.5) ||
-                    clipped(el, a),
-                )
+                .filter((el) => {
+                  const s = getComputedStyle(el);
+                  return (
+                    (s.display !== "inline" &&
+                      (el.scrollWidth > el.clientWidth + 0.5 ||
+                        (s.overflowY !== "visible" && el.scrollHeight > el.clientHeight + 4))) ||
+                    clipped(el, null)
+                  );
+                })
                 .map((el) => el.textContent!.trim().slice(0, 40)),
             };
           });
