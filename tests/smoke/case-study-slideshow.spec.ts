@@ -20,6 +20,7 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
           // the page (card null), so a card the page clips is caught too.
           const clipped = (el: Element, card: Element | null) => {
             const r0 = el.getBoundingClientRect();
+            const fixed = getComputedStyle(el).position === "fixed";
             // The extent still to be shown: past a scroller, the content is
             // reachable only inside the scroller's own box, so on that axis the
             // scroller's box is what the next ancestor must not cut.
@@ -36,7 +37,17 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
                 (cuts(s.overflowY) && (r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5))
               )
                 return true;
-              // Past a scroller the content is reachable on that axis.
+              // Past a scroller the content is reachable on that axis, but only
+              // from its scroll origin on: scrolling never goes before the start
+              // edge, so content pushed past it (a negative margin, a translate)
+              // is cut. A fixed element does not scroll with it, so it is skipped.
+              if (
+                (!fixed &&
+                  scrolls(s.overflowX) &&
+                  r.left < c.left + p.clientLeft - p.scrollLeft - 0.5) ||
+                (!fixed && scrolls(s.overflowY) && r.top < c.top + p.clientTop - p.scrollTop - 0.5)
+              )
+                return true;
               if (scrolls(s.overflowX)) [r.left, r.right] = [c.left, c.right];
               if (scrolls(s.overflowY)) [r.top, r.bottom] = [c.top, c.bottom];
               if (p === card) break;
