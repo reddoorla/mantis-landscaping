@@ -83,7 +83,11 @@ test("it stays inside the viewport instead of overflowing on a narrow screen", a
   expect(box.x + box.width, "right edge inside the viewport").toBeLessThanOrEqual(layoutWidth);
 });
 
-test("the page behind the open modal does not scroll", async ({ page }) => {
+// Tiers. The two geometry tests above are untagged (scaffold): the Modal mounts
+// only on /dev/a11y-fixtures here, so no visitor can reach it, and they measure
+// where a dialog sits. This one is @nightly: its assertion waits out a wheel
+// with a fixed 300ms sleep, which is a race against a clock.
+test("the page behind the open modal does not scroll", { tag: "@nightly" }, async ({ page }) => {
   await page.goto(FIXTURES, { waitUntil: "domcontentloaded" });
 
   // The fixtures page is far taller than the viewport, so a wheel over it moves

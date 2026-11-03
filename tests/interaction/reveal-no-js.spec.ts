@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import { hydrated, HYDRATION_TEST_TIMEOUT_MS } from "../smoke/hydration";
+
+// The nightly trace's warm-up waits up to 30s for hydration, so the file's test
+// limit must sit above that wait (the shared default is 30s).
+test.describe.configure({ timeout: HYDRATION_TEST_TIMEOUT_MS });
 
 // THE SCROLL REVEAL'S HIDDEN STATE BELONGS TO THE FIRST PAINT.
 //
@@ -46,85 +51,117 @@ async function traceFirstRevealTarget(page: Page) {
   });
 }
 
-test("the server ships a hidden reveal target in the markup", async ({ page }) => {
-  // Asserted on the SSR bytes, not the hydrated DOM: the whole point is that
-  // the attribute is in the response, not added by the client.
-  const html = await (await page.request.get(FIXTURE)).text();
-  expect(
-    (html.match(/data-reveal/g) ?? []).length,
-    `${FIXTURE} server-renders at least one hidden reveal target`,
-  ).toBeGreaterThan(0);
-});
-
-test("with scripting off, the same markup paints at full opacity", async ({ browser }) => {
-  // A browser that will never run the reveal must never be shown less content
-  // than a crawler reading the SSR HTML gets. The whole hidden state is gated
-  // on the <noscript> style in app.html; without it this content is stranded
-  // at opacity 0 forever.
-  const context = await browser.newContext({
-    javaScriptEnabled: false,
-    reducedMotion: "no-preference",
-  });
-  try {
-    const page = await context.newPage();
-    await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
-
-    const states = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("[data-reveal]")).map((el) => {
-        const cs = getComputedStyle(el);
-        return { opacity: cs.opacity, transform: cs.transform };
-      }),
-    );
-
-    // Non-vacuity guard: with no subject, "every subject is visible" is true
-    // and says nothing.
-    expect(states.length, "the page ships data-reveal markup").toBeGreaterThan(0);
-    for (const s of states) {
-      expect(s.opacity, "scripting off: opacity").toBe("1");
-      expect(s.transform, "scripting off: transform").toBe("none");
-    }
-  } finally {
-    await context.close();
-  }
-});
-
-test("with scripting on, it is hidden on the first frame and never flashes", async ({
-  browser,
-}) => {
-  const context = await browser.newContext({ reducedMotion: "no-preference" });
-  try {
-    const page = await context.newPage();
-    await traceFirstRevealTarget(page);
-    await page.goto(FIXTURE, { waitUntil: "load" });
-
-    await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const t = (window as unknown as { __trace: number[] }).__trace;
-            return t.length > 5 && t[t.length - 1] === 1;
-          }),
-        { timeout: 10_000, message: `${FIXTURE}: the reveal never completed` },
-      )
-      .toBe(true);
-
-    const trace: number[] = await page.evaluate(
-      () => (window as unknown as { __trace: number[] }).__trace,
-    );
-
-    // Hidden from the very first frame the element exists in — this is the
-    // assertion that the CSS hidden state is genuinely in force in the browser,
-    // and not merely present in the source file.
-    expect(trace[0], "first painted frame").toBe(0);
-    // And never the other way round: no visible frame with a hidden frame after
-    // it. That single assertion IS the "content paints, then vanishes" bug.
-    const flashAt = trace.findIndex((o, i) => i > 0 && trace[i - 1]! > 0.5 && o < 0.5);
+// Tiers. The first two tests are @smoke: one reads the response bytes and the
+// other runs with scripting off, so neither depends on a clock, and neither can
+// wait for html[data-hydrated] (a page without scripting never sets it; the
+// first never loads a page). The third samples opacity once per animation
+// frame, which is a race against a clock, so it is @nightly.
+test(
+  "the server ships a hidden reveal target in the markup",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    // Asserted on the SSR bytes, not the hydrated DOM: the whole point is that
+    // the attribute is in the response, not added by the client.
+    const html = await (await page.request.get(FIXTURE)).text();
     expect(
-      flashAt,
-      `opacity went ${trace[flashAt - 1]} → ${trace[flashAt]} at frame ${flashAt}`,
-    ).toBe(-1);
-    expect(trace[trace.length - 1], "ends visible").toBe(1);
-  } finally {
-    await context.close();
-  }
-});
+      (html.match(/data-reveal/g) ?? []).length,
+      `${FIXTURE} server-renders at least one hidden reveal target`,
+    ).toBeGreaterThan(0);
+  },
+);
+
+test(
+  "with scripting off, the same markup paints at full opacity",
+  {
+    tag: "@smoke",
+  },
+  async ({ browser }) => {
+    // A browser that will never run the reveal must never be shown less content
+    // than a crawler reading the SSR HTML gets. The whole hidden state is gated
+    // on the <noscript> style in app.html; without it this content is stranded
+    // at opacity 0 forever.
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      reducedMotion: "no-preference",
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto(FIXTURE, { waitUntil: "domcontentloaded" });
+
+      const states = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("[data-reveal]")).map((el) => {
+          const cs = getComputedStyle(el);
+          return { opacity: cs.opacity, transform: cs.transform };
+        }),
+      );
+
+      // Non-vacuity guard: with no subject, "every subject is visible" is true
+      // and says nothing.
+      expect(states.length, "the page ships data-reveal markup").toBeGreaterThan(0);
+      for (const s of states) {
+        expect(s.opacity, "scripting off: opacity").toBe("1");
+        expect(s.transform, "scripting off: transform").toBe("none");
+      }
+    } finally {
+      await context.close();
+    }
+  },
+);
+
+test(
+  "with scripting on, it is hidden on the first frame and never flashes",
+  {
+    tag: "@nightly",
+  },
+  async ({ browser }) => {
+    // Warm the dev server first. On a cold `vite dev` the first browser load
+    // compiles and optimises the client bundle, which takes longer than the
+    // 4s the trace samples for, so the reveal "never completed" (seen on the
+    // first run of this tier). A throwaway visit pays that cost outside the
+    // trace.
+    const warm = await browser.newContext();
+    try {
+      const warmPage = await warm.newPage();
+      await warmPage.goto(FIXTURE);
+      await hydrated(warmPage);
+    } finally {
+      await warm.close();
+    }
+    const context = await browser.newContext({ reducedMotion: "no-preference" });
+    try {
+      const page = await context.newPage();
+      await traceFirstRevealTarget(page);
+      await page.goto(FIXTURE, { waitUntil: "load" });
+
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => {
+              const t = (window as unknown as { __trace: number[] }).__trace;
+              return t.length > 5 && t[t.length - 1] === 1;
+            }),
+          { timeout: 10_000, message: `${FIXTURE}: the reveal never completed` },
+        )
+        .toBe(true);
+
+      const trace: number[] = await page.evaluate(
+        () => (window as unknown as { __trace: number[] }).__trace,
+      );
+
+      // Hidden from the very first frame the element exists in — this is the
+      // assertion that the CSS hidden state is genuinely in force in the browser,
+      // and not merely present in the source file.
+      expect(trace[0], "first painted frame").toBe(0);
+      // And never the other way round: no visible frame with a hidden frame after
+      // it. That single assertion IS the "content paints, then vanishes" bug.
+      const flashAt = trace.findIndex((o, i) => i > 0 && trace[i - 1]! > 0.5 && o < 0.5);
+      expect(
+        flashAt,
+        `opacity went ${trace[flashAt - 1]} → ${trace[flashAt]} at frame ${flashAt}`,
+      ).toBe(-1);
+      expect(trace[trace.length - 1], "ends visible").toBe(1);
+    } finally {
+      await context.close();
+    }
+  },
+);

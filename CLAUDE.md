@@ -18,6 +18,57 @@ Formatting is enforced on `.svelte` files too: the plugin loads from
 script — with no config file, `prettier --check .` silently skips every
 `.svelte` file, and that is exactly the hole the config closes.
 
+## Tests build; they don't freeze
+
+Tests are how an agent builds against a comp without a human watching: a
+geometry spec that measures a band against the Figma frame is exactly the
+instrument that gets the band right. Once the slice ships, the same spec
+becomes a fence around a design decision a human is entitled to change, and it
+turns a one-line tweak into a CI round trip. On roalson-interests a taller
+masthead, a back button and an arrow on a button cost the developer five gutted
+tests (roalson-interests#251), and not one of the five reds was a bug. This
+template ships the tiers that site adopted (roalson-interests#256), so every
+site generated from it starts with them. The suite is tiered by what a red
+_means_:
+
+| Tier                | Command                                     | Runs                                    | Holds                                                                                                                                       |
+| ------------------- | ------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gate** (contract) | `pnpm test` (vitest + Playwright `@smoke`)  | every PR, inside the required `ci / ci` | what a client would call a bug: links and their targets, the form, keyboard and focus, no-JS, accessible names, AA contrast, data, SEO, CSP |
+| **Nightly**         | `pnpm test:nightly`                         | `nightly.yml`, never blocks a merge     | the reveal first-frame trace and the modal scroll lock: real behaviour, but every assertion is a race against a clock                       |
+| **Scaffold**        | `pnpm test:scaffold` (`pnpm test:e2e`: all) | on demand, while building               | comp geometry, pixel and computed-style pins, the numbers a slice was built to                                                              |
+
+- **A human's design change wins.** When a size, spacing, colour that still
+  passes AA, duration, border, or an added button or link turns a test red,
+  the test is what is wrong: update it or delete it in the same PR. Never revert
+  the change to satisfy the test, and never argue for the pinned value.
+- **Design values never enter the gate.** A gate test asserts what a user or a
+  caller observes, never a Tailwind class list, a px, a ms, an opacity, or a
+  recorded contrast ratio to four places (assert `>= 4.5`). Exact-list equality
+  over things a designer may add to (every link on the page, every button,
+  "exactly nine") is a pin: assert the item that matters is _in_ the list.
+- **Never assert on source as text.** A test that reads a `.svelte` or `.css`
+  file and regexes a class out of it restates the implementation, so every
+  edit is two edits. Parsing `@theme` tokens to compute contrast is fine: that
+  computes a property, it does not restate a string.
+- **Build against the comp freely.** New geometry and timing specs are welcome
+  while a slice is being built; leave them untagged and they land in the
+  scaffold tier, where they are allowed to go stale once a human takes over the
+  design.
+- **`@smoke` is earned.** A test tagged `{ tag: "@smoke" }` has no fixed
+  sleeps, no frame counting, no animation windows, no `boundingBox`/`near()`
+  read against a pixel value (comparing two boxes is a relation and is fine: one
+  element covers another, a control sits inside its card), no computed-style
+  colour or size, and no element count a new button would change.
+- **A flaky timing test leaves the gate; its window does not widen.** Move it to
+  the nightly list, or delete it if it guards nothing a client would notice.
+- **A `@smoke` test that reads the page waits for `html[data-hydrated]` first**
+  (`hydrated(page)` in `tests/smoke/hydration.ts`). The root layout sets it in
+  `onMount`. CI's gate server is `vite dev`, where `load` fires about 2s before
+  hydration, so anything measured, scanned or clicked sooner sees markup the
+  client has not touched. The wait is 30s and the spec's test limit 60s, because
+  a cold dev server can take that long. The two no-JS tests are the exception:
+  scripting off never sets it.
+
 ## Concurrent sessions
 
 Site repos generally get **one** agent session at a time — but central
