@@ -48,7 +48,7 @@ source. It is the fastest way to recognise what a thing does.
 | [`RichTextBody.svelte`](../src/lib/components/RichTextBody.svelte) | `field` | 4 |  |
 | [`RichTextHeading.svelte`](../src/lib/components/RichTextHeading.svelte) | `node`, `children` | — |  |
 | [`ScaleTextToContainer.svelte`](../src/lib/components/ScaleTextToContainer.svelte) | `children` | — |  |
-| [`ScreenWidthMedia.svelte`](../src/lib/components/ScreenWidthMedia.svelte) | `src`, `field`, `altText`, `vimeoId`, `darken`, `backdrop`, `percentHeight`, `children` | 10 |  |
+| [`ScreenWidthMedia.svelte`](../src/lib/components/ScreenWidthMedia.svelte) | `src`, `field`, `altText`, `vimeoId`, `darken`, `backdrop`, `percentHeight`, `children` | 11 |  |
 | [`Seo.svelte`](../src/lib/components/Seo.svelte) | `title`, `description`, `image`, `imageAlt`, `url`, `type`, `siteName`, `locale`, `noindex`, `jsonLd` | 14 | The page title — used verbatim for <title> and og/twitter:title |
 | [`SiteLink.svelte`](../src/lib/components/SiteLink.svelte) | `field`, `as`, `children` | 5 |  |
 | [`SkeletonLoader.svelte`](../src/lib/components/SkeletonLoader.svelte) | `lines`, `circle`, `height`, `width` | — |  |
@@ -83,4 +83,4 @@ source. It is the fastest way to recognise what a thing does.
 | [`richTextHeadings.ts`](../src/lib/utils/richTextHeadings.ts) | `RT_HEADING_CTX`, `defaultLevel`, `buildHeadingLevelMap` | 9 | Editors author arbitrary heading levels inside Prismic rich-text bodies (heading1–6 are all enabled in the slice models) |
 | [`vimeo.ts`](../src/lib/utils/vimeo.ts) | `checkVimeoVideo` | 5 | True when the Vimeo video exists and is embeddable (oEmbed responds 200) |
 
-62 modules, 393 tests behind them.
+62 modules, 394 tests behind them.
