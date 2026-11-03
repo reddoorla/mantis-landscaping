@@ -26,7 +26,11 @@ import { test, expect, type Page } from "@playwright/test";
 //   ProjectList, TextBlock): the route `[[preview=preview]]/+page.svelte`;
 // - `/projects`, a Prismic page (PageTitle, ProjectList): `[uid]/+page.svelte`;
 // - `/contact-us`, its own route (`contact-us/+page.svelte`): the form, and the
-//   page the census found scrolling sideways on the Blux site;
+//   page the census found scrolling sideways on the Blux site. This spec cannot
+//   see its Turnstile widget: the widget renders only when
+//   PUBLIC_TURNSTILE_SITE_KEY is set, which it is not here, and it draws into a
+//   closed shadow root. A normal-size widget is 300px in a 272px column at 320
+//   (reddoorla/mantis-landscaping#71), so re-check this page when the key goes on;
 // - `/projects/water-wise-gardens` and `/projects/edible-gardens`, both projects
 //   (SplitHero, IconRow, Steps, CaseStudies, TextBlock):
 //   `projects/[uid]/+page.svelte`.
@@ -47,7 +51,8 @@ const ROUTES = [
 //   carousel to a grid. Those switch on container queries, not breakpoints
 //   (`[@container(width<=600px)]`, `(width<=900px)`), on a content box of
 //   min(width, 1152) - 48, so the "600" trio's two-column grid shows only from
-//   649 to 767 and the "900" trio's grid only from 949.
+//   649 to 767 and the "900" trio's grid only from 949. That assumes no
+//   scrollbar, true headless; a headed run's scrollbar narrows the box.
 // 768 (SplitHero, IconRow, Steps, CaseStudies, the Slider) and 1024
 // (ServiceCards in one row, the desktop nav) are already in.
 const WIDTHS = [320, 390, 601, 640, 649, 768, 820, 949, 1024, 1280];
@@ -61,11 +66,9 @@ async function gotoLoaded(page: Page, path: string) {
   const res = await page.goto(path, { waitUntil: "load" });
   // An unpublished page would otherwise measure the error page and pass.
   expect(res?.ok(), `${path} answered ${res?.status()}`).toBe(true);
-  await page.evaluate(() => document.fonts.ready);
   // Measure the hydrated page, which is what a visitor sees. On the dev server,
   // which the shared base config serves unless REDDOOR_GATE_SERVER or
-  // package.json `reddoor.gateServer` is "preview" (neither is set here, CI
-  // included), `load` comes before hydration, so a layout chosen at hydration
+  // package.json `reddoor.gateServer` is "preview" (this repo sets neither), `load` comes before hydration, so a layout chosen at hydration
   // went unmeasured. SvelteKit sets `history.scrollRestoration` to "manual" in
   // `_start_router()`, which runs only once `_hydrate()` has returned (kit
   // 3.1.0, client.js `start`). On a fresh load nothing sets it earlier:
@@ -81,9 +84,13 @@ async function gotoLoaded(page: Page, path: string) {
     .waitForFunction(() => history.scrollRestoration === "manual", undefined, {
       timeout: 30_000,
     })
-    .catch(() => {
-      throw new Error(`${path} never hydrated: history.scrollRestoration is not "manual"`);
+    .catch((e: Error) => {
+      throw new Error(
+        `${path} never hydrated: history.scrollRestoration is not "manual" (${e.message})`,
+      );
     });
+  // Fonts after hydration, so a face that hydrated text needs is loaded too.
+  await page.evaluate(() => document.fonts.ready);
   await page.evaluate(
     () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
   );
