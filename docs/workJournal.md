@@ -974,6 +974,30 @@ Mutation results, seven mutants named before the run (vida's batch C file, re-po
 
 Checks: prettier and eslint clean on the three changed source files. svelte-check reports one error, `File '$app/tsconfig' not found` in `tsconfig.json`, from this checkout's generated kit config, not from the changed files. The first full `vitest run` failed one test, `scripts/capability-index.test.ts` ("is committed and current"), because the new test changed the generated counts; regenerating `docs/COMPONENTS.md` fixed it.
 
+## 2026-11-03 — The rebuild gets the mobile overflow spec: five pages at ten widths (#70, `11c4ad2`, into `staging`)
+
+Why: P1-90 (reddoorla/reddoor-maintenance#1876) found `/contact-us` 613px wide at 320 on Mantis's Blux production site, from its form embed. The rebuild did not scroll sideways at any width measured, so the operator chose to put the fleet's overflow spec into the rebuild now rather than at launch (workspace decision `2026-11-01-2027-p1-90c`). `tests/smoke/mobile-overflow.spec.ts` is composition-hospitality#47's file as of `2d70e53`. Nothing in the site changed.
+
+Unlike Composition, whose Prismic pages all answered 404, Mantis's five published documents all answer 200 on the dev server, so the spec measures every visitor page: `/`, `/projects`, `/contact-us`, `/projects/water-wise-gardens` and `/projects/edible-gardens`. Those cover the four page templates. The census found `/contact-us` scrolling on Blux, not here.
+
+The belief corrected on contact: "the widths where a layout changes columns" cannot be read off Tailwind's breakpoint prefixes. Round 1's widths (320, 390, 601, 640, 768, 820, 1024, 1280) came from a census of `sm:`/`md:`/`lg:`/`min-[601px]:` classes, and the review found the home page's two FeatureTrios switching on container queries in `IconRow.svelte` (`[@container(width<=600px)]`, `(width<=900px)`) over a content box of min(width, 1152) − 48. So the "600" trio's two-column grid shows only from 649 to 767, which none of the eight widths measured. The "900" trio's grid shows from 949, and round 1 measured it only at 1024 and 1280, never at its narrowest. Two mutations, each limited to one trio's grid (and, for the "900" trio, to widths below 1024) (`max-md:min-w-[800px]` on the "600" trio, `max-[1023px]:min-w-[1100px]` on the "900" trio) went red only at 649 and only at 949, twice each on dev and on a production build. At round 1's widths both would have passed 40 of 40.
+
+The other mutations, each run twice on dev and twice on preview (`REDDOOR_GATE_SERVER=preview`; this repo's base config honours it, unlike Composition's, composition-hospitality#48):
+
+- none: 50/50 green;
+- `footer{min-width:1400px}`: 50/50 red;
+- a root-layout `onMount` that renders a 1400px line: 50/50 red;
+- the same with the hydration wait removed: **50/50 green on dev** (load fires before hydration there), 50/50 red on preview;
+- a `min-width:400px` line in each of the four templates: red only on that template's routes, at 320 and 390.
+
+The hydration signal is still `history.scrollRestoration === "manual"`. Kit 3.1.0 sets it in `_start_router()` after `await _hydrate()`. The wait is 30 s inside a 60 s test limit: P1-84's #69 constants for `@smoke`, which the spec is tagged with.
+
+What the spec cannot see, filed rather than fixed: the contact form's Turnstile widget (#71). It renders only with `PUBLIC_TURNSTILE_SITE_KEY` set, and draws into a closed shadow root. Production has no key today: mantis-landscaping.netlify.app/contact-us serves no `cf-turnstile` mount. #70's deploy preview has one, but there the widget answered 400 and drew only a 1×1 challenge frame, so 320 measured 320 wide. A normal-size widget is 300px, and the column at 320 is 272px. The review's "major" on this was conditional on production having the key, and production does not, so it was a minor. It still has to be fixed before the key goes on. Also filed: #72 (move onto `hydrated()` and drop the two frames once #69 lands) and #74 (measure the 404 page; one route list instead of three).
+
+Review: Opus, on the PR's own diff, `measure()` excluded by the operator's standing answer. Round 1 dirty (the container-query widths, plus two minors and a nit folded in); round 2 clean (minors only). `pnpm lint` clean and `pnpm check` 0 errors at `3af0475`; `pnpm test:unit` 814 passed at `3b0fb61` (later commits touched only the spec).
+
+Honest accounting: the production-build half of every mutation needed `REDDOOR_GATE_SERVER=preview` and nothing else here. The Playwright browser needed `chromium_headless_shell-1248` symlinked to the preinstalled `-1243` in the cloud container. The journal entry missed #70 itself and lands in its own PR.
+
 ## 2026-11-03 — The test tiers: 45 Playwright specs are the gate, 2 run nightly, 20 are scaffold (#69, P1-84 batch A)
 
 Why: the fleet test audit's batch A (reddoorla/reddoor-workspace `decisions/2026-10-27-0120-fleet-test-audit-batches.md`, option 1) adopts the tiers reddoor-starter#180 set up, so the merge gate stops waiting on geometry and timing specs that a designer's one-line change turns red. This follows gallerysonder#144 and vida-legacy-foundation#130, and takes the defects their reviews and the-tower-burbank#43's found before they can happen here.
