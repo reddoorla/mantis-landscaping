@@ -19,9 +19,11 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
           // not wholly contain it. A control stops at its card; text walks on to
           // the page (card null), so a card the page clips is caught too.
           const clipped = (el: Element, card: Element | null) => {
-            const r = el.getBoundingClientRect();
-            let x = true,
-              y = true;
+            const r0 = el.getBoundingClientRect();
+            // The extent still to be shown: past a scroller, the content is
+            // reachable only inside the scroller's own box, so on that axis the
+            // scroller's box is what the next ancestor must not cut.
+            const r = { left: r0.left, right: r0.right, top: r0.top, bottom: r0.bottom };
             for (let p = el.parentElement; p; p = p.parentElement) {
               const s = getComputedStyle(p);
               // Only hidden or clip cuts: a scroller (auto, scroll) keeps its
@@ -30,13 +32,13 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
               const scrolls = (v: string) => v === "auto" || v === "scroll";
               const c = p.getBoundingClientRect();
               if (
-                (x && cuts(s.overflowX) && (r.left < c.left - 0.5 || r.right > c.right + 0.5)) ||
-                (y && cuts(s.overflowY) && (r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5))
+                (cuts(s.overflowX) && (r.left < c.left - 0.5 || r.right > c.right + 0.5)) ||
+                (cuts(s.overflowY) && (r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5))
               )
                 return true;
               // Past a scroller the content is reachable on that axis.
-              if (scrolls(s.overflowX)) x = false;
-              if (scrolls(s.overflowY)) y = false;
+              if (scrolls(s.overflowX)) [r.left, r.right] = [c.left, c.right];
+              if (scrolls(s.overflowY)) [r.top, r.bottom] = [c.top, c.bottom];
               if (p === card) break;
             }
             return false;
@@ -68,7 +70,9 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
               // descenders add about 1px per line, measured 1px on a one-line
               // title and 2px on a two-line one), or when its box leaves a clipping
               // ancestor up to the page. Inline elements have no box to measure
-              // for overflow, so only their rect is checked.
+              // for overflow, so only their rect is checked. Out-of-flow decoration
+              // hung outside a title's box (a pseudo-element, say) counts too, since
+              // scrollWidth includes it.
               clippedText: [a.lastElementChild!, ...a.lastElementChild!.querySelectorAll("*")]
                 .filter((el) =>
                   [...el.childNodes].some(
