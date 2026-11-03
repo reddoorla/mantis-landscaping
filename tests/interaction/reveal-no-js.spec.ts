@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { hydrated } from "../smoke/hydration";
+import { hydrated, HYDRATION_TEST_TIMEOUT_MS } from "../smoke/hydration";
+
+// The nightly trace's warm-up waits up to 30s for hydration, so the file's test
+// limit must sit above that wait (the shared default is 30s).
+test.describe.configure({ timeout: HYDRATION_TEST_TIMEOUT_MS });
 
 // THE SCROLL REVEAL'S HIDDEN STATE BELONGS TO THE FIRST PAINT.
 //

@@ -6,7 +6,7 @@ test.describe.configure({ timeout: HYDRATION_TEST_TIMEOUT_MS });
 for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
   for (const width of [1440, 834, 390, 320]) {
     test(
-      `${path}: each case-study photo stays clear of the text and its controls are not clipped at ${width}px`,
+      `${path}: each case-study photo stays clear of the text, its controls are not clipped, and no line of its text is cut sideways at ${width}px`,
       { tag: "@smoke" },
       async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
@@ -55,6 +55,24 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
               clippedControls: controls
                 .filter((c) => clipped(c, a))
                 .map((c) => c.getAttribute("aria-label")),
+              // Text the card cuts sideways. An element that holds its own text
+              // is flagged when its content is wider than its box (a line that
+              // does not wrap, with or without an ellipsis), or when its box
+              // leaves a clipping ancestor. Inline elements have no box to
+              // measure for overflow, so only their rect is checked.
+              clippedText: [a.lastElementChild!, ...a.lastElementChild!.querySelectorAll("*")]
+                .filter((el) =>
+                  [...el.childNodes].some(
+                    (n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim() !== "",
+                  ),
+                )
+                .filter(
+                  (el) =>
+                    (getComputedStyle(el).display !== "inline" &&
+                      el.scrollWidth > el.clientWidth + 0.5) ||
+                    clipped(el, a),
+                )
+                .map((el) => el.textContent!.trim().slice(0, 40)),
             };
           });
         });
@@ -64,6 +82,7 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
           expect(card).toEqual({
             overlapsText: false,
             clippedControls: [],
+            clippedText: [],
           });
       },
     );
