@@ -20,7 +20,27 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
           // the page (card null), so a card the page clips is caught too.
           const clipped = (el: Element, card: Element | null) => {
             const r0 = el.getBoundingClientRect();
-            const fixed = getComputedStyle(el).position === "fixed";
+            const pos = getComputedStyle(el).position;
+            // An absolute or fixed element is cut only by ancestors that hold its
+            // containing block, and neither scrolls with nor is cut by the others.
+            // The containing block is read from offsetParent, so it misses a
+            // transform, filter or contain on an unpositioned ancestor; and the
+            // escape is read on the element itself, not on a positioned wrapper.
+            const escapes = (p: Element) =>
+              (pos === "absolute" || pos === "fixed") &&
+              !p.contains((el as HTMLElement).offsetParent);
+            // How far a scroller can still move back and forward on an axis. Its
+            // origin is not always the top left: it is on the right in RTL and at
+            // the far end of a reversed flex box, so the range is measured.
+            const span = (p: Element, k: "scrollLeft" | "scrollTop") => {
+              const v = p[k];
+              p[k] = -1e9;
+              const lo = p[k];
+              p[k] = 1e9;
+              const hi = p[k];
+              p[k] = v;
+              return [v - lo, hi - v];
+            };
             // The extent still to be shown: past a scroller, the content is
             // reachable only inside the scroller's own box, so on that axis the
             // scroller's box is what the next ancestor must not cut.
@@ -32,24 +52,32 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
               const cuts = (v: string) => v === "hidden" || v === "clip";
               const scrolls = (v: string) => v === "auto" || v === "scroll";
               const c = p.getBoundingClientRect();
+              if (escapes(p)) {
+                if (p === card) break;
+                continue;
+              }
               if (
                 (cuts(s.overflowX) && (r.left < c.left - 0.5 || r.right > c.right + 0.5)) ||
                 (cuts(s.overflowY) && (r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5))
               )
                 return true;
-              // Past a scroller the content is reachable on that axis, but only
-              // from its scroll origin on: scrolling never goes before the start
-              // edge, so content pushed past it (a negative margin, a translate)
-              // is cut. A fixed element does not scroll with it, so it is skipped.
-              if (
-                (!fixed &&
-                  scrolls(s.overflowX) &&
-                  r.left < c.left + p.clientLeft - p.scrollLeft - 0.5) ||
-                (!fixed && scrolls(s.overflowY) && r.top < c.top + p.clientTop - p.scrollTop - 0.5)
-              )
-                return true;
-              if (scrolls(s.overflowX)) [r.left, r.right] = [c.left, c.right];
-              if (scrolls(s.overflowY)) [r.top, r.bottom] = [c.top, c.bottom];
+              // Past a scroller the content is reachable on that axis only as far
+              // as it scrolls: content pushed before its origin (a negative margin,
+              // a translate) is cut, on whichever side the origin sits.
+              const inX = c.left + p.clientLeft;
+              const inY = c.top + p.clientTop;
+              if (scrolls(s.overflowX)) {
+                const [back, fwd] = span(p, "scrollLeft");
+                if (r.left < inX - back - 0.5 || r.right > inX + p.clientWidth + fwd + 0.5)
+                  return true;
+                [r.left, r.right] = [c.left, c.right];
+              }
+              if (scrolls(s.overflowY)) {
+                const [back, fwd] = span(p, "scrollTop");
+                if (r.top < inY - back - 0.5 || r.bottom > inY + p.clientHeight + fwd + 0.5)
+                  return true;
+                [r.top, r.bottom] = [c.top, c.bottom];
+              }
               if (p === card) break;
             }
             return false;
