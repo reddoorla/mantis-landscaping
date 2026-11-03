@@ -82,8 +82,11 @@ for (const path of ["/projects/edible-gardens", "/projects/water-wise-gardens"])
                     return false;
                   return (
                     (s.display !== "inline" &&
-                      (el.scrollWidth > el.clientWidth + 0.5 ||
-                        (s.overflowY !== "visible" && el.scrollHeight > el.clientHeight + 4))) ||
+                      ((s.overflowX !== "auto" &&
+                        s.overflowX !== "scroll" &&
+                        el.scrollWidth > el.clientWidth + 0.5) ||
+                        ((s.overflowY === "hidden" || s.overflowY === "clip") &&
+                          el.scrollHeight > el.clientHeight + 4))) ||
                     clipped(el, null)
                   );
                 })
