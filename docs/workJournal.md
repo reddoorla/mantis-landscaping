@@ -999,19 +999,19 @@ Why: the fleet test audit's batch A (reddoorla/reddoor-workspace `decisions/2026
 
 **Mutants**, named before they ran, each against the `@smoke` set (45 pass unmutated):
 
-| Mutant                                                       | Result                                                               |
-| ------------------------------------------------------------ | -------------------------------------------------------------------- |
-| `minWidth: 1100px` set in the root layout's `onMount`        | red: the 320px nav check                                             |
-| an empty `<button>` added in `/dev/a11y-fixtures`' `onMount` | red: the axe scan of that page                                       |
-| `<LandscapeModal />` mounted in the root layout              | red: landscape only (portrait control stays green)                   |
-| the nav's `sticky` replaced by `relative`                    | red: 10 (nav sticks, nothing over nav, focus, mobile menu)           |
-| the case-study dots moved to `-bottom-8`                     | red: all 8 slideshow cases                                           |
-| the case-study text placed over the photo                    | red at 1440 and 834 (4); green at 390 and 320, where the card stacks |
-| `/contact` redirected to `/contacts`                         | red: the redirect check                                              |
-| the `<noscript>` reveal escape renamed in `app.html`         | red: scripting-off reveal                                            |
+| Mutant                                                       | Result                                                                                                                              |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `minWidth: 1100px` set in the root layout's `onMount`        | red: the 320px nav check                                                                                                            |
+| an empty `<button>` added in `/dev/a11y-fixtures`' `onMount` | red: the axe scan of that page                                                                                                      |
+| `<LandscapeModal />` mounted in the root layout              | red: landscape only (portrait control stays green)                                                                                  |
+| the nav's `sticky` replaced by `relative`                    | red: 10 (nav sticks, nothing over nav, focus, mobile menu)                                                                          |
+| the case-study dots moved to `-bottom-8`                     | red: all 8 slideshow cases                                                                                                          |
+| the case-study text placed over the photo                    | red at 1440 and 834 (4); green at 390 and 320, where the card stacks                                                                |
+| `/contact` redirected to `/contacts`                         | red: the redirect check                                                                                                             |
+| the `<noscript>` reveal escape renamed in `app.html`         | red: scripting-off reveal                                                                                                           |
 | a throw in the footer's `onMount`                            | red: 40 of 45, every spec that waits on hydration; only the 3 redirects and the 2 no-JS reveal tests stay green; about 10.8 minutes |
-| the Instagram link cut to 16px                               | red: both axe scans                                                  |
-| nav `z-50` removed (shipped fix #29)                         | red: 4 probes and the mobile menu (re-run in review round 1)         |
+| the Instagram link cut to 16px                               | red: both axe scans                                                                                                                 |
+| nav `z-50` removed (shipped fix #29)                         | red: 4 probes and the mobile menu (re-run in review round 1)                                                                        |
 
 **Belief corrected:** the brief expected removing the dot pill's `max-w-[calc(100%-1.5rem)]` to turn water-wise at 320 red, as an earlier journal entry says. On this tree it stays green in both the old spec and the new one, so it is not a probe of that fix and was dropped. This repo also has no mobile-overflow spec: the only page-width check is the 320px nav's `scrollWidth`. The P1-90 overflow fix has not reached mantis, so no tier here covers it.
 
