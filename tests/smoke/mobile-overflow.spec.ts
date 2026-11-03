@@ -39,11 +39,18 @@ const ROUTES = [
   "/projects/edible-gardens",
 ];
 // The fleet's six widths, plus each width where a layout on these pages changes
-// columns: 601, where the footer turns to two columns (`min-[601px]:grid-cols-2`),
-// and 640, where ServiceCards turns to two (`sm:grid-cols-2`) and the footer's
-// bottom row to a row (`sm:flex-row`). 768 (SplitHero, IconRow, Steps,
-// CaseStudies) and 1024 (ServiceCards in one row, the desktop nav) are already in.
-const WIDTHS = [320, 390, 601, 640, 768, 820, 1024, 1280];
+// columns:
+// - 601, where the footer turns to two columns (`min-[601px]:grid-cols-2`);
+// - 640, where ServiceCards turns to two (`sm:grid-cols-2`) and the footer's
+//   bottom row to a row (`sm:flex-row`);
+// - 649 and 949, where the home page's two FeatureTrios (IconRow) turn from a
+//   carousel to a grid. Those switch on container queries, not breakpoints
+//   (`[@container(width<=600px)]`, `(width<=900px)`), on a content box of
+//   min(width, 1152) - 48, so the "600" trio's two-column grid shows only from
+//   649 to 767 and the "900" trio's grid only from 949.
+// 768 (SplitHero, IconRow, Steps, CaseStudies, the Slider) and 1024
+// (ServiceCards in one row, the desktop nav) are already in.
+const WIDTHS = [320, 390, 601, 640, 649, 768, 820, 949, 1024, 1280];
 
 async function gotoLoaded(page: Page, path: string) {
   // Reduced motion, so scroll reveals do not hold below-the-fold text at
@@ -56,7 +63,8 @@ async function gotoLoaded(page: Page, path: string) {
   expect(res?.ok(), `${path} answered ${res?.status()}`).toBe(true);
   await page.evaluate(() => document.fonts.ready);
   // Measure the hydrated page, which is what a visitor sees. On the dev server,
-  // which the shared base config starts unless REDDOOR_GATE_SERVER=preview (CI
+  // which the shared base config serves unless REDDOOR_GATE_SERVER or
+  // package.json `reddoor.gateServer` is "preview" (neither is set here, CI
   // included), `load` comes before hydration, so a layout chosen at hydration
   // went unmeasured. SvelteKit sets `history.scrollRestoration` to "manual" in
   // `_start_router()`, which runs only once `_hydrate()` has returned (kit
@@ -64,11 +72,14 @@ async function gotoLoaded(page: Page, path: string) {
   // `restore_reload_scroll` sets it before hydration only on a reload with a
   // saved scroll position. Two frames then let the effects that hydration
   // scheduled render.
-  // A page whose hydration throws, or one with `csr = false`, never gets
-  // there: fail with that, not with the bare test timeout.
+  // A page with `csr = false`, or whose client never starts, never gets there:
+  // fail with that, not with the bare test timeout. (A throw inside a child's
+  // onMount does not stop `_start_router()`, so this signal still arrives.)
+  // The wait is 30s inside a 60s test limit, because a cold dev server can
+  // take that long to hydrate.
   await page
     .waitForFunction(() => history.scrollRestoration === "manual", undefined, {
-      timeout: 15_000,
+      timeout: 30_000,
     })
     .catch(() => {
       throw new Error(`${path} never hydrated: history.scrollRestoration is not "manual"`);
@@ -233,6 +244,8 @@ function measure(page: Page) {
     };
   });
 }
+
+test.describe.configure({ timeout: 60_000 });
 
 for (const width of WIDTHS) {
   test.describe(`at ${width}px`, () => {
