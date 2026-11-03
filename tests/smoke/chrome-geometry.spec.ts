@@ -1,25 +1,45 @@
 import { test, expect } from "@playwright/test";
+import { hydrated, HYDRATION_TEST_TIMEOUT_MS } from "./hydration";
+
+// Which of these are @smoke: the ones that compare two boxes or watch a
+// behaviour (the nav stays on top, nothing covers it, a focus or menu does not
+// move the page, an anchor or the skip link lands clear of it). The ones that
+// pin a value (the scrollbar-gutter keyword, the 1280px container edge, the
+// footer's column split, the Instagram link's size, fonts, colours, paddings)
+// stay untagged and run in the scaffold tier. The @smoke ones wait on
+// html[data-hydrated] first; see ./hydration.ts.
+test.describe.configure({ timeout: HYDRATION_TEST_TIMEOUT_MS });
 
 for (const width of [1440, 1024, 834, 390]) {
-  test(`the first section is not hidden under the nav at load at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    const atLoad = await page.evaluate(() => {
-      const nav = document.querySelector("nav")!.getBoundingClientRect();
-      const first = document.querySelector("main section")!.getBoundingClientRect();
-      return { navBottom: nav.bottom, firstTop: first.top };
-    });
-    expect(atLoad.firstTop).toBeGreaterThanOrEqual(atLoad.navBottom);
-  });
+  test(
+    `the first section is not hidden under the nav at load at ${width}px`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await hydrated(page);
+      const atLoad = await page.evaluate(() => {
+        const nav = document.querySelector("nav")!.getBoundingClientRect();
+        const first = document.querySelector("main section")!.getBoundingClientRect();
+        return { navBottom: nav.bottom, firstTop: first.top };
+      });
+      expect(atLoad.firstTop).toBeGreaterThanOrEqual(atLoad.navBottom);
+    },
+  );
 
-  test(`the nav sticks to the top after scroll at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    await page.evaluate(() => window.scrollTo(0, 600));
-    await expect
-      .poll(() => page.evaluate(() => document.querySelector("nav")!.getBoundingClientRect().top))
-      .toBe(0);
-  });
+  test(
+    `the nav sticks to the top after scroll at ${width}px`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await hydrated(page);
+      await page.evaluate(() => window.scrollTo(0, 600));
+      await expect
+        .poll(() => page.evaluate(() => document.querySelector("nav")!.getBoundingClientRect().top))
+        .toBe(0);
+    },
+  );
 
   test(`the html element reserves no scrollbar gutter at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -29,26 +49,36 @@ for (const width of [1440, 1024, 834, 390]) {
     ).toBe("auto");
   });
 
-  test(`nothing paints over the sticky nav while scrolling at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    const covered = await page.evaluate(async () => {
-      document.documentElement.style.scrollBehavior = "auto";
-      const nav = document.querySelector("nav")!;
-      const hits: number[] = [];
-      const end = document.documentElement.scrollHeight - innerHeight;
-      for (let y = 0; y <= end; y += 150) {
-        window.scrollTo(0, y);
-        await new Promise((r) => requestAnimationFrame(() => r(null)));
-        for (const x of [innerWidth * 0.25, innerWidth * 0.5, innerWidth * 0.75]) {
-          const el = document.elementFromPoint(x, 35);
-          if (!el || !nav.contains(el)) hits.push(y);
+  test(
+    `nothing paints over the sticky nav while scrolling at ${width}px`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await hydrated(page);
+      const covered = await page.evaluate(() => {
+        document.documentElement.style.scrollBehavior = "auto";
+        const nav = document.querySelector("nav")!;
+        const hits: number[] = [];
+        const end = document.documentElement.scrollHeight - innerHeight;
+        for (let y = 0; y <= end; y += 150) {
+          // With scroll-behavior auto the scroll is applied at once, and
+          // elementFromPoint lays the page out before it hit-tests.
+          window.scrollTo(0, y);
+          // Probe the middle of the nav box wherever it sits, so the check names
+          // no height.
+          const box = nav.getBoundingClientRect();
+          const probeY = (Math.max(box.top, 0) + Math.min(box.bottom, innerHeight)) / 2;
+          for (const x of [innerWidth * 0.25, innerWidth * 0.5, innerWidth * 0.75]) {
+            const el = document.elementFromPoint(x, probeY);
+            if (!el || !nav.contains(el)) hits.push(y);
+          }
         }
-      }
-      return hits;
-    });
-    expect(covered).toEqual([]);
-  });
+        return hits;
+      });
+      expect(covered).toEqual([]);
+    },
+  );
 
   test(`the logo sits at the 1280px container edge at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -62,45 +92,39 @@ for (const width of [1440, 1024, 834, 390]) {
   });
 }
 
-test("focusing a nav control does not scroll the page", async ({ page }) => {
+test("focusing a nav control does not scroll the page", { tag: "@smoke" }, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  const after = await page.evaluate(async () => {
+  await hydrated(page);
+  const after = await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
-    const frames = () =>
-      new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
     window.scrollTo(0, 1500);
-    await frames();
+    // focus() scrolls into view at once, so the position is read straight after.
     (document.querySelector('nav a[href="/"]') as HTMLElement).focus();
-    await frames();
     return scrollY;
   });
   expect(after).toBe(1500);
 });
 
-test("opening and closing the mobile menu does not scroll the page", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.evaluate(() => {
-    document.documentElement.style.scrollBehavior = "auto";
-    window.scrollTo(0, 1500);
-  });
-  const close = page.getByRole("button", { name: "Close menu" });
-  await expect(async () => {
+test(
+  "opening and closing the mobile menu does not scroll the page",
+  { tag: "@smoke" },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await hydrated(page);
+    await page.evaluate(() => {
+      document.documentElement.style.scrollBehavior = "auto";
+      window.scrollTo(0, 1500);
+    });
+    const close = page.getByRole("button", { name: "Close menu" });
     await page.getByRole("button", { name: "Open menu" }).click();
-    await expect(close).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 20000 });
-  await close.click();
-  await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
-  expect(
-    await page.evaluate(
-      () =>
-        new Promise<number>((r) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => r(scrollY))),
-        ),
-    ),
-  ).toBe(1500);
-});
+    await expect(close).toBeVisible();
+    await close.click();
+    await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
+    expect(await page.evaluate(() => scrollY)).toBe(1500);
+  },
+);
 
 for (const [width, cols] of [
   [600, 1],
@@ -130,33 +154,39 @@ test("the footer Instagram link is at least a 24px target (WCAG 2.5.8)", async (
 });
 
 for (const width of [1440, 390]) {
-  test(`the skip link lands main below the sticky nav at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
-    await page.evaluate(() => {
-      document.documentElement.style.scrollBehavior = "auto";
-      window.scrollTo(0, 600);
-    });
-    await page.keyboard.press("Tab");
-    await expect(page.locator('a[href="#main-content"]')).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page.locator("main")).toBeFocused();
-    await expect
-      .poll(() =>
-        page.evaluate(() =>
-          Math.round(
-            document.querySelector("main")!.getBoundingClientRect().top -
-              document.querySelector("nav")!.getBoundingClientRect().bottom,
+  test(
+    `the skip link lands main below the sticky nav at ${width}px`,
+    { tag: "@smoke" },
+    async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await hydrated(page);
+      await page.evaluate(() => {
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo(0, 600);
+      });
+      await page.keyboard.press("Tab");
+      await expect(page.locator('a[href="#main-content"]')).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(page.locator("main")).toBeFocused();
+      await expect
+        .poll(() =>
+          page.evaluate(() =>
+            Math.round(
+              document.querySelector("main")!.getBoundingClientRect().top -
+                document.querySelector("nav")!.getBoundingClientRect().bottom,
+            ),
           ),
-        ),
-      )
-      .toBeGreaterThanOrEqual(0);
-  });
+        )
+        .toBeGreaterThanOrEqual(0);
+    },
+  );
 }
 
-test("an in-page anchor lands below the sticky nav", async ({ page }) => {
+test("an in-page anchor lands below the sticky nav", { tag: "@smoke" }, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
+  await hydrated(page);
   await page.evaluate(() => {
     const target = document.querySelectorAll("main section")[3] as HTMLElement;
     target.id = "probe-anchor";

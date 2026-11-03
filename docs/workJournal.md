@@ -973,3 +973,47 @@ The fleet test audit (reddoorla/reddoor-workspace `audits/2026-10-26-fleet-test-
 Mutation results, seven mutants named before the run (vida's batch C file, re-pointed) plus X1, run with `scripts/mutate.mjs` one at a time against the new tests: M1 (`delayMax` ignored) red; M2 (delay ignores position) red, on the delayMax test and also on the 100ms position test; M3 (`delayMax` above 400 clamped, a design value, timing only) survived as predicted; M4 (soft cap armed as `setInterval`) red, harness only, an equivalent mutant: this file's `toFake` covers `setTimeout` and `clearTimeout` but not `setInterval`, so the interval never fires on the test clock, while in a browser it reveals at 1.2s exactly as the timeout does (vida's review round 1), so the behaviour kills are five of eight, not six; M5 (soft cap removed) red; M6 (hard cap at twice the constant) red; M7 (soft cap not clearing the hard cap, invisible because `reveal()` is idempotent) survived as predicted; X1 (`ms` to `s`) red. Summary: `mutants=8 red=6 survived=2 unexpected=0`.
 
 Checks: prettier and eslint clean on the three changed source files. svelte-check reports one error, `File '$app/tsconfig' not found` in `tsconfig.json`, from this checkout's generated kit config, not from the changed files. The first full `vitest run` failed one test, `scripts/capability-index.test.ts` ("is committed and current"), because the new test changed the generated counts; regenerating `docs/COMPONENTS.md` fixed it.
+
+## 2026-11-03 — The test tiers: 45 Playwright specs are the gate, 2 run nightly, 20 are scaffold (P1-84 batch A)
+
+Why: the fleet test audit's batch A (reddoorla/reddoor-workspace `decisions/2026-10-27-0120-fleet-test-audit-batches.md`, option 1) adopts the tiers reddoor-starter#180 set up, so the merge gate stops waiting on geometry and timing specs that a designer's one-line change turns red. This follows gallerysonder#144 and vida-legacy-foundation#130, and takes the defects their reviews and the-tower-burbank#43's found before they can happen here.
+
+**The counts.** `playwright test --list` gave 67 specs, all of them in the gate. It now gives 45 `@smoke`, 2 `@nightly` and 20 untagged (22 not `@smoke`, which is what `test:scaffold` runs). The `@smoke` set is 8 route-and-console checks (7 routes and the 404 page), 3 redirects, 2 axe scans, 3 logo checks (2 aspect ratios and the 320px nav), 8 case-study slideshow checks (2 pages at 4 widths), 17 of the nav and skip-link set in `chrome-geometry.spec.ts`, 2 landscape checks and the 2 no-JS reveal checks. The untagged 20 pin values: the scrollbar-gutter keyword, the logo's offset from the 1280px container edge, the footer's column split, the Instagram link's size, fonts, colours and paddings, the logo's 260/280px widths, the case-study `sizes` string against the laid-out slot, and the modal's centring. The `@nightly` two are the reveal's first-frame trace and the modal scroll lock.
+
+**Why each went where it did.**
+
+- A spec that compares two boxes is a contract: the nav stays on top and nothing covers it, the first section starts below the nav, a case-study photo does not overlap its text, a control is not clipped by its card, the skip link and an anchor land clear of the sticky nav, a focus or the mobile menu does not move the page, the logo keeps its file's aspect ratio. Those are `@smoke`.
+- Anything that pins a pixel, a colour, a font or an exact size is geometry and stays untagged.
+- The footer Instagram link's 24px floor (WCAG 2.5.8) is untagged because axe already enforces it in the gate. With the link cut to 16px, both axe scans go red.
+- `case-study-sizes.spec.ts` is the one judgement call. It compares a `sizes` string in source with a laid-out width within 2px, so it is a relation, but it moves with every layout change to the card, so it is scaffold. If a reviewer reads it as a contract it can be tagged without edits.
+- The reveal's two non-timing checks (the server ships `data-reveal`; with scripting off it paints at full opacity) are `@smoke`: neither depends on a clock. No shipped page uses `animateIn` yet (only `/dev/animate-in` does), so today they guard the mechanism, not a page. That is the second judgement call.
+
+**Hydration.** CI's smoke step runs on `vite dev`, where `load` fires about 2s before hydration. The root layout now sets `html[data-hydrated]` in `onMount` (the starter's marker; a throw in any child's `onMount` stops it), and every `@smoke` spec that reads the page waits on it first via `tests/smoke/hydration.ts` (30s wait, 60s test limit). This repo had no marker, and the old specs worked around it with a retrying click or with nothing. The no-JS reveal tests cannot wait on it and say so. The console check used to read errors straight after the server-rendered footer was visible; it now reads after hydration.
+
+**Changed beyond the tags**, each because it could not stay in the gate as written:
+
+- `landscape.spec.ts` waited a fixed 8s for an overlay that never comes, on every passing run. It now waits for hydration, proves the page is operable with a bounded retrying click, and only then counts the overlay.
+- `chrome-geometry.spec.ts`: "nothing paints over the nav" waited a frame between scroll steps and probed at a fixed `y=35`; it now probes the middle of the nav's own box with no frame wait. The focus and mobile-menu checks dropped their double `requestAnimationFrame` and read the scroll position straight after the event, which `toBeFocused` and a synchronous `focus()` settle.
+- `case-study-slideshow.spec.ts` skipped the overlap check below 768px, a breakpoint pinned in the gate. It now fails when the photo's box and the text's box intersect on both axes, which names no width.
+- `reveal-no-js.spec.ts`: the nightly trace first warms the dev server, because on a cold `vite dev` the first load took longer than the 4s the trace samples and "the reveal never completed" (seen on the first run of the tier).
+
+**Mutants**, named before they ran, each against the `@smoke` set (45 pass unmutated):
+
+| Mutant                                                       | Result                                                               |
+| ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `minWidth: 1100px` set in the root layout's `onMount`        | red: the 320px nav check                                             |
+| an empty `<button>` added in `/dev/a11y-fixtures`' `onMount` | red: the axe scan of that page                                       |
+| `<LandscapeModal />` mounted in the root layout              | red: landscape only (portrait control stays green)                   |
+| the nav's `sticky` replaced by `relative`                    | red: 10 (nav sticks, nothing over nav, focus, mobile menu)           |
+| the case-study dots moved to `-bottom-8`                     | red: all 8 slideshow cases                                           |
+| the case-study text placed over the photo                    | red at 1440 and 834 (4); green at 390 and 320, where the card stacks |
+| `/contact` redirected to `/contacts`                         | red: the redirect check                                              |
+| the `<noscript>` reveal escape renamed in `app.html`         | red: scripting-off reveal                                            |
+| a throw in the footer's `onMount`                            | red: the console check (the hydration wait times out)                |
+| the Instagram link cut to 16px                               | red: both axe scans                                                  |
+
+**Belief corrected:** the brief expected removing the dot pill's `max-w-[calc(100%-1.5rem)]` to turn water-wise at 320 red, as an earlier journal entry says. On this tree it stays green in both the old spec and the new one, so it is not a probe of that fix and was dropped. This repo also has no mobile-overflow spec: the only page-width check is the 320px nav's `scrollWidth`. The P1-90 overflow fix has not reached mantis, so no tier here covers it.
+
+**Wiring.** `test:smoke` is `playwright install chromium && playwright test --grep @smoke`; `test:nightly` and `test:scaffold` carry `--pass-with-no-tests`; `test:e2e` runs everything. The shared `ci.yml` runs `pnpm test:smoke` because `test` contains it, so no workflow change was needed for the gate. A `nightly.yml` (the starter's) is added because the two `@nightly` specs would otherwise never run. `CLAUDE.md` gains the starter's "Tests build; they don't freeze" section, with the hydration rule added and its `boundingBox` line reworded: comparing two boxes is a relation, and only a read against a pixel value is out.
+
+**Checks.** `vitest run` 814 of 814 in 94 files. prettier and eslint clean on the changed files; svelte-check 0 errors. Untagged set 20 of 20, `@nightly` 2 of 2 (twice, after the warm-up), `@smoke` 45 of 45, all on port 5291 with two workers.
