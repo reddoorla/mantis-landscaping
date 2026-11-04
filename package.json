@@ -15,7 +15,10 @@
     "test": "pnpm test:unit && pnpm test:smoke",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:smoke": "playwright install chromium && playwright test",
+    "test:smoke": "playwright install chromium && playwright test --grep @smoke",
+    "test:nightly": "playwright test --grep @nightly --pass-with-no-tests",
+    "test:scaffold": "playwright test --grep-invert @smoke --pass-with-no-tests",
+    "test:e2e": "playwright test",
     "test:a11y": "reddoor-maint audit --only a11y --fail-on-violations",
     "slicemachine": "start-slicemachine"
   },

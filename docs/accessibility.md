@@ -31,7 +31,7 @@ Run locally:
 ```bash
 pnpm verify           # everything CI runs, in CI's order
 pnpm test:unit        # vitest unit tests
-pnpm test:smoke       # Playwright + axe (boots vite dev)
+pnpm test:smoke       # the Playwright @smoke gate, axe included (boots vite dev)
 pnpm test:a11y        # the fleet a11y audit CI gates on
 pnpm dlx @lhci/cli autorun   # Lighthouse against lighthouserc.json — manual, not in CI
 ```

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/svelte";
 import { tick } from "svelte";
-import ScreenWidthMedia from "./ScreenWidthMedia.svelte";
+import ScreenWidthMedia, { VIDEO_REVEAL_HARD_CAP_MS } from "./ScreenWidthMedia.svelte";
 
 class MockPlayer {
   static instances: MockPlayer[] = [];
@@ -168,20 +168,25 @@ describe("ScreenWidthMedia quality reveal", () => {
     expect(iframe.className).toContain("opacity-100");
   });
 
-  it("soft cap: reveals 1.2s after the quality change is accepted", async () => {
+  it("soft cap: reveals before the hard cap when 1080p is accepted but never buffers", async () => {
     const { iframe, player } = await renderWithPlayer();
     player.resolveQuality();
-    await Promise.resolve();
+    await Promise.resolve(); // flush the setQuality .then()
     await tick();
 
-    vi.advanceTimersByTime(1200);
+    // No bufferend is ever sent, so only the soft cap can reveal it short of the hard cap.
+    vi.advanceTimersByTime(VIDEO_REVEAL_HARD_CAP_MS - 1);
     await tick();
     expect(iframe.className).toContain("opacity-100");
   });
 
-  it("hard cap: reveals after 6s even if setQuality never settles", async () => {
+  it("hard cap: hidden just before VIDEO_REVEAL_HARD_CAP_MS, revealed at it, even if setQuality never settles", async () => {
     const { iframe } = await renderWithPlayer();
-    vi.advanceTimersByTime(6000);
+    vi.advanceTimersByTime(VIDEO_REVEAL_HARD_CAP_MS - 1);
+    await tick();
+    expect(iframe.className).toContain("opacity-0");
+
+    vi.advanceTimersByTime(1);
     await tick();
     expect(iframe.className).toContain("opacity-100");
   });
